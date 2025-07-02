@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block title %}Apply for Learnerships - CodeCraftCo{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-left">
+            <h2 class="nav-logo">
+                <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+                    CodeCraftCo
+                </a>
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
+            <div class="user-menu">
+                <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
+                    <div class="user-avatar-small">
+                        {% if current_user.profile_picture %}
+                            <img src="{{ current_user.profile_picture }}" alt="">
+                        {% else %}
+                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="user-name">{{ current_user.full_name or current_user.email }}</span>
+                    <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div class="user-menu-dropdown" role="menu">
+                    <a href="{{ url_for('edit_profile') }}" class="menu-item" role="menuitem">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                        </svg>
+                        Profile Settings
+                    </a>
+                    <div class="menu-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="menu-item logout" role="menuitem">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
+                        </svg>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dashboard-content">
+        <div class="page-header">
+            <h1>Apply for Learnerships</h1>
+            <p>Complete your application for the selected learnerships</p>
+        </div>
+
+        <div class="application-container">
+            <!-- Selected Learnerships Summary -->
+            <section class="selected-learnerships glass-effect">
+                <h2>Selected Learnerships ({{ selected_learnerships|length }})</h2>
+                
+                <div class="selected-list">
+                    {% for learnership in selected_learnerships %}
+                    <div class="selected-item">
+                        <div class="learnership-logo">
+                            <img src="{{ learnership.company_logo or '/static/images/company-placeholder.svg' }}" 
+                                 alt="{{ learnership.company }} logo" width="40" height="40">
+                        </div>
+                        <div class="learnership-info">
+                            <h3>{{ learnership.title }}</h3>
+                            <p class="company-name">{{ learnership.company }}</p>
+                            <div class="learnership-meta">
+                                <span class="location">
+                                    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                    </svg>
+                                    {{ learnership.location }}
+                                </span>
+                                <span class="deadline">
+                                    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                    </svg>
+                                    Closes: {{ learnership.closing_date.strftime('%b %d, %Y') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Application Form -->
+            <section class="application-form-section glass-effect">
+                <h2>Complete Your Application</h2>
+                
+                <form method="POST" class="application-form">
+                    {{ form.hidden_tag() }}
+                    
+                    {% if form.learnerships %}
+                    <div class="form-group">
+                        <label>Confirm Selection</label>
+                        <div class="checkbox-group">
+                            {% for choice in form.learnerships %}
+                            <div class="checkbox-item">
+                                {{ choice }}
+                                {{ choice.label }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.learnerships.errors %}
+                            <span class="error-message">{{ form.learnerships.errors[0] }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if form.email_body %}
+                    <div class="form-group">
+                        <label for="{{ form.email_body.id }}">Cover Letter</label>
+                        {{ form.email_body(class="form-control", rows=5, placeholder="Introduce yourself and explain why you're a good fit for this learnership...") }}
+                        {% if form.email_body.errors %}
+                            <span class="error-message">{{ form.email_body.errors[0] }}</span>
+                        {% endif %}
+                        <small class="form-text text-muted">This will be included with your application. Highlight your relevant skills and experience.</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if form.attachments %}
+                    <div class="form-group">
+                        <label>Attach Documents</label>
+                        {% if form.attachments.choices %}
+                            <div class="document-selector">
+                                {% for choice in form.attachments %}
+                                <div class="document-choice">
+                                    {{ choice }}
+                                    {{ choice.label }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.attachments.errors %}
+                                <span class="error-message">{{ form.attachments.errors[0] }}</span>
+                            {% endif %}
+                            <small class="form-text text-muted">Select documents to include with your application.</small>
+                        {% else %}
+                            <div class="empty-documents">
+                                <p>You don't have any documents uploaded yet.</p>
+                                <a href="{{ url_for('document_center') }}" class="btn-primary">Upload Documents</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="form-actions">
+                        <a href="{{ url_for('learnerships') }}" class="btn-secondary">Cancel</a>
+                        <button type="submit" class="btn-primary">
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Submit Application
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User menu dropdown functionality
+    const menuTrigger = document.querySelector('.user-menu-trigger');
+    const menuDropdown = document.querySelector('.user-menu-dropdown');
+    
+    if (menuTrigger && menuDropdown) {
+        menuTrigger.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            menuDropdown.classList.toggle('active');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
+                menuTrigger.setAttribute('aria-expanded', 'false');
+                menuDropdown.classList.remove('active');
+            }
+        });
+    }
+});
+</script>
+
+<style>
+/* Styles for the application page */
+.application-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+    .application-container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.selected-learnerships, .application-form-section {
+    padding: 24px;
+    border-radius: var(--radius-md);
+}
+
+.selected-learnerships h2, .application-form-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+/* Selected learnerships styling */
+.selected-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.selected-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background-color: var(--surface-hover);
+    border-radius: var(--radius-md);
+}
+
+.learnership-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.learnership-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.learnership-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.learnership-info h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--text-primary);
+}
+
+.company-name {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.learnership-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.location, .deadline {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+/* Form styling */
+.application-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    color: var(--text-primary);
+    background-color: var(--surface);
+}
+
+.form-text {
+    display: block;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+
+.error-message {
+    display: block;
+    color: var(--danger-color);
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+/* Checkbox and document selector styling */
+.checkbox-group, .document-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--surface);
+}
+
+.checkbox-item, .document-choice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+}
+
+.checkbox-item:hover, .document-choice:hover {
+    background-color: var(--surface-hover);
+}
+
+.checkbox-item input, .document-choice input {
+    margin-right: 4px;
+}
+
+.empty-documents {
+    padding: 20px;
+    text-align: center;
+    background-color: var(--surface-hover);
+    border-radius: var(--radius-md);
+}
+
+.empty-documents p {
+    margin-bottom: 12px;
+    color: var(--text-secondary);
+}
+
+/* Form actions */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-secondary:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}
+
+/* Glass effect */
+.glass-effect {
+    background-color: var(--surface);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .application-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+    
+    .form-actions a, .form-actions button {
+        width: 100%;
+    }
+    
+    .learnership-meta {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+/* User menu styling (from dashboard) */
+.user-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-weight: 600;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.user-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-avatar-small span {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.user-menu {
+    position: relative;
+}
+
+.user-menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.user-menu-trigger:hover {
+    background-color: var(--surface-hover);
+}
+
+.user-name {
+    font-weight: 500;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+@media (max-width: 640px) {
+    .user-name {
+        display: none;
+    }
+}
+
+.chevron-icon {
+    transition: transform var(--transition-fast);
+}
+
+.user-menu-trigger[aria-expanded="true"] .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    overflow: hidden;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all var(--transition-normal);
+}
+
+.user-menu-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background-color var(--transition-fast);
+}
+
+.menu-item:hover {
+    background-color: var(--surface-hover);
+}
+
+.menu-item.logout {
+    color: var(--danger-color);
+}
+
+.menu-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 4px 0;
+}
+
+/* Nav link styling */
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-right: 8px;
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color var(--transition-fast);
+}
+
+.nav-link:hover {
+    background-color: var(--surface-hover);
+}
+
+/* Page header styling */
+.page-header {
+    margin-bottom: 24px;
+}
+
+.page-header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+</style>
+{% endblock %}

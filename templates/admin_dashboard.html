@@ -1,0 +1,1065 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - CodeCraftCo{% endblock %}
+
+{% block content %}
+<style>
+    /* Dashboard Layout */
+    .dashboard-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #151922; /* Dark background */
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .dashboard-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #1e2434; /* Dark nav background */
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .nav-left h2 {
+        margin: 0;
+        color: #5d72e4; /* Purple-blue brand color */
+        font-weight: 600;
+    }
+    
+    .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .user-info {
+        font-weight: 500;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .logout-button {
+        padding: 0.5rem 1rem;
+        background-color: #2d3446; /* Dark button */
+        color: #e4e6eb; /* Light text */
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .logout-button:hover {
+        background-color: #3a4258; /* Slightly lighter on hover */
+    }
+    
+    .dashboard-content {
+        padding: 2rem;
+        flex-grow: 1;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background-color: #1e2434; /* Dark card */
+        border-radius: 10px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        background-color: rgba(93, 114, 228, 0.1); /* Purple-blue background */
+        color: #5d72e4; /* Purple-blue icon */
+    }
+    
+    .stat-icon.active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .stat-icon.google {
+        background-color: rgba(234, 67, 53, 0.1);
+        color: #ea4335;
+    }
+    
+    .stat-icon.admin {
+        background-color: rgba(120, 75, 209, 0.1);
+        color: #784bd1;
+    }
+    
+    .stat-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .stat-content h3 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .stat-content p {
+        margin: 0;
+        color: #a0a6b3; /* Lighter secondary text */
+        font-size: 0.9rem;
+    }
+    
+    /* Quick Access Sections */
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .quick-access-card {
+        background-color: #1e2434; /* Dark card */
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .btn-add {
+        display: flex;
+        align-items: center;
+        background-color: #5d72e4; /* Purple-blue button */
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none;
+    }
+    
+    .btn-add:hover {
+        background-color: #4a60d3; /* Darker on hover */
+    }
+    
+    .btn-add svg {
+        width: 16px;
+        height: 16px;
+        margin-right: 0.25rem;
+    }
+    
+    .btn-view-all {
+        color: #5d72e4; /* Purple-blue link */
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .btn-view-all:hover {
+        text-decoration: underline;
+    }
+    
+    .btn-view-all svg {
+        width: 16px;
+        height: 16px;
+        margin-left: 0.25rem;
+    }
+    
+    .quick-list {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .quick-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .quick-item:last-child {
+        border-bottom: none;
+    }
+    
+    .item-primary {
+        font-weight: 500;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .item-secondary {
+        color: #a0a6b3; /* Lighter secondary text */
+        font-size: 0.9rem;
+    }
+    
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .badge-admin {
+        background-color: rgba(120, 75, 209, 0.1);
+        color: #784bd1;
+    }
+    
+    .badge-user {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    .badge-active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .badge-inactive {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .badge-pending {
+        background-color: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+    }
+    
+    .badge-approved {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .badge-rejected {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .item-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-action {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background-color: #2d3446; /* Dark button */
+        color: #a0a6b3; /* Lighter text */
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+    }
+    
+    .btn-action:hover {
+        background-color: #3a4258; /* Slightly lighter on hover */
+    }
+    
+    .btn-action svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .btn-edit:hover {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    .btn-delete:hover {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    /* Users Table */
+    .users-section, .data-section {
+        background-color: #1e2434; /* Dark section */
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .users-table, .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .users-table th, .users-table td,
+    .data-table th, .data-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .users-table th, .data-table th {
+        background-color: #252c3e; /* Slightly lighter header */
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .users-table tr:last-child td,
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .users-table tr:hover, .data-table tr:hover {
+        background-color: #252c3e; /* Slightly lighter on hover */
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-badge.active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .status-badge.inactive {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .auth-method {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        background-color: #2d3446; /* Dark badge */
+        color: #a0a6b3; /* Lighter text */
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-toggle, .btn-view {
+        background-color: #2d3446; /* Dark button */
+        color: #a0a6b3; /* Lighter text */
+    }
+    
+    .btn-toggle:hover {
+        background-color: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+    }
+    
+    .btn-view:hover {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    /* Tab Navigation for main sections */
+    .main-tabs {
+        display: flex;
+        background-color: #1e2434; /* Dark tabs */
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .main-tab {
+        padding: 1rem 1.5rem;
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-weight: 500;
+        color: #a0a6b3; /* Lighter inactive text */
+    }
+    
+    .main-tab.active {
+        background-color: #5d72e4; /* Purple-blue active tab */
+        color: white;
+    }
+    
+    .main-tab:hover:not(.active) {
+        background-color: #252c3e; /* Slightly lighter on hover */
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .dashboard-nav {
+            padding: 1rem;
+        }
+        
+        .dashboard-content {
+            padding: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .users-table th, .users-table td,
+        .data-table th, .data-table td {
+            padding: 0.5rem;
+        }
+        
+        .quick-access-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Navigation Bar -->
+    <nav class="dashboard-nav">
+        <div class="nav-left">
+            <h2>CodeCraftCo Admin</h2>
+        </div>
+        <div class="nav-right">
+            <span class="user-info">Welcome, {{ current_user.full_name or current_user.username }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_users }}</h3>
+                    <p>Total Users</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.active_users }}</h3>
+                    <p>Active Users</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_learnerships|default(0) }}</h3>
+                    <p>Learnerships</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_applications|default(0) }}</h3>
+                    <p>Applications</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Tab Navigation -->
+        <div class="main-tabs">
+            <div class="main-tab active" data-tab="dashboard">Dashboard</div>
+            <div class="main-tab" data-tab="users">Users</div>
+            <div class="main-tab" data-tab="learnerships">Learnerships</div>
+            <div class="main-tab" data-tab="applications">Applications</div>
+        </div>
+        
+        <!-- Dashboard Tab Content -->
+        <div class="tab-content active" id="dashboard-tab">
+            <!-- Quick Access Sections -->
+            <div class="quick-access-grid">
+                <!-- Recent Users -->
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Users</h3>
+                        <a href="{{ url_for('add_user') }}" class="btn-add">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add User
+                        </a>
+                    </div>
+                    <ul class="quick-list">
+                        {% for user in recent_users|default(users[:5]) %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ user.full_name or user.username }}</div>
+                                <div class="item-primary">{{ user.full_name or user.username }}</div>
+                                <div class="item-secondary">{{ user.email }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                                <span class="badge badge-{{ 'active' if user.is_active else 'inactive' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('users')">
+                            View All Users
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Learnerships -->
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Learnerships</h3>
+                        <a href="{{ url_for('add_learnership') }}" class="btn-add">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Learnership
+                        </a>
+                    </div>
+                    <ul class="quick-list">
+                        {% for learnership in recent_learnerships|default([]) %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ learnership.title }}</div>
+                                <div class="item-secondary">{{ learnership.company }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ 'active' if learnership.is_active else 'inactive' }}">
+                                    {{ 'Active' if learnership.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not recent_learnerships|default([]) %}
+                        <li class="quick-item">
+                            <div class="item-primary" style="color: #666; font-style: italic;">No learnerships found</div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('learnerships')">
+                            View All Learnerships
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Applications -->
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Applications</h3>
+                    </div>
+                    <ul class="quick-list">
+                        {% for application in recent_applications|default([]) %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ application.user.full_name or application.user.username }}</div>
+                                <div class="item-secondary">{{ application.learnership.title if application.learnership else application.learnership_name }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ application.status }}">{{ application.status|title }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not recent_applications|default([]) %}
+                        <li class="quick-item">
+                            <div class="item-primary" style="color: #666; font-style: italic;">No applications found</div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('applications')">
+                            View All Applications
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Section -->
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <a href="{{ url_for('add_user') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add User
+                    </a>
+                </div>
+                <div class="table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Auth Method</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.full_name or '-' }}</td>
+                                <td>
+                                    <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                                </td>
+                                <td>
+                                    <span class="auth-method">{{ user.auth_method }}</span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                                        {{ 'Active' if user.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn-action btn-view" title="View User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn-action btn-edit" title="Edit User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        {% if user.role != 'admin' %}
+                                            <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
+                                                    {% if user.is_active %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    {% else %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                            
+                                            <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                <button type="submit" class="btn-action btn-delete" title="Delete User">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users Tab Content -->
+        <div class="tab-content" id="users-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <a href="{{ url_for('add_user') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add User
+                    </a>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Auth Method</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.full_name or '-' }}</td>
+                                <td>
+                                    <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                                </td>
+                                <td>
+                                    <span class="auth-method">{{ user.auth_method }}</span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                                        {{ 'Active' if user.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn-action btn-view" title="View User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn-action btn-edit" title="Edit User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        {% if user.role != 'admin' %}
+                                            <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
+                                                    {% if user.is_active %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    {% else %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                            
+                                            <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                <button type="submit" class="btn-action btn-delete" title="Delete User">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Learnerships Tab Content -->
+        <div class="tab-content" id="learnerships-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>Learnership Management</h2>
+                    <a href="{{ url_for('add_learnership') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Learnership
+                    </a>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Company</th>
+                                <th>Category</th>
+                                <th>Location</th>
+                                <th>Closing Date</th>
+                                <th>Status</th>
+                                <th>Applications</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for learnership in learnerships|default([]) %}
+                            <tr>
+                                <td>{{ learnership.id }}</td>
+                                <td>{{ learnership.title }}</td>
+                                <td>{{ learnership.company }}</td>
+                                <td>{{ learnership.category }}</td>
+                                <td>{{ learnership.location }}</td>
+                                <td>{{ learnership.closing_date.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if learnership.is_active else 'inactive' }}">
+                                        {{ 'Active' if learnership.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>{{ learnership.applications|length }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_learnership', learnership_id=learnership.id) }}" class="btn-action btn-view" title="View Learnership">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        <a href="{{ url_for('edit_learnership', learnership_id=learnership.id) }}" class="btn-action btn-edit" title="Edit Learnership">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        <form method="POST" action="{{ url_for('toggle_learnership_status', learnership_id=learnership.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-toggle" title="{{ 'Deactivate' if learnership.is_active else 'Activate' }}">
+                                                {% if learnership.is_active %}
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                    </svg>
+                                                {% else %}
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                {% endif %}
+                                            </button>
+                                        </form>
+                                        
+                                        <form method="POST" action="{{ url_for('delete_learnership', learnership_id=learnership.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this learnership?');">
+                                            <button type="submit" class="btn-action btn-delete" title="Delete Learnership">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not learnerships|default([]) %}
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 2rem; color: #666;">No learnerships found</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Applications Tab Content -->
+        <div class="tab-content" id="applications-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>Application Management</h2>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Learnership</th>
+                                <th>Company</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for application in applications|default([]) %}
+                            <tr>
+                                <td>{{ application.id }}</td>
+                                <td>{{ application.user.full_name or application.user.username }}</td>
+                                <td>{{ application.learnership.title if application.learnership else application.learnership_name }}</td>
+                                <td>{{ application.company_name }}</td>
+                                <td>
+                                    <span class="status-badge {{ application.status }}">{{ application.status|title }}</span>
+                                </td>
+                                <td>{{ application.submitted_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ application.updated_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_application', application_id=application.id) }}" class="btn-action btn-view" title="View Application">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        {% if application.status == 'pending' %}
+                                        <form method="POST" action="{{ url_for('update_application_status', application_id=application.id, status='approved') }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-approve" title="Approve Application">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        
+                                        <form method="POST" action="{{ url_for('update_application_status', application_id=application.id, status='rejected') }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-reject" title="Reject Application">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        
+                                        <form method="POST" action="{{ url_for('delete_application', application_id=application.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this application?');">
+                                            <button type="submit" class="btn-action btn-delete" title="Delete Application">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not applications|default([]) %}
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">No applications found</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for tab switching -->
+<script>
+    // Function to show selected tab
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Show selected tab
+        document.getElementById(tabName + '-tab').classList.add('active');
+        
+        // Add active class to selected tab button
+        document.querySelector(`.main-tab[data-tab="${tabName}"]`).classList.add('active');
+    }
+    
+    // Add event listeners to tab buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                showTab(tabName);
+            });
+        });
+        
+        // Initialize the first tab
+        showTab('dashboard');
+    });
+</script>
+{% endblock %}

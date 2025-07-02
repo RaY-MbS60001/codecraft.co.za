@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Add New User - CodeCraftCo Admin{% endblock %}
+
+{% block content %}
+<style>
+    /* Form Layout */
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #151922; /* Dark background */
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .form-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #1e2434; /* Dark nav background */
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .nav-left h2 {
+        margin: 0;
+        color: #5d72e4; /* Purple-blue brand color */
+        font-weight: 600;
+    }
+    
+    .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .form-content {
+        flex-grow: 1;
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    .form-card {
+        background-color: #1e2434; /* Dark card */
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+    }
+    
+    .card-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #e4e6eb; /* Light text */
+        font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: #252c3e; /* Slightly lighter input field */
+        border: 1px solid #2d3446; /* Darker border */
+        border-radius: 4px;
+        color: #e4e6eb; /* Light text */
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: #5d72e4; /* Purple-blue focus */
+        outline: none;
+    }
+    
+    .form-group small {
+        display: block;
+        margin-top: 0.25rem;
+        color: #a0a6b3; /* Lighter secondary text */
+        font-size: 0.85rem;
+    }
+    
+    .form-buttons {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-secondary {
+        padding: 0.75rem 1.5rem;
+        background-color: #2d3446; /* Dark button */
+        color: #e4e6eb; /* Light text */
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #3a4258; /* Slightly lighter on hover */
+    }
+    
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        background-color: #5d72e4; /* Purple-blue button */
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background-color: #4a60d3; /* Darker on hover */
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+        width: auto;
+    }
+    
+    .form-divider {
+        margin: 2rem 0;
+        border-top: 1px solid #2d3446; /* Darker border */
+    }
+    
+    .error-message {
+        color: #f03e3e; /* Red for errors */
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+    
+    .success-message {
+        color: #4bc070; /* Green for success */
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .form-nav {
+            padding: 1rem;
+        }
+        
+        .form-content {
+            padding: 1rem;
+        }
+        
+        .form-card {
+            padding: 1.5rem;
+        }
+        
+        .form-buttons {
+            flex-direction: column-reverse;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="form-container">
+    <!-- Navigation Bar -->
+    <nav class="form-nav">
+        <div class="nav-left">
+            <h2>CodeCraftCo Admin</h2>
+        </div>
+        <div class="nav-right">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Back to Dashboard</a>
+        </div>
+    </nav>
+
+    <!-- Form Content -->
+    <div class="form-content">
+        <div class="form-card">
+            <div class="card-header">
+                <h1>Add New User</h1>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="{{ category }}-message">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form action="{{ url_for('add_user') }}" method="POST">
+                <!-- Basic Information -->
+                <div class="form-group">
+                    <label for="email">Email Address *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username">
+                    <small>Username is optional but must be unique if provided.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password" required>
+                    <small>Password should be at least 8 characters and include letters, numbers, and special characters.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                </div>
+                
+                <div class="form-divider"></div>
+                
+                <!-- Additional Information -->
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone">
+                </div>
+                
+                <div class="form-group">
+                    <label for="auth_method">Authentication Method *</label>
+                    <select id="auth_method" name="auth_method" required>
+                        <option value="local" selected>Local Account</option>
+                        <option value="google">Google</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">User Role *</label>
+                    <select id="role" name="role" required>
+                        <option value="user" selected>Regular User</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="is_active" name="is_active" checked>
+                                        <label for="is_active">Account Active</label>
+                </div>
+                
+                <div class="form-buttons">
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Cancel</a>
+                    <button type="submit" class="btn-primary">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+@echo off
+echo Installing dependencies...
+pip install -r requirements.txt
+
+echo Creating instance directory...
+mkdir instance 2>nul
+
+echo Initializing database...
+python -c "from app import app, db; app.app_context().push(); db.create_all(); print('Database initialized successfully!')"

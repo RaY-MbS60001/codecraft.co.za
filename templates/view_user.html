@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}View User - {{ user.username or user.email }} - CodeCraftCo Admin{% endblock %}
+
+{% block content %}
+<style>
+    /* Same styles as other admin pages */
+    .container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #151922; /* Dark background */
+        color: #e4e6eb; /* Light text */
+        padding: 2rem;
+    }
+    
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: #e4e6eb;
+    }
+    
+    .btn-back {
+        padding: 0.5rem 1rem;
+        background-color: #2d3446;
+        color: #e4e6eb;
+        border-radius: 4px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-back:hover {
+        background-color: #3a4258;
+    }
+    
+    .card {
+        background-color: #1e2434;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    
+    .card h2 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        color: #5d72e4;
+        border-bottom: 1px solid #2d3446;
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .info-item {
+        margin-bottom: 1rem;
+    }
+    
+    .info-label {
+        font-size: 0.9rem;
+        color: #a0a6b3;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        color: #e4e6eb;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .badge-admin {
+        background-color: rgba(120, 75, 209, 0.1);
+        color: #784bd1;
+    }
+    
+    .badge-user {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    .badge-active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .badge-inactive {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table th, .table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #2d3446;
+        color: #e4e6eb;
+    }
+    
+    .table th {
+        background-color: #252c3e;
+        font-weight: 600;
+    }
+    
+    .table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .table tr:hover {
+        background-color: #252c3e;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        background-color: #5d72e4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn-primary:hover {
+        background-color: #4a60d3;
+    }
+    
+    .btn-danger {
+        padding: 0.75rem 1.5rem;
+        background-color: #f03e3e;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn-danger:hover {
+        background-color: #e03131;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-danger {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1>User Details</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-back">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+    
+    <div class="card">
+        <h2>User Information</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">ID</div>
+                <div class="info-value">{{ user.id }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ user.email }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Username</div>
+                <div class="info-value">{{ user.username or 'Not set' }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ user.full_name or 'Not set' }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Role</div>
+                <div class="info-value">
+                    <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Status</div>
+                <div class="info-value">
+                    <span class="badge badge-{{ 'active' if user.is_active else 'inactive' }}">
+                        {{ 'Active' if user.is_active else 'Inactive' }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Phone Number</div>
+                <div class="info-value">{{ user.phone or 'Not provided' }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Authentication Method</div>
+                <div class="info-value">{{ user.auth_method }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Created</div>
+                <div class="info-value">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">Last Login</div>
+                <div class="info-value">{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</div>
+            </div>
+        </div>
+    </div>
+    
+    {% if applications %}
+    <div class="card">
+        <h2>Applications ({{ applications|length }})</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Learnership</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for application in applications %}
+                <tr>
+                    <td>{{ application.id }}</td>
+                    <td>{{ application.learnership.title if application.learnership else application.learnership_name }}</td>
+                    <td>{{ application.company_name }}</td>
+                    <td>
+                        <span class="badge badge-{{ application.status }}">{{ application.status|title }}</span>
+                    </td>
+                    <td>{{ application.submitted_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <a href="{{ url_for('view_application', application_id=application.id) }}" class="btn-view">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    {% if documents %}
+    <div class="card">
+        <h2>Documents ({{ documents|length }})</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Filename</th>
+                    <th>Size</th>
+                    <th>Uploaded</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td>{{ document.id }}</td>
+                    <td>{{ document.document_type }}</td>
+                    <td>{{ document.original_filename }}</td>
+                    <td>{{ (document.file_size / 1024)|round(1) }} KB</td>
+                    <td>{{ document.uploaded_at.strftime('%Y-%m-%d') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <div class="action-buttons">
+        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn-primary">Edit User</a>
+        
+        {% if user.role != 'admin' %}
+        <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" style="display: inline;">
+            <button type="submit" class="btn-primary">
+                {% if user.is_active %}Deactivate{% else %}Activate{% endif %} User
+            </button>
+        </form>
+        
+        <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" 
+              style="display: inline;" 
+              onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');">
+            <button type="submit" class="btn-danger">Delete User</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

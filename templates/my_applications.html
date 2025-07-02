@@ -1,0 +1,1219 @@
+{% extends "base.html" %}
+
+{% block title %}My Applications - CodeCraftCo{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-left">
+            <h2 class="nav-logo">
+                <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+                    CodeCraftCo
+                </a>
+            </h2>
+        </div>
+        <div class="nav-right">
+            <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
+            <div class="user-menu">
+                <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
+                    <div class="user-avatar-small">
+                        {% if current_user.profile_picture %}
+                            <img src="{{ current_user.profile_picture }}" alt="">
+                        {% else %}
+                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="user-name">{{ current_user.full_name or current_user.email }}</span>
+                    <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div class="user-menu-dropdown" role="menu">
+                    <a href="{{ url_for('edit_profile') }}" class="menu-item" role="menuitem">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                        </svg>
+                        Profile Settings
+                    </a>
+                    <div class="menu-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="menu-item logout" role="menuitem">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
+                        </svg>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="dashboard-content">
+        <div class="page-header">
+            <h1>My Applications</h1>
+            <p>Track and manage your learnership applications</p>
+        </div>
+
+        <!-- Application Status Tabs -->
+        <div class="status-tabs-wrapper">
+            <div class="status-tabs" role="tablist">
+                <button class="tab-btn active" data-status="all" role="tab" aria-selected="true" id="tab-all">
+                    All <span class="tab-count">{{ applications|length }}</span>
+                </button>
+                <button class="tab-btn" data-status="submitted" role="tab" aria-selected="false" id="tab-submitted">
+                    Submitted <span class="tab-count">{{ grouped_applications.submitted|length }}</span>
+                </button>
+                <button class="tab-btn" data-status="reviewed" role="tab" aria-selected="false" id="tab-reviewed">
+                    Reviewed <span class="tab-count">{{ grouped_applications.reviewed|length }}</span>
+                </button>
+                <button class="tab-btn" data-status="accepted" role="tab" aria-selected="false" id="tab-accepted">
+                    Accepted <span class="tab-count">{{ grouped_applications.accepted|length }}</span>
+                </button>
+                <button class="tab-btn" data-status="rejected" role="tab" aria-selected="false" id="tab-rejected">
+                    Rejected <span class="tab-count">{{ grouped_applications.rejected|length }}</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Applications List -->
+        <div class="applications-wrapper glass-effect">
+            <div class="applications-container" role="tabpanel" aria-labelledby="tab-all">
+                {% if applications %}
+                    <div class="applications-list">
+                        {% for app in applications %}
+                        <div class="application-card detailed" data-status="{{ app.status }}">
+                            <div class="card-main">
+                                <div class="card-left">
+                                    <div class="app-company-logo">
+                                        <img src="{{ app.learnership.company_logo or '/static/images/company-placeholder.svg' }}" 
+                                             alt="{{ app.learnership.company }} logo">
+                                    </div>
+                                </div>
+                                
+                                <div class="card-content">
+                                    <div class="app-header">
+                                        <div class="app-info">
+                                            <h3 class="learnership-title">{{ app.learnership.title }}</h3>
+                                            <div class="company-info">
+                                                <span class="company-name">{{ app.learnership.company }}</span>
+                                                <span class="separator">•</span>
+                                                <span class="location">
+                                                    <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
+                                                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    {{ app.learnership.location }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="app-status">
+                                            <span class="status-badge {{ app.status }}">
+                                                <span class="status-dot"></span>
+                                                {{ app.status|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="app-details">
+                                        <div class="detail-item">
+                                            <span class="detail-label">Learnership:</span>
+                                            <span class="detail-value">{{ app.learnership.program_name or app.learnership.title }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Duration:</span>
+                                            <span class="detail-value">{{ app.learnership.duration or '12 months' }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Applied:</span>
+                                            <span class="detail-value">{{ app.created_at.strftime('%d %b %Y at %H:%M') }}</span>
+                                        </div>
+                                        {% if app.submitted_at %}
+                                        <div class="detail-item">
+                                            <span class="detail-label">Sent:</span>
+                                            <span class="detail-value">{{ app.submitted_at.strftime('%d %b %Y at %H:%M') }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="card-right">
+                                    <button class="btn-icon view-details" data-app-id="{{ app.id }}" aria-label="View details">
+                                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress timeline -->
+                            <div class="progress-timeline">
+                                <div class="timeline-track">
+                                    <div class="timeline-fill" style="width: {{ '25%' if app.status == 'created' else '50%' if app.status == 'submitted' else '75%' if app.status == 'reviewed' else '100%' if app.status in ['accepted', 'rejected'] else '0%' }}"></div>
+                                </div>
+                                <div class="timeline-steps">
+                                    <div class="timeline-step {{ 'completed' if app.created_at else '' }}">
+                                        <span class="step-marker"></span>
+                                        <span class="step-label">Created</span>
+                                    </div>
+                                    <div class="timeline-step {{ 'completed' if app.submitted_at else '' }}">
+                                        <span class="step-marker"></span>
+                                        <span class="step-label">Sent</span>
+                                    </div>
+                                    <div class="timeline-step {{ 'completed' if app.reviewed_at else '' }}">
+                                        <span class="step-marker"></span>
+                                        <span class="step-label">Reviewed</span>
+                                    </div>
+                                    <div class="timeline-step {{ 'completed' if app.status in ['accepted', 'rejected'] else '' }}">
+                                        <span class="step-marker"></span>
+                                        <span class="step-label">{{ 'Accepted' if app.status == 'accepted' else 'Rejected' if app.status == 'rejected' else 'Decision' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48" class="empty-state-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <h3>No applications yet</h3>
+                        <p>Start by browsing available learnerships to find opportunities that match your skills</p>
+                        <a href="{{ url_for('learnerships') }}" class="cta-button">Browse Learnerships</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User menu dropdown functionality
+    const menuTrigger = document.querySelector('.user-menu-trigger');
+    const menuDropdown = document.querySelector('.user-menu-dropdown');
+    
+    if (menuTrigger && menuDropdown) {
+        menuTrigger.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            menuDropdown.classList.toggle('active');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
+                menuTrigger.setAttribute('aria-expanded', 'false');
+                menuDropdown.classList.remove('active');
+            }
+        });
+    }
+    
+    // Tab functionality with improved accessibility
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const applications = document.querySelectorAll('.application-card');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Update active tab
+            tabBtns.forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            
+            this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
+            
+            // Filter applications with animation
+            const status = this.dataset.status;
+            const container = document.querySelector('.applications-container');
+            container.setAttribute('aria-labelledby', `tab-${status}`);
+            
+            applications.forEach(app => {
+                if (status === 'all' || app.dataset.status === status) {
+                    app.classList.remove('hidden');
+                    setTimeout(() => {
+                        app.classList.remove('fade-out');
+                    }, 10);
+                } else {
+                    app.classList.add('fade-out');
+                    setTimeout(() => {
+                        app.classList.add('hidden');
+                    }, 300);
+                }
+            });
+        });
+    });
+    
+    // View details button functionality
+    const detailButtons = document.querySelectorAll('.view-details');
+    detailButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const appId = this.dataset.appId;
+            console.log(`Viewing details for application ${appId}`);
+            // Redirect to details page
+            // window.location.href = `/applications/${appId}`;
+        });
+    });
+});
+</script>
+
+<style>
+/* Layout structure */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.dashboard-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Fixed header elements */
+.page-header {
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.page-header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: var(--text-primary);
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* Status tabs */
+.status-tabs-wrapper {
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.status-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.status-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-btn {
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-normal);
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    margin-left: 4px;
+    background: var(--background);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.tab-btn.active .tab-count {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+/* Scrollable applications wrapper */
+.applications-wrapper {
+    flex: 1;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+}
+
+.applications-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+}
+
+/* Custom scrollbar */
+.applications-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.applications-container::-webkit-scrollbar-track {
+    background: var(--surface-hover);
+    border-radius: 3px;
+}
+
+.applications-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.applications-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Applications list */
+.applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Detailed card design */
+.application-card.detailed {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    overflow: hidden;
+}
+
+.application-card.detailed:hover {
+    border-color: var(--primary-light);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.card-main {
+    display: flex;
+    align-items: flex-start;
+    padding: 12px 16px;
+}
+
+.fade-out {
+    opacity: 0;
+    transform: scale(0.98);
+}
+
+.hidden {
+    display: none;
+}
+
+/* Card sections */
+.card-left {
+    flex-shrink: 0;
+    margin-right: 12px;
+}
+
+.app-company-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: var(--background);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-company-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.app-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.learnership-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.company-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.company-name {
+    font-weight: 500;
+}
+
+.location {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.location svg {
+    opacity: 0.7;
+}
+
+.separator {
+    color: var(--text-tertiary);
+    font-size: 10px;
+}
+
+.app-status {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.status-badge.created {
+    background-color: var(--text-tertiary);
+    color: white;
+}
+
+.status-badge.submitted {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.status-badge.reviewed {
+    background-color: var(--warning-light);
+    color: var(--warning-color);
+}
+
+.status-badge.accepted {
+    background-color: var(--success-light);
+    color: var(--success-color);
+}
+
+.status-badge.rejected {
+    background-color: var(--danger-light);
+    color: var(--danger-color);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+/* Application details */
+.app-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    font-size: 12px;
+}
+
+.detail-item {
+    display: flex;
+    gap: 4px;
+}
+
+.detail-label {
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+.detail-value {
+    color: var(--text-secondary);
+}
+
+.card-right {
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+/* Progress timeline */
+.progress-timeline {
+    padding: 12px 16px;
+    background: var(--background);
+    border-top: 1px solid var(--border-color);
+}
+
+.timeline-track {
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.timeline-fill {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 2px;
+    transition: width var(--transition-normal);
+}
+
+.timeline-steps {
+    display: flex;
+    justify-content: space-between;
+}
+
+.timeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+.timeline-step.completed {
+    color: var(--primary-color);
+}
+
+.step-marker {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-color);
+    position: relative;
+}
+
+.timeline-step.completed .step-marker {
+    background: var(--primary-color);
+}
+
+.step-label {
+    white-space: nowrap;
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+    margin: auto;
+}
+
+.empty-state-icon {
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    max-width: 280px;
+    margin: 0 auto 20px;
+    font-size: 13px;
+}
+
+.cta-button {
+    display: inline-block;
+    padding: 7px 14px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: 13px;
+    text-decoration: none;
+    transition: background-color var(--transition-fast);
+}
+
+.cta-button:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}
+
+/* Navigation styles */
+.dashboard-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    height: 52px;
+    background-color: var(--surface);
+    box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+}
+
+.nav-logo {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.nav-logo a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 13px;
+    transition: background-color var(--transition-fast);
+}
+
+.nav-link:hover {
+    background-color: var(--surface-hover);
+}
+
+/* User menu */
+.user-menu {
+    position: relative;
+}
+
+.user-menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 5px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.user-menu-trigger:hover {
+    background-color: var(--surface-hover);
+}
+
+.user-avatar-small {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 11px;
+    overflow: hidden;
+}
+
+.user-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-weight: 500;
+    font-size: 13px;
+    max-width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chevron-icon {
+    width: 14px;
+    height: 14px;
+    transition: transform var(--transition-fast);
+}
+
+.user-menu-trigger[aria-expanded="true"] .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    min-width: 150px;
+    overflow: hidden;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all var(--transition-normal);
+}
+
+.user-menu-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 13px;
+    transition: background-color var(--transition-fast);
+}
+
+.menu-item svg {
+    width: 14px;
+    height: 14px;
+}
+
+.menu-item:hover {
+    background-color: var(--surface-hover);
+}
+
+.menu-item.logout {
+    color: var(--danger-color);
+}
+
+.menu-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 2px 0;
+}
+
+/* Responsive design */
+
+/* Mobile screens (< 640px) */
+@media (max-width: 639px) {
+    .dashboard-nav {
+        padding: 0 12px;
+        height: 48px;
+    }
+    
+    .nav-logo {
+        font-size: 16px;
+    }
+    
+    .user-name {
+        display: none;
+    }
+    
+    .dashboard-content {
+        padding: 12px;
+    }
+    
+    .page-header h1 {
+        font-size: 18px;
+    }
+    
+    .applications-list {
+        gap: 8px;
+    }
+    
+    .card-main {
+        padding: 10px 12px;
+    }
+    
+    .card-left {
+        margin-right: 8px;
+    }
+    
+    .app-company-logo {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .learnership-title {
+        font-size: 14px;
+    }
+    
+    .company-info {
+        font-size: 12px;
+    }
+    
+    .app-details {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        font-size: 11px;
+    }
+    
+    .status-badge {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .btn-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .progress-timeline {
+        padding: 8px 12px;
+    }
+    
+    .timeline-step {
+        font-size: 9px;
+    }
+    
+    .step-marker {
+        width: 6px;
+        height: 6px;
+    }
+    
+    /* Hide some details on mobile */
+    .detail-item:nth-child(2) {
+        display: none;
+    }
+}
+
+/* Extra small screens (< 375px) */
+@media (max-width: 374px) {
+    .dashboard-content {
+        padding: 8px;
+    }
+    
+    .applications-wrapper {
+        border-radius: var(--radius-sm);
+    }
+    
+    .applications-container {
+        padding: 8px;
+    }
+    
+    .card-main {
+        padding: 8px 10px;
+    }
+    
+    .app-company-logo {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .learnership-title {
+        font-size: 13px;
+    }
+    
+    .company-info {
+        font-size: 11px;
+    }
+    
+    /* Stack header on very small screens */
+    .app-header {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .app-status {
+        align-self: flex-start;
+    }
+}
+
+/* Tablet screens (640px - 1024px) */
+@media (min-width: 640px) and (max-width: 1024px) {
+    .app-details {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Large screens (1440px+) */
+@media (min-width: 1440px) {
+    .applications-list {
+        gap: 14px;
+    }
+    
+    .card-main {
+        padding: 14px 20px;
+    }
+    
+    .app-company-logo {
+        width: 52px;
+        height: 52px;
+    }
+    
+    .learnership-title {
+        font-size: 16px;
+    }
+    
+    .app-details {
+        font-size: 13px;
+    }
+}
+
+/* Glass effect */
+.glass-effect {
+    background-color: var(--surface);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Smooth scrolling */
+.applications-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* Animation for filtering */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(8px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* Performance optimization */
+.application-card {
+    will-change: transform, opacity;
+}
+
+/* Firefox scrollbar */
+@supports (scrollbar-width: thin) {
+    .applications-container {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-color) var(--surface-hover);
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .application-card {
+        border: 2px solid var(--text-primary);
+    }
+    
+    .status-badge {
+        border: 1px solid currentColor;
+    }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .app-company-logo {
+        background: var(--surface-hover);
+    }
+    
+    .progress-timeline {
+        background: var(--surface);
+    }
+}
+
+/* Print styles */
+@media print {
+    .dashboard-nav,
+    .status-tabs-wrapper,
+    .btn-icon,
+    .user-menu {
+        display: none;
+    }
+    
+    .dashboard-content {
+        padding: 0;
+    }
+    
+    .applications-wrapper {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .application-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border: 1px solid #ddd;
+        margin-bottom: 10px;
+    }
+    
+    .progress-timeline {
+        display: none;
+    }
+}
+
+/* Loading state for cards */
+.application-card.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.application-card.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.2) 50%, 
+        transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Tooltip styles for timestamps */
+.detail-value[title] {
+    cursor: help;
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+}
+
+/* Focus styles for accessibility */
+.btn-icon:focus,
+.tab-btn:focus,
+.user-menu-trigger:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Enhanced status colors */
+:root {
+    --status-created: #6b7280;
+    --status-submitted: var(--primary-color);
+    --status-reviewed: #f59e0b;
+    --status-accepted: #10b981;
+    --status-rejected: #ef4444;
+}
+
+.status-badge.created {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--status-created);
+}
+
+.timeline-step.completed[data-status="created"] .step-marker {
+    background: var(--status-created);
+}
+
+/* Hover effects for interactive elements */
+.application-card:hover .btn-icon {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.application-card:hover .learnership-title {
+    color: var(--primary-color);
+}
+
+/* Custom property for dynamic content */
+.applications-container {
+    --card-gap: 12px;
+}
+
+@media (min-width: 1024px) {
+    .applications-container {
+        --card-gap: 14px;
+    }
+}
+
+@media (max-width: 639px) {
+    .applications-container {
+        --card-gap: 8px;
+    }
+}
+
+.applications-list {
+    gap: var(--card-gap);
+}
+</style>
+{% endblock %}

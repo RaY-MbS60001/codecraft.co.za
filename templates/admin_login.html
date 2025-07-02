@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login - CodeCraftCo{% endblock %}
+
+{% block content %}
+<body class="login-page">
+    <div class="main-wrapper">
+        <div class="container">
+            <!-- Back Button -->
+            <a href="{{ url_for('login') }}" class="back-button">
+                <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M19 12H5m7-7l-7 7 7 7"/>
+                </svg>
+                Back
+            </a>
+
+            <!-- Logo Section -->
+<div class="logo-container">
+  <img
+    src="{{ url_for('static', filename='images/logos/icon.png') }}"
+    alt="CodeCraftCo Logo"
+    class="company-logo"
+  />
+  <h2>CodeCraftCo</h2>
+  <p class="admin-subtitle">Admin Dashboard</p>
+</div>
+
+            <!-- Login Form -->
+            <form method="POST" class="admin-form">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group">
+                    {{ form.username.label(class="form-label") }}
+                    {{ form.username(class="form-control", placeholder="Enter your username") }}
+                    {% if form.username.errors %}
+                        <span class="error-message">
+                            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            {{ form.username.errors[0] }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.password.label(class="form-label") }}
+                    <div class="password-input-wrapper">
+                        {{ form.password(class="form-control", placeholder="Enter your password") }}
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                    {% if form.password.errors %}
+                        <span class="error-message">
+                            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                            </svg>
+                            {{ form.password.errors[0] }}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {{ form.submit(class="login-btn admin-btn submit-button") }}
+            </form>
+
+            <!-- Default Credentials Note -->
+            <div class="login-footer">
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <nav class="footer-nav">
+            <a href="/privacy">Privacy Policy</a>
+            <span>•</span>
+            <a href="/terms">Terms of Service</a>
+            <span>•</span>
+            <a href="/support">Support</a>
+        </nav>
+    </footer>
+</body>
+
+<script>
+function togglePassword() {
+    const passwordField = document.querySelector('input[name="password"]');
+    const eyeIcon = document.querySelector('.eye-icon');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        eyeIcon.innerHTML = `
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+        `;
+    } else {
+        passwordField.type = 'password';
+        eyeIcon.innerHTML = `
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+        `;
+    }
+}
+</script>
+{% endblock %}

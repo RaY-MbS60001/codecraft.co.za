@@ -1,0 +1,146 @@
+[
+  {
+    "id": 1,
+    "title": "Software Development Learnership",
+    "company": "TechCorp",
+    "company_logo": "/static/images/companies/techcorp.png",
+    "description": "Join our 12-month software development learnership program to gain hands-on experience in full-stack web development. You will learn modern technologies including JavaScript, Python, and cloud deployment.",
+    "location": "Cape Town",
+    "duration": "12 months",
+    "stipend": "R7,500 per month",
+    "category": "information_technology",
+    "closing_date": "2023-12-15",
+    "requirements": [
+      "Matric with Mathematics",
+      "Basic understanding of programming concepts",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Data Science Learnership",
+    "company": "DataMinds",
+    "company_logo": "/static/images/companies/dataminds.png",
+    "description": "Gain valuable skills in data analysis, machine learning, and AI applications. This learnership includes hands-on projects with real-world datasets and mentorship from industry experts.",
+    "location": "Johannesburg",
+    "duration": "18 months",
+    "stipend": "R8,000 per month",
+    "category": "information_technology",
+    "closing_date": "2023-11-30",
+    "requirements": [
+      "Matric with Mathematics and Physical Science",
+      "Basic understanding of statistics",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Financial Management Learnership",
+    "company": "FinGroup",
+    "company_logo": "/static/images/companies/fingroup.png",
+    "description": "Develop essential skills in financial management, accounting principles, and business administration. This program includes preparation for professional certification exams.",
+    "location": "Durban",
+    "duration": "24 months",
+    "stipend": "R6,500 per month",
+    "category": "finance",
+    "closing_date": "2023-12-01",
+    "requirements": [
+      "Matric with Mathematics",
+      "Interest in financial services",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Digital Marketing Learnership",
+    "company": "MarketPro",
+    "company_logo": "/static/images/companies/marketpro.png",
+    "description": "Learn the latest digital marketing strategies including SEO, social media marketing, content creation, and analytics. Work on real campaigns for actual clients.",
+    "location": "Remote",
+    "duration": "12 months",
+    "stipend": "R6,000 per month",
+    "category": "marketing",
+    "closing_date": "2023-11-15",
+    "requirements": [
+      "Matric with English",
+      "Interest in marketing and social media",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 5,
+    "title": "Mechanical Engineering Learnership",
+    "company": "EngineCorp",
+    "company_logo": "/static/images/companies/enginecorp.png",
+    "description": "Practical training in mechanical engineering principles, including design, manufacturing processes, and maintenance procedures. Includes industry certifications.",
+    "location": "Port Elizabeth",
+    "duration": "36 months",
+    "stipend": "R8,500 per month",
+    "category": "engineering",
+    "closing_date": "2023-12-31",
+    "requirements": [
+      "Matric with Mathematics and Physical Science",
+      "Interest in mechanical systems",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 6,
+    "title": "Retail Management Learnership",
+    "company": "RetailMasters",
+    "company_logo": "/static/images/companies/retailmasters.png",
+    "description": "Comprehensive training in retail operations, customer service, inventory management, and team leadership. Includes rotation through various departments.",
+    "location": "Multiple Locations",
+    "duration": "12 months",
+    "stipend": "R5,500 per month",
+    "category": "business_management",
+    "closing_date": "2023-11-20",
+    "requirements": [
+      "Matric certificate",
+      "Customer service orientation",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 7,
+    "title": "Hospitality Management Learnership",
+    "company": "HospitalityPlus",
+    "company_logo": "/static/images/companies/hospitalityplus.png",
+    "description": "Learn all aspects of hospitality management including front desk operations, food and beverage service, event planning, and customer relations.",
+    "location": "Cape Town",
+    "duration": "18 months",
+    "stipend": "R6,000 per month",
+    "category": "hospitality",
+    "closing_date": "2023-12-10",
+    "requirements": [
+      "Matric certificate",
+      "Interest in hospitality industry",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  },
+  {
+    "id": 8,
+    "title": "Healthcare Administration Learnership",
+    "company": "MediCare",
+    "company_logo": "/static/images/companies/medicare.png",
+    "description": "Training in healthcare administration, patient records management, medical billing, and healthcare facility operations.",
+    "location": "Johannesburg",
+    "duration": "24 months",
+    "stipend": "R7,000 per month",
+    "category": "healthcare",
+    "closing_date": "2023-12-05",
+    "requirements": [
+      "Matric with Life Sciences",
+      "Interest in healthcare sector",
+      "South African citizen aged 18-35",
+      "No prior criminal record"
+    ]
+  }
+]
