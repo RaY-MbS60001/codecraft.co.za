@@ -629,7 +629,6 @@ def safe_db_init():
                 print("Admin user created successfully!")
             
             # Initialize other data
-            init_sample_learnerships()
             init_learnership_emails()
     except Exception as e:
         print(f"Database initialization error: {e}")
