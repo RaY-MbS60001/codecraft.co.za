@@ -41,6 +41,8 @@ from forms import (
     DocumentUploadForm, LearnershipSearchForm
 )
 from decorators import admin_required
+from security_middleware import add_security_headers
+
 
 # Load environment variables
 load_dotenv()
@@ -94,6 +96,11 @@ def get_database_url():
 
 app = Flask(__name__)
 
+app.config.from_object(Config)
+    
+    # Apply security middleware
+add_security_headers(app)
+    
 # Determine base directory and setup paths
 BASE_DIR = Path(__file__).resolve().parent
 instance_path = BASE_DIR / 'instance'
@@ -979,6 +986,15 @@ def admin_dashboard():
 # ADMIN USER MANAGEMENT ROUTES
 # =============================================================================
 
+# Add routes for privacy and terms
+@app.route('/privacy')
+def privacy_policy():
+    return render_template('privacy_policy.html')
+    
+@app.route('/terms')
+def terms_of_service():
+    return render_template('terms_of_service.html')
+    
 @app.route('/admin/users/<int:user_id>/toggle', methods=['POST'])
 @login_required
 @admin_required
