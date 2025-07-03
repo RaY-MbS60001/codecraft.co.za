@@ -8,6 +8,8 @@ from flask_wtf import FlaskForm
 from wtforms import TextAreaField, SubmitField, SelectMultipleField, widgets
 from wtforms.validators import Optional
 import json, os, time
+import logging
+logging.basicConfig(level=logging.INFO)
 from tasks import launch_bulk_send
 from models import db, User, Learnership, Application, Document, ApplicationDocument, GoogleToken, LearnshipEmail, EmailApplication
 # Add these imports at the top of your app.py file
@@ -60,6 +62,35 @@ else:
     # Fallback to SQLite for local development
     DATABASE_URL = f'sqlite:///{instance_path}/app.db'
 
+import os
+from pathlib import Path
+
+# Determine base directory
+BASE_DIR = Path(__file__).resolve().parent
+
+# Ensure instance directory exists
+instance_path = BASE_DIR / 'instance'
+instance_path.mkdir(exist_ok=True, parents=True)
+
+# Database URL configuration
+def get_database_url():
+    # Render PostgreSQL URL handling
+    render_db_url = os.environ.get('DATABASE_URL', '')
+    if render_db_url and render_db_url.startswith('postgres://'):
+        render_db_url = render_db_url.replace('postgres://', 'postgresql://', 1)
+    
+    # Fallback to SQLite with absolute path
+    sqlite_path = instance_path / 'app.db'
+    return render_db_url or f'sqlite:///{sqlite_path}'
+
+# Update app configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'e1f8c81a1e6f0c6e3b23a7d94d72f1f519d6e8f7b6a9d68a23c5c6f27e8ab3f54')
+
+# Update app configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
 # Common configuration
@@ -91,6 +122,12 @@ login_manager.login_view = 'login'
 oauth = None
 google = None
 
+# Ensure uploads directory exists
+uploads_dir = BASE_DIR / 'uploads'
+uploads_dir.mkdir(exist_ok=True)
+(uploads_dir / 'documents').mkdir(exist_ok=True)
+
+app.config['UPLOAD_FOLDER'] = str(uploads_dir)
 
 # Define the custom MultiCheckboxField
 class MultiCheckBoxField(SelectMultipleField):
@@ -625,6 +662,40 @@ def init_db():
             db.session.add(admin)
             db.session.commit()
             print("Admin user created successfully!")
+
+def safe_db_init():
+    try:
+        with app.app_context():
+            # Create tables
+            db.create_all()
+            
+            # Create default admin if not exists
+            admin = User.query.filter_by(username='admin').first()
+            if not admin:
+                admin = User(
+                    email='admin@codecraftco.com',
+                    username='admin',
+                    full_name='System Administrator',
+                    role='admin',
+                    auth_method='credentials',
+                    is_active=True
+                )
+                admin.set_password('admin123')
+                db.session.add(admin)
+                db.session.commit()
+                print("Admin user created successfully!")
+            
+            # Initialize other data
+            init_sample_learnerships()
+            init_learnership_emails()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+
+# Call during app startup
+if __name__ == '__main__' or os.environ.get('RENDER'):
+    safe_db_init()
+
+
 
 def bulk_send_job(app, user_id, learnerships, attachment_ids):
     """Background job to send application emails"""
@@ -1536,6 +1607,11 @@ def admin_view_application(application_id):
                           application=application,
                           application_documents=application_documents)
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the error
+    app.logger.error(f'Unhandled Exception: {str(e)}', exc_info=True)
+    return 'An internal error occurred', 500
 
 # Initialize database when app starts
 init_db()
