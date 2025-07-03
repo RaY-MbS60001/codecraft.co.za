@@ -37,28 +37,38 @@ class ProductionConfig(Config):
 
 app = Flask(__name__)
 
-# Production configuration
+
+# Determine base directory
+BASE_DIR = Path(__file__).resolve().parent
+
+
+# Ensure instance directory exists
+instance_path = BASE_DIR / 'instance'
+instance_path.mkdir(exist_ok=True, parents=True)
+
+# Database configuration
+DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{instance_path}/app.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+
+# Database URL configuration with PostgreSQL support
 if os.environ.get('RENDER'):
-    # Ensure instance folder exists
-    instance_path = Path('instance')
-    instance_path.mkdir(exist_ok=True)
-    
-    # Use persistent disk storage for SQLite
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/outlier.db'
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-    
-    # Disable debug mode in production
-    app.config['DEBUG'] = False
+    # Render provides DATABASE_URL for PostgreSQL
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
 else:
-    # Local development
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///outlier.db'
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-    app.config['DEBUG'] = True
+    # Fallback to SQLite for local development
+    DATABASE_URL = f'sqlite:///{instance_path}/app.db'
+
+
 
 # Common configuration
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RENDER') is not None
+# Update app configuration
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config.from_object(Config)
 
 app.config['SESSION_COOKIE_NAME'] = 'codecraftco_session'
@@ -597,9 +607,10 @@ def init_sample_learnerships():
 # Initialize database
 def init_db():
     with app.app_context():
+        # Create all tables
         db.create_all()
         
-        # Create default admin if not exists
+        # Optional: Create default admin if not exists
         admin = User.query.filter_by(username='admin').first()
         if not admin:
             admin = User(
@@ -614,8 +625,6 @@ def init_db():
             db.session.add(admin)
             db.session.commit()
             print("Admin user created successfully!")
-            print("Username: admin")
-            print("Password: admin123")
 
 def bulk_send_job(app, user_id, learnerships, attachment_ids):
     """Background job to send application emails"""
