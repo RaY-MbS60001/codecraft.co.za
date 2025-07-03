@@ -583,63 +583,6 @@ def delete_document(doc_id):
 
 
 # Add this function to initialize sample learnerships
-def init_sample_learnerships():
-    with app.app_context():
-        # Check if learnerships exist
-        if Learnership.query.count() == 0:
-            sample_learnerships = [
-                {
-                    'title': 'Software Development Learnership',
-                    'company': 'Tech Solutions Ltd',
-                    'category': 'it',
-                    'description': 'Join our 12-month software development program focusing on web technologies.',
-                    'requirements': 'Grade 12, Basic programming knowledge, Age 18-35',
-                    'location': 'Johannesburg',
-                    'duration': '12 months',
-                    'stipend': 'R5000 per month',
-                    'closing_date': datetime.now() + timedelta(days=30)
-                },
-                {
-                    'title': 'Data Science Learnership',
-                    'company': 'Analytics Pro',
-                    'category': 'it',
-                    'description': 'Learn data analysis, machine learning, and business intelligence.',
-                    'requirements': 'Diploma/Degree in IT or related field, Python knowledge preferred',
-                    'location': 'Cape Town',
-                    'duration': '18 months',
-                    'stipend': 'R7000 per month',
-                    'closing_date': datetime.now() + timedelta(days=45)
-                },
-                {
-                    'title': 'Accounting Learnership',
-                    'company': 'Finance Corp',
-                    'category': 'finance',
-                    'description': 'Comprehensive accounting and bookkeeping training program.',
-                    'requirements': 'Grade 12 with Accounting, Age 18-30',
-                    'location': 'Durban',
-                    'duration': '24 months',
-                    'stipend': 'R4500 per month',
-                    'closing_date': datetime.now() + timedelta(days=20)
-                },
-                {
-                    'title': 'Digital Marketing Learnership',
-                    'company': 'Marketing Minds',
-                    'category': 'marketing',
-                    'description': 'Learn social media marketing, SEO, and content creation.',
-                    'requirements': 'Grade 12, Computer literate, Creative mindset',
-                    'location': 'Remote',
-                    'duration': '6 months',
-                    'stipend': 'R3500 per month',
-                    'closing_date': datetime.now() + timedelta(days=15)
-                }
-            ]
-            
-            for data in sample_learnerships:
-                learnership = Learnership(**data)
-                db.session.add(learnership)
-            
-            db.session.commit()
-            print("Sample learnerships created!")                                      
 
 # Initialize database
 def init_db():
