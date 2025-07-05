@@ -380,7 +380,78 @@ def edit_profile():
     
     return render_template('edit_profile.html', form=form)
 
+@app.route('/user/documents/view/<int:document_id>')
+@login_required
+def view_document(document_id):
+    try:
+        # Get the document and verify ownership
+        document = Document.query.filter_by(id=document_id, user_id=current_user.id).first()
+        if not document:
+            flash('Document not found.', 'error')
+            return redirect(url_for('document_center'))
+        
+        # Get file path
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'documents', document.filename)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            flash('Document file not found.', 'error')
+            return redirect(url_for('document_center'))
+        
+        # Get file extension
+        file_extension = document.filename.lower().split('.')[-1]
+        
+        # For images, serve directly
+        if file_extension in ['jpg', 'jpeg', 'png', 'gif']:
+            return send_file(file_path, as_attachment=False)
+        
+        # For PDFs, serve with PDF viewer
+        elif file_extension == 'pdf':
+            return send_file(file_path, as_attachment=False, mimetype='application/pdf')
+        
+        # For other files, download them
+        else:
+            return send_file(file_path, as_attachment=True)
+            
+    except Exception as e:
+        current_app.logger.error(f'Error viewing document: {str(e)}')
+        flash('Error viewing document.', 'error')
+        return redirect(url_for('document_center'))
 
+@app.route('/user/documents/preview/<int:document_id>')
+@login_required
+def preview_document(document_id):
+    try:
+        # Get the document and verify ownership
+        document = Document.query.filter_by(id=document_id, user_id=current_user.id).first()
+        if not document:
+            return jsonify({'error': 'Document not found'}), 404
+        
+        # Get file path
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'documents', document.filename)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'Document file not found'}), 404
+        
+        # Get file extension
+        file_extension = document.filename.lower().split('.')[-1]
+        
+        # Return document info for preview
+        return jsonify({
+            'id': document.id,
+            'filename': document.filename,
+            'original_name': document.original_name,
+            'file_type': file_extension,
+            'upload_date': document.upload_date.strftime('%Y-%m-%d %H:%M:%S'),
+            'view_url': url_for('view_document', document_id=document.id),
+            'download_url': url_for('download_document', document_id=document.id)
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f'Error previewing document: {str(e)}')
+        return jsonify({'error': 'Error previewing document'}), 500
+    
 # =============================================================================
 # LEARNERSHIP MANAGEMENT ROUTES
 # =============================================================================
