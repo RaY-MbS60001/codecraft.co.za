@@ -743,9 +743,9 @@ def send_application_email(recipient_email, company_name, user):
     subject = f"Learnership Application from {user.full_name or user.email}"
     
     body = f"""
-Hello {company_name},
+Dear {company_name}'s hiring team,
 
-I would like to apply for any available learnership opportunities at your company.
+I would like to apply for any available learnership opportunities in your organization.
 
 Applicant Details:
 Name: {user.full_name or 'Not provided'}
