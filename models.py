@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(100))
     role = db.Column(db.String(20), default='user')
     auth_method = db.Column(db.String(20))
-    profile_picture = db.Column(db.String(200))
+    profile_picture = db.Column(db.String(500), nullable=True)
     phone = db.Column(db.String(20))
     address = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
