@@ -917,12 +917,8 @@ a:hover {
         color: #fee2e2;
     }
 }
-/* 244444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444 */
-
-/* Creative GitHub-Inspired Login Design - Updated */
-
-/* Color variables matching GitHub's dark theme */
-:root {
+/* Login Page Specific Styles */
+:root {    /* GitHub-inspired dark theme variables */
     --github-dark: #0d1117;
     --github-dark-secondary: #161b22;
     --github-dark-tertiary: #21262d;
@@ -935,11 +931,13 @@ a:hover {
     --github-green-hover: #1f7a2e;
     --github-orange: #ff6b35;
     --github-shadow: rgba(1, 4, 9, 0.85);
+    
+    /* Google colors */
     --google-blue: #4285f4;
     --google-blue-hover: #357abd;
 }
 
-/* Full-screen dark theme - better centering */
+/* Full-screen dark theme with perfect centering */
 body.login-page {
     background: var(--github-dark);
     min-height: 100vh;
@@ -947,7 +945,7 @@ body.login-page {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     color: var(--github-text);
     margin: 0;
     padding: 20px;
@@ -974,13 +972,14 @@ body.login-page::before {
     z-index: -1;
 }
 
+/* Floating background animation */
 @keyframes float {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
     33% { transform: translate(-30px, -30px) rotate(120deg); }
     66% { transform: translate(30px, -30px) rotate(240deg); }
 }
 
-/* Perfect centering wrapper */
+/* Main wrapper for perfect centering */
 .main-wrapper {
     flex: 1;
     display: flex;
@@ -990,7 +989,7 @@ body.login-page::before {
     max-width: 100%;
 }
 
-/* GitHub-style perfectly centered container */
+/* Login container with GitHub-inspired styling */
 .main-wrapper .container {
     width: 100%;
     max-width: 340px;
@@ -1018,15 +1017,10 @@ body.login-page::before {
     animation: pulse 3s ease-in-out infinite;
 }
 
+/* Animations for container and buttons */
 @keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pulse {
@@ -1034,20 +1028,20 @@ body.login-page::before {
     50% { opacity: 0.3; }
 }
 
-/* Logo section with bigger circle */
+/* Logo container styling */
 .logo-container {
     text-align: center;
     margin-bottom: 32px;
 }
 
 .company-logo {
-    width: 80px; /* Increased from 64px */
-    height: 80px; /* Increased from 64px */
+    width: 80px;
+    height: 80px;
     margin: 0 auto 16px;
     border-radius: 50%;
     background: var(--github-dark-tertiary);
     border: 2px solid var(--github-border);
-    padding: 12px; /* Increased padding */
+    padding: 12px;
     box-shadow: 0 8px 16px rgba(1, 4, 9, 0.4);
     transition: transform 0.3s ease;
     display: block;
@@ -1065,19 +1059,19 @@ body.login-page::before {
     letter-spacing: -0.5px;
 }
 
-/* Login options with GitHub styling */
+/* Login options container */
 .login-options {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
-/* Shorter buttons with proper height */
+/* Login buttons */
 .login-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 16px; /* Reduced padding for shorter buttons */
+    padding: 8px 16px;
     border-radius: 6px;
     text-decoration: none;
     font-weight: 500;
@@ -1088,27 +1082,11 @@ body.login-page::before {
     gap: 10px;
     position: relative;
     overflow: hidden;
-    height: 36px; /* Fixed shorter height */
+    height: 36px;
     backdrop-filter: blur(8px);
 }
 
-/* Shimmer effect on hover */
-.login-btn::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
-}
-
-.login-btn:hover::before {
-    transform: translateX(100%);
-}
-
+/* Button hover and active states */
 .login-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(1, 4, 9, 0.4);
@@ -1120,35 +1098,20 @@ body.login-page::before {
     box-shadow: 0 4px 12px rgba(1, 4, 9, 0.3);
 }
 
-/* Google button - Blue with Google icon */
+/* Google and Admin button specific styles */
 .client-btn {
     background: var(--google-blue);
     color: white;
     border-color: var(--google-blue);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
 }
 
-.client-btn:hover {
-    background: var(--google-blue-hover);
-    color: white;
-    border-color: var(--google-blue-hover);
-}
-
-/* Admin button - Green */
 .admin-btn {
     background: var(--github-green);
     color: white;
     border-color: var(--github-green);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
 }
 
-.admin-btn:hover {
-    background: var(--github-green-hover);
-    color: white;
-    border-color: var(--github-green-hover);
-}
-
-/* Modern divider */
+/* Divider styling */
 .divider {
     display: flex;
     align-items: center;
@@ -1175,20 +1138,7 @@ body.login-page::before {
     position: relative;
 }
 
-.divider span::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(100% + 20px);
-    height: 20px;
-    background: radial-gradient(circle, rgba(88, 166, 255, 0.1), transparent);
-    border-radius: 10px;
-    z-index: -1;
-}
-
-/* Icon styling - smaller for shorter buttons */
+/* Button icons */
 .btn-icon {
     width: 16px;
     height: 16px;
@@ -1196,20 +1146,7 @@ body.login-page::before {
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
-/* Google SVG icon styling */
-.client-btn .btn-icon {
-    fill: white;
-    stroke: none;
-}
-
-/* Admin SVG icon styling */
-.admin-btn .btn-icon {
-    stroke: white;
-    fill: none;
-    stroke-width: 2;
-}
-
-/* Modern footer - positioned at bottom */
+/* Footer styling */
 footer {
     width: 100%;
     background: rgba(13, 17, 23, 0.8);
@@ -1236,19 +1173,6 @@ footer a {
     transition: all 0.2s ease;
     padding: 4px 8px;
     border-radius: 4px;
-    position: relative;
-}
-
-footer a::before {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 50%;
-    width: 0;
-    height: 1px;
-    background: var(--github-blue);
-    transition: all 0.3s ease;
-    transform: translateX(-50%);
 }
 
 footer a:hover {
@@ -1256,683 +1180,122 @@ footer a:hover {
     background: rgba(88, 166, 255, 0.08);
 }
 
-footer a:hover::before {
-    width: 100%;
-}
-
-footer span {
-    color: var(--github-border);
-    font-size: 12px;
-}
-
-/* Loading states */
-.login-btn.loading {
-    pointer-events: none;
-    opacity: 0.8;
-}
-
-.login-btn.loading::after {
-    content: "";
-    position: absolute;
-    right: 12px;
-    width: 12px;
-    height: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Focus states */
-.login-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.4);
-}
-
-.client-btn:focus-visible {
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.4);
-}
-
-.admin-btn:focus-visible {
-    box-shadow: 0 0 0 3px rgba(35, 134, 54, 0.4);
-}
-
-/* Button text styling */
-.login-btn span {
-    position: relative;
-    z-index: 1;
-    font-weight: 500;
-}
-
-/* Responsive design */
+/* Responsive adjustments */
 @media (max-width: 480px) {
-    body.login-page {
-        padding: 16px;
-    }
-    
     .main-wrapper .container {
-        padding: 24px;
         max-width: calc(100% - 32px);
+        padding: 24px;
     }
     
     .company-logo {
         width: 70px;
         height: 70px;
-        padding: 10px;
-    }
-    
-    .footer-nav {
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .footer-nav span {
-        display: none;
     }
     
     .login-btn {
-        height: 40px; /* Slightly taller on mobile for better touch */
-        padding: 10px 16px;
+        height: 40px;
     }
 }
 
-@media (max-width: 360px) {
-    .main-wrapper .container {
-        padding: 20px;
-    }
-    
-    .logo-container h2 {
-        font-size: 20px;
-    }
-}
-
-/* Accessibility improvements */
+/* Accessibility and reduced motion */
 @media (prefers-reduced-motion: reduce) {
     * {
         animation: none !important;
         transition: none !important;
     }
-    
-    .login-btn:hover {
-        transform: none;
-    }
-}
-
-/* High contrast mode */
-@media (prefers-contrast: high) {
-    .main-wrapper .container {
-        border-width: 2px;
-        border-color: var(--github-text);
-    }
-    
-    .login-btn {
-        border-width: 2px;
-    }
-}
-
-/* Subtle breathing animation for the container */
-/* Subtle breathing animation for the container */
-@keyframes breathe {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.01); }
-}
-
-.main-wrapper .container {
-    animation: slideUp 0.6s ease, breathe 4s ease-in-out infinite 2s;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--github-dark);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--github-border);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--github-text-secondary);
-}
-
-/* Additional enhancements for perfect centering */
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-/* Ensure footer stays at bottom */
-body.login-page {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
-
-/* Perfect vertical and horizontal centering */
-.main-wrapper {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    min-height: 50vh;
-}
-
-/* Button hover states refinement */
-.client-btn:hover {
-    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-}
-
-.admin-btn:hover {
-    box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
-}
-
-/* Icon positioning */
-.login-btn .btn-icon {
-    margin-right: 2px;
-}
-
-/* Prevent layout shift during animations */
-.login-btn {
-    will-change: transform;
-    backface-visibility: hidden;
-}
-
-/* Smooth transitions for all interactive elements */
-.login-btn,
-.company-logo,
-footer a {
-    transform-style: preserve-3d;
-}
-
-/* Additional mobile optimizations */
-@media (max-width: 320px) {
-    .main-wrapper .container {
-        max-width: calc(100% - 20px);
-        padding: 16px;
-        margin: 10px;
-    }
-    
-    .logo-container h2 {
-        font-size: 18px;
-    }
-    
-    .company-logo {
-        width: 60px;
-        height: 60px;
-        padding: 8px;
-    }
-}
-
-/* Tablet landscape adjustments */
-@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
-    body.login-page {
-        padding: 40px 20px;
-    }
-    
-    .main-wrapper .container {
-        max-width: 380px;
-    }
-}
-
-/* Large screen enhancements */
-@media (min-width: 1200px) {
-    .main-wrapper .container {
-        max-width: 400px;
-        padding: 40px;
-    }
-    
-    .company-logo {
-        width: 90px;
-        height: 90px;
-        padding: 15px;
-    }
-    
-    .logo-container h2 {
-        font-size: 28px;
-    }
-}
-
-/* Print styles */
-@media print {
-    body.login-page::before {
-        display: none;
-    }
-    
-    .main-wrapper .container {
-        box-shadow: none;
-        border: 2px solid #000;
-        background: white;
-        color: black;
-    }
-    
-    footer {
-        display: none;
-    }
-    
-    .login-btn {
-        border: 2px solid #000;
-        background: white !important;
-        color: black !important;
-    }
-}
-
-/* Fix for iOS Safari viewport issues */
-@supports (-webkit-appearance: none) {
-    body.login-page {
-        min-height: -webkit-fill-available;
-    }
-}
-
-/* Focus trap for accessibility */
-.main-wrapper .container:focus-within {
-    outline: 2px solid var(--github-blue);
-    outline-offset: 4px;
-}
-
-/* Button active states */
-.client-btn:active {
-    background: #1a73e8;
-    transform: translateY(1px);
-}
-
-.admin-btn:active {
-    background: #0d8043;
-    transform: translateY(1px);
-}
-
-/* Ensure proper stacking context */
-.main-wrapper .container {
-    z-index: 10;
-}
-
-footer {
-    z-index: 5;
-}
-
-/* Additional animation refinements */
-.login-btn:hover .btn-icon {
-    animation: iconBounce 0.3s ease;
-}
-
-@keyframes iconBounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-/* Text selection styling */
-::selection {
-    background: rgba(88, 166, 255, 0.3);
-    color: var(--github-text);
-}
-
-::-moz-selection {
-    background: rgba(88, 166, 255, 0.3);
-    color: var(--github-text);
-}
-
-/* Final layout adjustments for perfect centering */
-body.login-page {
-    align-items: center;
-    justify-content: center;
-}
-
-.main-wrapper {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-
-/* Ultra-compact container */
-.main-wrapper .container {
-    width: 100%;
-    max-width: 340px;
-    background: var(--github-dark-secondary);
-    border: 1px solid var(--github-border);
-    border-radius: 12px;
-    padding: 16px; /* Reduced from 24px */
-    box-shadow: 0 16px 32px var(--github-shadow);
-    animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    position: relative;
-}
-
-/* Minimal spacing for back button */
-.back-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--github-text-secondary);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 8px; /* Reduced from 16px */
-    padding: 4px 8px; /* Reduced padding */
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-}
-
-/* Minimal logo section spacing */
-.logo-container {
-    text-align: center;
-    margin-bottom: 12px; /* Reduced from 20px */
-    margin-top: 4px; /* Minimal top margin */
-}
-
-.company-logo {
-    width: 50px; /* Reduced from 60px */
-    height: 50px; /* Reduced from 60px */
-    margin: 0 auto 8px; /* Reduced bottom margin from 12px */
-    border-radius: 50%;
-    background: var(--github-dark-tertiary);
-    border: 2px solid var(--github-border);
-    padding: 8px; /* Reduced padding */
-    box-shadow: 0 8px 16px rgba(1, 4, 9, 0.4);
-    transition: transform 0.3s ease;
-    display: block;
-}
-
-.logo-container h2 {
-    color: var(--github-text);
-    font-size: 18px; /* Reduced from 20px */
-    font-weight: 300;
-    margin: 0 0 2px 0; /* Minimal margin */
-    letter-spacing: -0.5px;
-}
-
-.admin-subtitle {
-    color: var(--github-text-secondary);
-    font-size: 13px; /* Reduced from 14px */
-    font-weight: 400;
-    margin: 0;
-    letter-spacing: -0.2px;
-}
-
-/* Compact form with minimal spacing */
-.admin-form {
-    width: 100%;
-    margin-top: 12px; /* Reduced from 16px */
-}
-
-.form-group {
-    margin-bottom: 12px; /* Reduced from 16px */
-}
-
-/* Last form group - even less margin */
-.form-group:last-of-type {
-    margin-bottom: 8px; /* Minimal space before submit button */
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 4px; /* Reduced from 6px */
-    color: var(--github-text);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: -0.1px;
-}
-
-.form-control {
-    width: 100%;
-    padding: 8px 12px; /* Reduced padding */
-    background: var(--github-dark-tertiary);
-    border: 1px solid var(--github-border);
-    border-radius: 6px;
-    color: var(--github-text);
-    font-size: 14px;
-    font-family: inherit;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
-    height: 36px; /* Reduced height */
-}
-
-/* Compact submit button with minimal spacing */
-.submit-button {
-    width: 100%;
-    margin-top: 4px; /* Minimal top margin */
-    margin-bottom: 0; /* No bottom margin */
-    justify-content: center;
-    font-weight: 600;
-    height: 36px; /* Reduced height */
-    font-size: 14px;
-    padding: 0 16px;
-}
-
-/* Minimal login footer spacing */
-.login-footer {
-    margin-top: 12px; /* Reduced from 16px */
-    padding-top: 12px; /* Reduced from 16px */
-    border-top: 1px solid var(--github-border);
-}
-
-.credentials-note {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--github-text-secondary);
-    font-size: 11px;
-    background: rgba(88, 166, 255, 0.1);
-    padding: 6px 8px; /* Reduced padding */
-    border-radius: 6px;
-    border: 1px solid rgba(88, 166, 255, 0.2);
-    margin: 0; /* No additional margins */
-}
-
-/* Adjust password toggle for smaller input */
-.password-toggle {
-    position: absolute;
-    right: 8px; /* Adjusted for smaller padding */
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--github-text-secondary);
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-.eye-icon {
-    width: 14px;
-    height: 14px;
-    stroke-width: 2;
-}
-
-/* Compact error messages */
-.error-message {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #f85149;
-    font-size: 11px;
-    margin-top: 3px; /* Minimal top margin */
-    padding: 3px 6px; /* Reduced padding */
-    background: rgba(248, 81, 73, 0.1);
-    border: 1px solid rgba(248, 81, 73, 0.2);
-    border-radius: 4px;
-    animation: errorSlide 0.3s ease;
-}
-
-.error-icon {
-    width: 12px;
-    height: 12px;
-    stroke-width: 2;
-    flex-shrink: 0;
-}
-
-/* Remove any extra spacing around icons */
-.back-icon {
-    width: 14px;
-    height: 14px;
-    stroke-width: 2;
-    margin: 0;
 }
 
 .info-icon {
-    width: 14px;
-    height: 14px;
-    stroke-width: 2;
-    color: var(--github-blue);
-    flex-shrink: 0;
-    margin: 0;
-}
-
-.logo-icon {
-    width: 100%;
-    height: 100%;
-    color: var(--github-blue);
-    margin: 0;
-}
-
-/* Ensure main wrapper doesn't add extra height */
-.main-wrapper {
+    width: 18px;  /* Increased size */
+    height: 18px; /* Increased size */
+    background: #161b22; /* Dark background */
+    border: 3px solid #30363d; /* Border color */
+    border-radius: 50%; /* Circular shape */
     display: flex;
-    flex: 1;
     align-items: center;
     justify-content: center;
-    min-height: 50vh; /* Reduced from 60vh */
-    padding: 10px 0; /* Reduced padding */
+    margin: 12px 0; /* Vertical spacing */
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3); /* Subtle shadow */
 }
 
-/* Mobile adjustments - keep touch-friendly but compact */
-@media (max-width: 480px) {
-    .main-wrapper .container {
-        padding: 14px; /* Compact mobile padding */
-        max-width: calc(100% - 28px);
-    }
-    
-    .back-button {
-        margin-bottom: 6px;
-        padding: 6px 10px;
-    }
-    
-    .logo-container {
-        margin-bottom: 10px;
-        margin-top: 2px;
-    }
-    
-    .company-logo {
-        width: 45px; /* Smaller on mobile */
-        height: 45px;
-        padding: 7px;
-        margin-bottom: 6px;
-    }
-    
-    .logo-container h2 {
-        font-size: 16px;
-        margin-bottom: 1px;
-    }
-    
-    .admin-subtitle {
-        font-size: 12px;
-    }
-    
-    .admin-form {
-        margin-top: 10px;
-    }
-    
-    .form-group {
-        margin-bottom: 10px;
-    }
-    
-    .form-group:last-of-type {
-        margin-bottom: 6px;
-    }
-    
-    .form-control {
-        padding: 10px 12px; /* Slightly more for touch */
-        font-size: 16px; /* Prevents zoom on iOS */
-        height: 40px; /* Touch-friendly height */
-    }
-    
-    .submit-button {
-        height: 38px;
-        margin-top: 2px;
-    }
-    
-    .login-footer {
-        margin-top: 10px;
-        padding-top: 10px;
-    }
-    
-    .credentials-note {
-        padding: 5px 7px;
-        font-size: 10px;
-    }
+.info-icon::before {
+    content: 'i';
+    color: #f0f6fc; /* Text color */
+    font-size: 96px; /* Large font size */
+    font-weight: 300;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
 }
 
-/* Extra compact for very small screens */
-@media (max-width: 360px) {
-    .main-wrapper .container {
-        padding: 12px;
-        margin: 8px;
-    }
-    
-    .back-button {
-        margin-bottom: 4px;
-    }
-    
-    .logo-container {
-        margin-bottom: 8px;
-    }
-    
-    .admin-form {
-        margin-top: 8px;
-    }
-    
-    .form-group {
-        margin-bottom: 8px;
-    }
-    
-    .login-footer {
-        margin-top: 8px;
-        padding-top: 8px;
-    }
+.info-icon::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    background: radial-gradient(circle, rgba(88,166,255,0.1), transparent 70%);
+    border-radius: 50%;
+    z-index: -1;
+    opacity: 0.5;
+    animation: pulse 2s infinite ease-in-out;
 }
 
-/* Footer - minimal height */
-footer {
-    padding: 10px 16px; /* Reduced padding */
-    margin-top: auto;
-    flex-shrink: 0;
+.back-icon {
+    width: 15px;  /* Increased size */
+    height: 15px; /* Increased size */
+    color: #5E5CFF; /* Purple color from the image */
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    stroke-width: 3; /* Make the line thicker */
+    stroke: currentColor;
+    fill: none;
+    cursor: pointer;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
-.footer-nav {
-    gap: 12px;
+.back-icon:hover {
+    transform: translateX(-5px); /* Slight movement on hover */
+    opacity: 0.8;
 }
 
-footer a {
-    font-size: 11px;
-    padding: 2px 4px; /* Minimal padding */
+.back-text {
+    color: #5E5CFF;
+    font-size: 14px;
+    margin-top: 8px;
+    transition: color 0.3s ease;
 }
 
-/* Remove any default margins that might add height */
-* {
-    box-sizing: border-box;
+.back-icon:hover + .back-text {
+    color: rgba(94, 92, 255, 0.8);
 }
 
-.main-wrapper .container * {
-    margin-block-start: 0;
-    margin-block-end: 0;
-}
-
-/* Ensure no extra spacing around form elements */
-form {
+.logo-container h4 {
+    color: var(--github-text);
+    font-size: 12px;
+    font-weight: 300;
     margin: 0;
+    letter-spacing: -0.5px;
 }
 
-input, button, label {
+
+.login-options h4 {
+    color: var(--github-text);
+    font-size: 12px;
+    font-weight: 300;
     margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.credentials-note h4 {
+    color: var(--github-text);
+    font-size: 12px;
+    font-weight: 300;
+    margin: 0;
+    letter-spacing: -0.5px;
 }
