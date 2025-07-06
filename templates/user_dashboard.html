@@ -7,11 +7,32 @@
     <!-- Skip to main content for accessibility -->    
     <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
 <div class="nav-left">
-    <h2 class="nav-logo">
-        <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
-            <img src="{{ url_for('static', filename='images/logos/horizontal_icon.png') }}" alt="CodeCraftCo Logo" style="height: 48px;">
-        </a>
-    </h2>
+<h2 class="nav-logo">
+    <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+        <div class="logo-container">
+            <div class="word">
+                <div class="letter-box red">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">ode</div>
+            </div>
+            
+            <div class="word">
+                <div class="letter-box blue">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">raft</div>
+            </div>
+            
+            <div class="word">
+                <div class="letter-box orange">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">o</div>
+            </div>
+        </div>
+    </a>
+</h2>
 </div>
 
         <div class="nav-right">
@@ -31,9 +52,13 @@
                 </button>
                 <div class="user-menu-dropdown" role="menu">
                     <a href="{{ url_for('edit_profile') }}" class="menu-item" role="menuitem">
-                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                            <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
-                        </svg>
+                        {% if current_user.profile_picture %}
+                        <img src="{{ current_user.profile_picture }}" 
+                            alt="Profile picture" 
+                            style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        {% endif %}
                         Profile Settings
                     </a>
                     <div class="menu-divider"></div>
@@ -1042,5 +1067,77 @@ document.addEventListener('DOMContentLoaded', function() {
         grid-template-columns: repeat(3, 1fr);
     }
 }
+ .nav-logo {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        transform: translateY(16px); /* Fine-tune vertical centering */
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+
+    .letter-box.red {
+        box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+    }
+
+    .letter-box.blue {
+        box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+    }
+
+    .letter-box.orange {
+        box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+    }
+
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+    }
+
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
 </style>
 {% endblock %}

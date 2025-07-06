@@ -6,11 +6,33 @@
 <div class="dashboard-container">
     <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
         <div class="nav-left">
-            <h2 class="nav-logo">
-                <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
-                    CodeCraftCo
-                </a>
-            </h2>
+<h2 class="nav-logo">
+    <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+        <div class="logo-container">
+            <div class="word">
+                <div class="letter-box red">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">ode</div>
+            </div>
+            
+            <div class="word">
+                <div class="letter-box blue">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">raft</div>
+            </div>
+            
+            <div class="word">
+                <div class="letter-box orange">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">o</div>
+            </div>
+        </div>
+    </a>
+</h2>
+
         </div>
         <div class="nav-right">
             <a href="{{ url_for('user_dashboard') }}" class="nav-link">
@@ -650,5 +672,78 @@ textarea.form-control {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+ .nav-logo {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        transform: translateY(16px); /* Fine-tune vertical centering */
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+
+    .letter-box.red {
+        box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+    }
+
+    .letter-box.blue {
+        box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+    }
+
+    .letter-box.orange {
+        box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+    }
+
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+    }
+
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
 </style>
 {% endblock %}

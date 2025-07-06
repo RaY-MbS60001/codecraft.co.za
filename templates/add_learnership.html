@@ -189,15 +189,117 @@
             width: 100%;
         }
     }
+    
+ .nav-logo {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        transform: translateY(16px); /* Fine-tune vertical centering */
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+
+    .letter-box.red {
+        box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+    }
+
+    .letter-box.blue {
+        box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+    }
+
+    .letter-box.orange {
+        box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+    }
+
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+    }
+
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
 </style>
 
 <div class="form-container">
     <!-- Navigation Bar -->
     <nav class="form-nav">
         <div class="nav-left">
-            <h2>CodeCraftCo Admin</h2>
+<h2 class="nav-logo">
+    <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+        <div class="logo-container">
+            <div class="word">
+                <div class="letter-box red">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">ode</div>
+            </div>
+            
+            <div class="word">
+                <div class="letter-box blue">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">raft</div>
+            </div>
+            
+            <div class="word">
+                <div class="letter-box orange">
+                    <div class="letter">C</div>
+                </div>
+                <div class="word-text">o</div>
+            </div>
+        </div>
+    </a>
+</h2>
+
         </div>
         <div class="nav-right">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
             <a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">Back to Dashboard</a>
         </div>
     </nav>
