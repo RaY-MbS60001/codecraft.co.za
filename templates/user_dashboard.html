@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============= ISOLATED WHATSAPP MODAL SYSTEM =============
     
     // Configuration
-    const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/YOUR_GROUP_INVITE_LINK';
+    const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/KMr0zfGnacWJk5HrTyiwYH';
     
     // Create WhatsApp Modal Manager
     const WhatsAppModal = {
@@ -634,7 +634,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (urlParams.get('login') === 'success') {
         console.log('🎉 User came from successful login');
         setTimeout(() => {
-            WhatsAppModal.showToast('Welcome back! 🎉', 'success');
         }, 500);
         
         // Clean up URL
