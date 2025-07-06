@@ -270,6 +270,40 @@ def google_login():
     )
 
 
+@app.route('/debug/profile')
+@login_required
+def debug_profile():
+    return f"""
+    <h2>Debug Info</h2>
+    <p>Profile Picture: {current_user.profile_picture}</p>
+    <p>Full Name: {current_user.full_name}</p>
+    <p>Email: {current_user.email}</p>
+    {f'<img src="{current_user.profile_picture}" width="100">' if current_user.profile_picture else '<p>No image</p>'}
+    """
+@app.route('/fix-profile-image')
+@login_required
+def fix_profile_image():
+    """Fix the profile image URL by removing trailing commas"""
+    if current_user.profile_picture:
+        # Clean the URL
+        cleaned_url = current_user.profile_picture.strip().rstrip(',').strip()
+        
+        if cleaned_url != current_user.profile_picture:
+            print(f"Original: {current_user.profile_picture}")
+            print(f"Cleaned: {cleaned_url}")
+            
+            current_user.profile_picture = cleaned_url
+            db.session.commit()
+            
+            flash('Profile image URL fixed!', 'success')
+        else:
+            flash('Profile image URL is already clean.', 'info')
+    else:
+        flash('No profile image found.', 'warning')
+    
+    return redirect(url_for('user_dashboard'))
+
+
 @app.route('/google/callback')
 def google_callback():
     try:
@@ -284,6 +318,7 @@ def google_callback():
         
         # Debug prints
         print("Full Userinfo:", userinfo)
+        print("Full Token:", token)  # Add this to see what token data we get
         print("Profile Picture URL:", userinfo.get('picture'))
         
         # Ensure profile picture URL is valid and complete
@@ -298,19 +333,61 @@ def google_callback():
             user = User(
                 email=userinfo['email'],
                 full_name=userinfo.get('name'),
-                profile_picture=profile_picture,
                 role='user',
                 auth_method='google',
                 is_active=True
             )
             db.session.add(user)
+            db.session.flush()
+
+        # Download and store the profile picture locally for all users
+        if profile_picture:
+            saved_path = download_and_save_profile_picture(profile_picture, user.id)
+            if saved_path:
+                user.profile_picture = saved_path
+
+
         else:
             # Update existing user's profile picture if it's different or empty
             if profile_picture and (not user.profile_picture or user.profile_picture != profile_picture):
                 user.profile_picture = profile_picture
         
+        # Store or update Google token
+        from models import GoogleToken
+        google_token = GoogleToken.query.filter_by(user_id=user.id).first()
+        
+        # Prepare token data with all required fields
+        token_data = {
+            'access_token': token.get('access_token'),
+            'refresh_token': token.get('refresh_token'),
+            'token_uri': 'https://oauth2.googleapis.com/token',
+            'client_id': app.config.get('GOOGLE_CLIENT_ID'),
+            'client_secret': app.config.get('GOOGLE_CLIENT_SECRET'),
+            'scopes': ['https://www.googleapis.com/auth/gmail.send'],
+            'expires_at': token.get('expires_at'),
+            'token_type': token.get('token_type', 'Bearer')
+        }
+        
+        # Also store the original token for compatibility
+        token_data.update(token)
+        
+        if google_token:
+            # Update existing token
+            google_token.token_json = json.dumps(token_data)
+            google_token.refreshed_at = datetime.utcnow()
+        else:
+            # Create new token record
+            google_token = GoogleToken(
+                user_id=user.id,
+                token_json=json.dumps(token_data),
+                refreshed_at=datetime.utcnow()
+            )
+            db.session.add(google_token)
+        
         # Update user's last login
         user.last_login = datetime.utcnow()
+        
+        # Commit all changes
         db.session.commit()
         
         # Log in the user
@@ -319,12 +396,16 @@ def google_callback():
         # Logging for debugging
         app.logger.info(f"User logged in: {user.email}")
         app.logger.info(f"Profile Picture: {user.profile_picture}")
+        app.logger.info(f"Google token stored for user: {user.id}")
+        print(f"Token stored successfully for user {user.id}")
         
         flash(f'Welcome, {user.full_name or user.email}!', 'success')
         return redirect(url_for('user_dashboard'))
         
     except Exception as e:
         print(f"OAuth callback error: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Authentication failed. Please try again.', 'error')
         return redirect(url_for('login'))
 
@@ -357,6 +438,31 @@ def user_dashboard():
                          user=current_user,
                          recent_applications=recent_applications,
                          documents_count=documents_count)
+
+import os
+import requests
+from werkzeug.utils import secure_filename
+
+def download_and_save_profile_picture(picture_url, user_id):
+    if not picture_url:
+        return None
+
+    try:
+        response = requests.get(picture_url)
+        if response.status_code == 200:
+            filename = secure_filename(f"profile_{user_id}.jpg")
+            folder = os.path.join(app.root_path, 'static/uploads')
+            os.makedirs(folder, exist_ok=True)
+            filepath = os.path.join(folder, filename)
+
+            with open(filepath, 'wb') as f:
+                f.write(response.content)
+
+            return f"/static/uploads/{filename}"
+    except Exception as e:
+        print("Profile picture download failed:", e)
+
+    return None
 
 
 @app.route('/user/edit-profile', methods=['GET', 'POST'])
@@ -837,7 +943,9 @@ Kind regards,
         if not token_row:
             print(f"No Google token found for user {user.id}")
             return False
-            
+        
+        print(f"Found token for user {user.id}, token length: {len(token_row.token_json)}")
+        
         # Build credentials for Gmail API
         credentials = build_credentials(token_row.token_json)
         
@@ -845,10 +953,13 @@ Kind regards,
         documents = Document.query.filter_by(user_id=user.id, is_active=True).all()
         file_paths = []
         for doc in documents:
-            file_paths.append({
-                'path': doc.file_path,
-                'filename': doc.original_filename
-            })
+            if os.path.exists(doc.file_path):
+                file_paths.append({
+                    'path': doc.file_path,
+                    'filename': doc.original_filename
+                })
+        
+        print(f"Found {len(file_paths)} attachments for user {user.id}")
         
         # Create and send email message
         message = create_message_with_attachments(
@@ -865,6 +976,8 @@ Kind regards,
         
     except Exception as e:
         print(f"Error sending email to {recipient_email}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

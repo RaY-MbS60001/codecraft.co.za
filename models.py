@@ -39,6 +39,7 @@ class User(UserMixin, db.Model):
             'id': self.id,
             'email': self.email,
             'username': self.username,
+            'profile_picture': self.profile_picture,
             'full_name': self.full_name,
             'role': self.role,
             'auth_method': self.auth_method,
