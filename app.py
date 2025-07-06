@@ -400,7 +400,8 @@ def google_callback():
         print(f"Token stored successfully for user {user.id}")
         
         flash(f'Welcome, {user.full_name or user.email}!', 'success')
-        return redirect(url_for('user_dashboard'))
+        return redirect(url_for('user_dashboard', login='success'))
+
         
     except Exception as e:
         print(f"OAuth callback error: {e}")

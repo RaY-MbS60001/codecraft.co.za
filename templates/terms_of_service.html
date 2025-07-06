@@ -1,36 +1,417 @@
-# Create templates/terms_of_service.html
 {% extends "base.html" %}
+{% block title %}Terms of Service - CodeCraft{% endblock %}
+
 {% block content %}
-<div class="container terms-of-service">
-    <h1>Terms of Service - CodeCraft Learnership Platform</h1>
+<style>
+    /* Terms of Service Styling */
+    .terms-of-service {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, #151922 0%, #1e2434 100%);
+        color: #e4e6eb;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.7;
+    }
     
-    <section>
-        <h2>1. Acceptance of Terms</h2>
-        <p>By using CodeCraft, you agree to these terms of service.</p>
-    </section>
+    .terms-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #5d72e4 0%, #784bd1 100%);
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(93, 114, 228, 0.3);
+    }
     
-    <section>
-        <h2>2. User Responsibilities</h2>
-        <ul>
-            <li>Provide accurate information</li>
-            <li>Maintain account security</li>
-            <li>Use the platform ethically</li>
-        </ul>
-    </section>
+    .terms-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
     
-    <section>
-        <h2>3. Learnership Applications</h2>
-        <p>CodeCraft provides a platform for learnership discovery. We do not guarantee placement or employment.</p>
-    </section>
+    .terms-header .subtitle {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        margin-top: 1rem;
+        font-weight: 300;
+    }
     
-    <section>
-        <h2>4. Intellectual Property</h2>
-        <p>Platform content is protected. User-generated content remains the property of the user.</p>
-    </section>
+    .terms-content {
+        background: #1e2434;
+        border-radius: 15px;
+        padding: 2.5rem;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        border: 1px solid #2d3446;
+    }
     
-    <section>
-        <h2>5. Limitation of Liability</h2>
-        <p>CodeCraft is an information platform. We are not responsible for direct employment outcomes.</p>
-    </section>
+    .terms-section {
+        margin-bottom: 3rem;
+        padding: 2rem;
+        background: #252c3e;
+        border-radius: 12px;
+        border-left: 4px solid #5d72e4;
+        transition: all 0.3s ease;
+    }
+    
+    .terms-section:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(93, 114, 228, 0.15);
+    }
+    
+    .terms-section h2 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #5d72e4;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .terms-section h2::before {
+        content: counter(section-counter);
+        counter-increment: section-counter;
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #5d72e4, #784bd1);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 12px rgba(93, 114, 228, 0.3);
+    }
+    
+    .terms-content {
+        counter-reset: section-counter;
+    }
+    
+    .terms-section p {
+        font-size: 1.1rem;
+        color: #e4e6eb;
+        margin-bottom: 1.5rem;
+        text-align: justify;
+    }
+    
+    .terms-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0;
+    }
+    
+    .terms-section li {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 1.1rem;
+        color: #e4e6eb;
+    }
+    
+    .terms-section li:last-child {
+        border-bottom: none;
+    }
+    
+    .terms-section li::before {
+        content: '✓';
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(135deg, #4bc070, #32a852);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+    }
+    
+    .highlight-box {
+        background: linear-gradient(135deg, rgba(255, 171, 0, 0.1), rgba(255, 171, 0, 0.05));
+        border: 1px solid rgba(255, 171, 0, 0.3);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .highlight-box::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #ffab00, #ff8800);
+    }
+    
+    .highlight-box .warning-icon {
+        float: left;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+        color: #ffab00;
+    }
+    
+    .important-note {
+        background: linear-gradient(135deg, rgba(240, 62, 62, 0.1), rgba(240, 62, 62, 0.05));
+        border: 1px solid rgba(240, 62, 62, 0.3);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .important-note::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #f03e3e, #d73a49);
+    }
+    
+    .contact-info {
+        background: linear-gradient(135deg, rgba(93, 114, 228, 0.1), rgba(120, 75, 209, 0.1));
+        border: 1px solid rgba(93, 114, 228, 0.3);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-top: 3rem;
+        text-align: center;
+    }
+    
+    .contact-info h3 {
+        color: #5d72e4;
+        margin-bottom: 1rem;
+        font-size: 1.4rem;
+    }
+    
+    .contact-info p {
+        color: #e4e6eb;
+        margin-bottom: 0.5rem;
+    }
+    
+    .contact-info a {
+        color: #5d72e4;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    
+    .contact-info a:hover {
+        color: #4a60d3;
+        text-decoration: underline;
+    }
+    
+    .last-updated {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: #a0a6b3;
+        font-size: 0.9rem;
+    }
+    
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, #5d72e4, #784bd1);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 12px rgba(93, 114, 228, 0.3);
+    }
+    
+    .back-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(93, 114, 228, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .terms-of-service {
+            padding: 2rem 1rem;
+        }
+        
+        .terms-header h1 {
+            font-size: 2rem;
+        }
+        
+        .terms-content {
+            padding: 1.5rem;
+        }
+        
+        .terms-section {
+            padding: 1.5rem;
+        }
+        
+        .terms-section h2 {
+            font-size: 1.5rem;
+        }
+        
+        .terms-section h2::before {
+            width: 35px;
+            height: 35px;
+            font-size: 1rem;
+        }
+        
+        .terms-section p,
+        .terms-section li {
+            font-size: 1rem;
+        }
+    }
+    
+    /* Smooth scrolling for anchor links */
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    /* Animation for sections */
+    .terms-section {
+        animation: fadeInUp 0.6s ease-out;
+        animation-fill-mode: both;
+    }
+    
+    .terms-section:nth-child(1) { animation-delay: 0.1s; }
+    .terms-section:nth-child(2) { animation-delay: 0.2s; }
+    .terms-section:nth-child(3) { animation-delay: 0.3s; }
+    .terms-section:nth-child(4) { animation-delay: 0.4s; }
+    .terms-section:nth-child(5) { animation-delay: 0.5s; }
+    .terms-section:nth-child(6) { animation-delay: 0.6s; }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<div class="terms-of-service">
+    <a href="{{ url_for('user_dashboard') }}" class="back-button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m7-7l-7 7 7 7"/>
+        </svg>
+        Back to Dashboard
+    </a>
+    
+    <div class="terms-header">
+        <h1>Terms of Service</h1>
+        <p class="subtitle">CodeCraft Learnership Platform</p>
+    </div>
+    
+    <div class="terms-content">
+        <div class="terms-section">
+            <h2>Acceptance of Terms</h2>
+            <p>By accessing and using the CodeCraft Learnership Platform ("Platform"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree to these terms, please do not use our Platform.</p>
+            
+            <div class="highlight-box">
+                <span class="warning-icon">⚠️</span>
+                <strong>Important:</strong> These terms constitute a legally binding agreement between you and CodeCraft. Please read them carefully before proceeding.
+            </div>
+        </div>
+        
+        <div class="terms-section">
+            <h2>User Responsibilities</h2>
+            <p>As a user of the CodeCraft Platform, you agree to:</p>
+            <ul>
+                <li>Provide accurate, current, and complete information during registration</li>
+                <li>Maintain the security of your account credentials</li>
+                <li>Use the platform ethically and in compliance with applicable laws</li>
+                <li>Respect the intellectual property rights of others</li>
+                <li>Not engage in any fraudulent or misleading activities</li>
+                <li>Report any security vulnerabilities or suspicious activities</li>
+            </ul>
+        </div>
+        
+        <div class="terms-section">
+            <h2>Learnership Applications</h2>
+            <p>CodeCraft serves as a platform for learnership discovery and application submission. We facilitate connections between learners and employers but do not guarantee:</p>
+            <ul>
+                <li>Placement in any specific learnership program</li>
+                <li>Employment outcomes or job opportunities</li>
+                <li>The accuracy of all third-party learnership listings</li>
+                <li>Success in application processes</li>
+            </ul>
+            
+            <div class="important-note">
+                <strong>Disclaimer:</strong> CodeCraft is an information platform. Final selection decisions rest with the respective employers and training providers.
+            </div>
+        </div>
+        
+        <div class="terms-section">
+            <h2>Intellectual Property</h2>
+            <p>The Platform's content, features, and functionality are owned by CodeCraft and are protected by international copyright, trademark, and other intellectual property laws.</p>
+            <ul>
+                <li>Platform content remains the exclusive property of CodeCraft</li>
+                <li>User-generated content remains the property of the respective users</li>
+                <li>Users grant CodeCraft a license to use their content for platform operations</li>
+                <li>Unauthorized reproduction or distribution is strictly prohibited</li>
+            </ul>
+        </div>
+        
+        <div class="terms-section">
+            <h2>Limitation of Liability</h2>
+            <p>CodeCraft operates as an information and connection platform. We are not responsible for:</p>
+            <ul>
+                <li>Direct employment outcomes or career results</li>
+                <li>Actions or decisions made by employers or training providers</li>
+                <li>Technical issues beyond our reasonable control</li>
+                <li>Third-party content accuracy or completeness</li>
+                <li>Any indirect, incidental, or consequential damages</li>
+            </ul>
+        </div>
+        
+        <div class="terms-section">
+            <h2>Privacy & Data Protection</h2>
+            <p>Your privacy is important to us. We collect and process personal information in accordance with our Privacy Policy and applicable data protection laws.</p>
+            <ul>
+                <li>We use industry-standard security measures to protect your data</li>
+                <li>Personal information is only shared with your explicit consent</li>
+                <li>You have the right to access, modify, or delete your personal data</li>
+                <li>We comply with POPIA and other applicable privacy regulations</li>
+            </ul>
+        </div>
+        
+        <div class="terms-section">
+            <h2>Termination</h2>
+            <p>Either party may terminate this agreement at any time. CodeCraft reserves the right to suspend or terminate accounts that violate these terms or engage in prohibited activities.</p>
+        </div>
+        
+        <div class="terms-section">
+            <h2>Changes to Terms</h2>
+            <p>We reserve the right to modify these terms at any time. Users will be notified of significant changes, and continued use of the platform constitutes acceptance of the updated terms.</p>
+        </div>
+    </div>
+    
+    <div class="contact-info">
+        <h3>Questions or Concerns?</h3>
+        <p>If you have any questions about these Terms of Service, please contact us:</p>
+        <p>Email: <a href="mailto:support@codecraft.co.za">support@codecraft.co.za</a></p>
+        <p>Phone: <a href="tel:+27123456789">+27 12 345 6789</a></p>
+    </div>
+    
+    <div class="last-updated">
+        <p>Last updated: {{ moment().format('MMMM Do, YYYY') }}</p>
+    </div>
 </div>
 {% endblock %}

@@ -314,12 +314,70 @@
             </div>
         </div>
     </main>
+<!-- WhatsApp Group Invitation Modal -->
+<div id="whatsappModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="whatsapp-icon">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="#25D366">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.516"/>
+                </svg>
+            </div>
+            <h3>Join Our WhatsApp Community!</h3>
+        </div>
+        
+        <div class="modal-body">
+            <p>Stay connected with fellow learners and get instant updates about:</p>
+            <ul class="benefits-list">
+                <li>
+                    <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    New learnership opportunities
+                </li>
+                <li>
+                    <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Application deadlines and reminders
+                </li>
+                <li>
+                    <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Tips and guidance from successful applicants
+                </li>
+                <li>
+                    <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Networking with other learners
+                </li>
+            </ul>
+            <p class="note">You can leave the group anytime if you change your mind.</p>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="declineWhatsApp">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+                Maybe Later
+            </button>
+            <button type="button" class="btn-whatsapp" id="joinWhatsApp">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.516"/>
+                </svg>
+                Join WhatsApp Group
+            </button>
+        </div>
+    </div>
+</div>
 </div>
 
 <!-- Toast Notification Container -->
 <div class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<!-- JavaScript for Interactive Elements -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // User Menu Dropdown
@@ -347,9 +405,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     counters.forEach(counter => {
         const target = parseInt(counter.getAttribute('data-count'));
-        const duration = 1000; // 1 second animation
-        const steps = 20; // Number of steps
-                const increment = target / steps;
+        const duration = 1000;
+        const steps = 20;
+        const increment = target / steps;
         let current = 0;
         let step = 0;
         
@@ -363,7 +421,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
         
-        // Start animation when element is in viewport
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -384,7 +441,6 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => message.remove(), 300);
         }, 5000);
         
-        // Close button functionality
         const closeBtn = message.querySelector('button');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
@@ -393,7 +449,223 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // ============= ISOLATED WHATSAPP MODAL SYSTEM =============
+    
+    // Configuration
+    const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/YOUR_GROUP_INVITE_LINK';
+    
+    // Create WhatsApp Modal Manager
+    const WhatsAppModal = {
+        modal: null,
+        isOpen: false,
+        
+        init() {
+            this.modal = document.getElementById('whatsappModal');
+            
+            if (!this.modal) {
+                console.error('❌ WhatsApp modal not found in DOM');
+                return;
+            }
+            
+            console.log('✅ WhatsApp modal initialized');
+            this.setupEventListeners();
+            this.checkAndShow();
+        },
+        
+        setupEventListeners() {
+            // Decline button
+            const declineBtn = document.getElementById('declineWhatsApp');
+            if (declineBtn) {
+                declineBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('❌ User declined WhatsApp invitation');
+                    this.decline();
+                };
+            }
+            
+            // Join button
+            const joinBtn = document.getElementById('joinWhatsApp');
+            if (joinBtn) {
+                joinBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('✅ User wants to join WhatsApp group');
+                    this.join();
+                };
+            }
+            
+            // ONLY close on ESC key - NO OTHER AUTO-CLOSE
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isOpen) {
+                    console.log('🔒 User pressed ESC to close modal');
+                    this.close();
+                }
+            });
+            
+            // DISABLED: Click outside to close (causes auto-close issues)
+            // We'll only allow explicit button clicks or ESC key
+        },
+        
+        checkAndShow() {
+            // Check if should show
+            const alreadyShown = sessionStorage.getItem('whatsappModalShown');
+            const declined = localStorage.getItem('whatsappModalDeclined');
+            const joined = localStorage.getItem('whatsappModalJoined');
+            
+            console.log('🔍 Modal status check:', {
+                alreadyShown: !!alreadyShown,
+                declined: !!declined,
+                joined: !!joined
+            });
+            
+            if (alreadyShown || declined || joined) {
+                console.log('⏭️ Modal already shown or user made choice');
+                return;
+            }
+            
+            // Show modal after delay
+            setTimeout(() => {
+                this.show();
+            }, 2500); // 2.5 second delay
+        },
+        
+        show() {
+            if (!this.modal) return;
+            
+            console.log('🎉 Showing WhatsApp modal');
+            this.modal.classList.add('active');
+            this.isOpen = true;
+            document.body.style.overflow = 'hidden';
+            
+            // Add a visual indicator that modal is intentionally open
+            this.modal.style.zIndex = '9999';
+        },
+        
+        close() {
+            if (!this.modal || !this.isOpen) return;
+            
+            console.log('🔒 Closing WhatsApp modal');
+            this.modal.classList.remove('active');
+            this.isOpen = false;
+            document.body.style.overflow = '';
+            
+            // Mark as shown for this session
+            sessionStorage.setItem('whatsappModalShown', 'true');
+        },
+        
+        decline() {
+            // Store preference for a week
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + 7);
+            localStorage.setItem('whatsappModalDeclined', expiryDate.toISOString());
+            
+            this.close();
+        },
+        
+        join() {
+            const joinBtn = document.getElementById('joinWhatsApp');
+            if (joinBtn) {
+                // Show loading state
+                joinBtn.innerHTML = `
+                    <div class="spinner"></div>
+                    Opening WhatsApp...
+                `;
+                joinBtn.disabled = true;
+                
+                // Open WhatsApp and close modal
+                setTimeout(() => {
+                    window.open(WHATSAPP_GROUP_LINK, '_blank');
+                    localStorage.setItem('whatsappModalJoined', 'true');
+                    this.close();
+                    
+                    // Show success message
+                    this.showToast('WhatsApp group opened in new tab! 🎉', 'success');
+                }, 1000);
+            }
+        },
+        
+        showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const icon = type === 'success' ? 
+                `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>` : 
+                `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>`;
+
+            toast.innerHTML = `
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" aria-label="Close notification">×</button>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+
+            // Close button
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) {
+                closeBtn.onclick = () => toast.remove();
+            }
+        }
+    };
+    
+    // Initialize WhatsApp Modal
+    WhatsAppModal.init();
+    
+    // ============= END WHATSAPP MODAL SYSTEM =============
+
+    // Check if user came from login
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === 'success') {
+        console.log('🎉 User came from successful login');
+        setTimeout(() => {
+            WhatsAppModal.showToast('Welcome back! 🎉', 'success');
+        }, 500);
+        
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Profile picture error handling
+    const profileImages = document.querySelectorAll('.profile-avatar, .user-avatar-small img');
+    profileImages.forEach(img => {
+        img.addEventListener('error', function() {
+            console.error('❌ Profile image failed to load:', this.src);
+            this.style.display = 'none';
+            
+            const placeholder = this.nextElementSibling;
+            if (placeholder && placeholder.classList.contains('avatar-placeholder')) {
+                placeholder.style.display = 'flex';
+            }
+        });
+    });
+
+    console.log('✅ Dashboard JavaScript loaded successfully!');
 });
+
+// TEST FUNCTION - You can call this in console to test the modal
+function testWhatsAppModal() {
+    console.log('🧪 Testing WhatsApp modal...');
+    sessionStorage.removeItem('whatsappModalShown');
+    localStorage.removeItem('whatsappModalDeclined');
+    localStorage.removeItem('whatsappModalJoined');
+    location.reload();
+}
 </script>
 
 <style>
@@ -1139,5 +1411,364 @@ document.addEventListener('DOMContentLoaded', function() {
         text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
         line-height: 1;
     }
+
+    /* WhatsApp Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    max-width: 480px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.8) translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.modal-header {
+    padding: 24px 24px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.whatsapp-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+    }
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 20px 24px;
+}
+
+.modal-body p {
+    margin: 0 0 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+}
+
+.benefits-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.benefits-list li svg {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.note {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    font-style: italic;
+    text-align: center;
+    margin-top: 16px;
+}
+
+.modal-footer {
+    padding: 16px 24px 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn-secondary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.btn-whatsapp {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-whatsapp:hover {
+    background: linear-gradient(135deg, #128C7E, #25D366);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+}
+
+.btn-whatsapp:active {
+    transform: translateY(0);
+}
+
+.btn-whatsapp::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-whatsapp:hover::before {
+    left: 100%;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+    .modal-content {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .modal-header {
+        padding: 20px 16px 12px;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px 20px;
+        flex-direction: column;
+    }
+    
+    .btn-secondary,
+    .btn-whatsapp {
+        justify-content: center;
+    }
+}
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border-left: 4px solid var(--primary-color);
+    animation: slideInRight 0.3s ease-out;
+    max-width: 100%;
+}
+
+.toast-success {
+    border-left-color: var(--success-color);
+}
+
+.toast-error {
+    border-left-color: var(--danger-color);
+}
+
+.toast-warning {
+    border-left-color: var(--warning-color);
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-success .toast-icon {
+    color: var(--success-color);
+}
+
+.toast-error .toast-icon {
+    color: var(--danger-color);
+}
+
+.toast-warning .toast-icon {
+    color: var(--warning-color);
+}
+
+.toast-message {
+    flex-grow: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.toast-close:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Ripple Effect */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    background-color: rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Button positioning for ripple effect */
+.btn-whatsapp, .edit-profile-btn, .cta-button {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Loading spinner */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Mobile toast responsiveness */
+@media (max-width: 640px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .toast {
+        padding: 10px 12px;
+    }
+    
+    .toast-message {
+        font-size: 13px;
+    }
+}
+#whatsappModal.active {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
 </style>
 {% endblock %}
