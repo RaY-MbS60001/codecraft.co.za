@@ -3,13 +3,13 @@
 
 {% block content %}
 <style>
-    /* Same styles as other admin pages */
+    /* Same styles as before... */
     .container {
         display: flex;
         flex-direction: column;
         min-height: 100vh;
-        background-color: #151922; /* Dark background */
-        color: #e4e6eb; /* Light text */
+        background-color: #151922;
+        color: #e4e6eb;
         padding: 2rem;
     }
     
@@ -168,6 +168,81 @@
         background-color: #e03131;
     }
     
+    .btn-view, .btn-download {
+        padding: 0.4rem 0.8rem;
+        background-color: #5d72e4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    
+    .btn-view:hover, .btn-download:hover {
+        background-color: #4a60d3;
+    }
+    
+    .btn-download {
+        background-color: #4bc070;
+    }
+    
+    .btn-download:hover {
+        background-color: #38a158;
+    }
+    
+    .btn-disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    .btn-disabled:hover {
+        background-color: #6c757d;
+    }
+    
+    .file-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.8rem;
+    }
+    
+    .file-missing {
+        color: #f03e3e;
+    }
+    
+    .file-available {
+        color: #4bc070;
+    }
+    
+    /* Flash message styles */
+    .flash-messages {
+        margin-bottom: 1rem;
+    }
+    
+    .flash-message {
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+        border-left: 4px solid;
+    }
+    
+    .flash-error {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+        border-left-color: #f03e3e;
+    }
+    
+    .flash-success {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+        border-left-color: #4bc070;
+    }
+    
     @media (max-width: 768px) {
         .container {
             padding: 1rem;
@@ -189,6 +264,19 @@
 </style>
 
 <div class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
     <div class="header">
         <h1>User Details</h1>
         <a href="{{ url_for('admin_dashboard') }}" class="btn-back">
@@ -305,6 +393,8 @@
                     <th>Filename</th>
                     <th>Size</th>
                     <th>Uploaded</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -315,6 +405,38 @@
                     <td>{{ document.original_filename }}</td>
                     <td>{{ (document.file_size / 1024)|round(1) }} KB</td>
                     <td>{{ document.uploaded_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <span class="file-status file-{{ 'available' if document.file_exists else 'missing' }}">
+                            {% if document.file_exists %}
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Available
+                            {% else %}
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Missing
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if document.file_exists %}
+                            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn-download">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" />
+                                </svg>
+                                Download
+                            </a>
+                        {% else %}
+                            <span class="btn-download btn-disabled" title="File not found on server">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" />
+                                </svg>
+                                Download
+                            </span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

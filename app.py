@@ -1289,22 +1289,6 @@ def add_user():
     return render_template('add_user.html')
 
 
-@app.route('/admin/users/<int:user_id>/view')
-@login_required
-@admin_required
-def view_user(user_id):
-    """View detailed user information"""
-    user = User.query.get_or_404(user_id)
-    
-    # Get user's applications and documents
-    applications = Application.query.filter_by(user_id=user_id).all()
-    documents = Document.query.filter_by(user_id=user_id).all()
-    
-    return render_template('view_user.html', 
-                          user=user,
-                          applications=applications,
-                          documents=documents)
-
 
 @app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -1337,7 +1321,78 @@ def edit_user(user_id):
     
     return render_template('edit_user.html', user=user)
 
+@app.route('/admin/users/<int:user_id>/view')
+@login_required
+@admin_required
+def view_user(user_id):
+    """View detailed user information"""
+    user = User.query.get_or_404(user_id)
+    
+    # Get user's applications and documents
+    applications = Application.query.filter_by(user_id=user_id).all()
+    documents = Document.query.filter_by(user_id=user_id).all()
+    
+    # Check file existence for each document
+    for document in documents:
+        if document.file_path:
+            # Construct full file path
+            if not os.path.isabs(document.file_path):
+                full_file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.file_path)
+            else:
+                full_file_path = document.file_path
+            document.file_exists = os.path.exists(full_file_path)
+        else:
+            document.file_exists = False
+    
+    return render_template('view_user.html', 
+                          user=user,
+                          applications=applications,
+                          documents=documents)
 
+@app.route('/admin/documents/<int:document_id>/download')
+@login_required
+@admin_required
+def download_document(document_id):
+    """Download document file"""
+    document = Document.query.get_or_404(document_id)
+    
+    # Construct full file path
+    if document.file_path:
+        # If file_path is relative, join with upload folder
+        if not os.path.isabs(document.file_path):
+            full_file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.file_path)
+        else:
+            full_file_path = document.file_path
+    else:
+        full_file_path = None
+    
+    # Check if file exists
+    if not full_file_path or not os.path.exists(full_file_path):
+        flash('Document file not found', 'error')
+        return redirect(request.referrer or url_for('admin_dashboard'))
+    
+    # Determine MIME type based on file extension
+    mime_type = 'application/octet-stream'
+    if document.original_filename:
+        _, ext = os.path.splitext(document.original_filename)
+        mime_types = {
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png'
+        }
+        mime_type = mime_types.get(ext.lower(), mime_type)
+    
+    # Return file for download
+    return send_file(
+        full_file_path, 
+        mimetype=mime_type,
+        as_attachment=True,
+        download_name=document.original_filename or f'document-{document.id}{os.path.splitext(full_file_path)[1]}'
+    )
+        
 # =============================================================================
 # ADMIN LEARNERSHIP MANAGEMENT ROUTES
 # =============================================================================
@@ -1557,40 +1612,6 @@ def view_application(application_id):
                           application=application,
                           application_documents=application_documents)
 
-
-@app.route('/admin/documents/<int:document_id>/download')
-@login_required
-@admin_required
-def download_document(document_id):
-    """Download document file"""
-    document = Document.query.get_or_404(document_id)
-    
-    # Check if file exists
-    if not document.file_path or not os.path.exists(document.file_path):
-        flash('Document file not found', 'error')
-        return redirect(request.referrer or url_for('admin_dashboard'))
-    
-    # Determine MIME type based on file extension
-    mime_type = 'application/octet-stream'
-    if document.original_filename:
-        _, ext = os.path.splitext(document.original_filename)
-        mime_types = {
-            '.pdf': 'application/pdf',
-            '.doc': 'application/msword',
-            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.png': 'image/png'
-        }
-        mime_type = mime_types.get(ext.lower(), mime_type)
-    
-    # Return file for download
-    return send_file(
-        document.file_path, 
-        mimetype=mime_type,
-        as_attachment=True,
-        download_name=document.original_filename or f'document-{document.id}{os.path.splitext(document.file_path)[1]}'
-    )
 
 
 # =============================================================================
