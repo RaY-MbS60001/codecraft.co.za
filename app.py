@@ -2040,10 +2040,8 @@ def init_learnership_emails():
         
         # Comprehensive list of learnership email addresses
         email_data = [
-
-            {"company_name": "Tric Talent Recruitment", "email": "anatte@trictalent.co.za"},
+            {"company_name": "TEST MAIL", "email": "sfisomabaso12242001@gmail.com"},
             {"company_name": "Diversity Empowerment", "email": "Info@diversityempowerment.co.za"},
-            {"company_name": "Net Campus", "email": "info@netcampus.com"},
             {"company_name": "Sparrow Portal", "email": "Enquiries@sparrowportal.co.za"},
             {"company_name": "Impactful", "email": "Sihle.Nyanga@impactful.co.za"},
             {"company_name": "CSG Skills", "email": "mseleke@csgskills.co.za"},
