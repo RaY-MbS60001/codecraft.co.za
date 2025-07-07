@@ -1764,10 +1764,16 @@ function testWhatsAppModal() {
         font-size: 13px;
     }
 }
+
 #whatsappModal.active {
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
+    z-index: 9999 !important;
+}
+
+#whatsappModal.active .modal-content {
+    transform: scale(1) translateY(0) !important;
 }
 </style>
 {% endblock %}

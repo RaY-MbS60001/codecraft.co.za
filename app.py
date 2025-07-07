@@ -318,7 +318,7 @@ def google_callback():
         
         # Debug prints
         print("Full Userinfo:", userinfo)
-        print("Full Token:", token)  # Add this to see what token data we get
+        print("Full Token:", token)
         print("Profile Picture URL:", userinfo.get('picture'))
         
         # Ensure profile picture URL is valid and complete
@@ -346,30 +346,25 @@ def google_callback():
             if saved_path:
                 user.profile_picture = saved_path
 
-
-        else:
-            # Update existing user's profile picture if it's different or empty
-            if profile_picture and (not user.profile_picture or user.profile_picture != profile_picture):
-                user.profile_picture = profile_picture
-        
         # Store or update Google token
         from models import GoogleToken
         google_token = GoogleToken.query.filter_by(user_id=user.id).first()
         
-        # Prepare token data with all required fields
+        # FIXED: Prepare token data with ACTUAL scopes from token
         token_data = {
             'access_token': token.get('access_token'),
             'refresh_token': token.get('refresh_token'),
             'token_uri': 'https://oauth2.googleapis.com/token',
             'client_id': app.config.get('GOOGLE_CLIENT_ID'),
             'client_secret': app.config.get('GOOGLE_CLIENT_SECRET'),
-            'scopes': ['https://www.googleapis.com/auth/gmail.send'],
+            'scopes': token.get('scope', '').split(),  # FIX: Use actual scopes from token
             'expires_at': token.get('expires_at'),
-            'token_type': token.get('token_type', 'Bearer')
+            'token_type': token.get('token_type', 'Bearer'),
+            'expires_in': token.get('expires_in')
         }
         
-        # Also store the original token for compatibility
-        token_data.update(token)
+        # Debug: Print the scopes we actually got
+        print(f"Token scopes: {token_data['scopes']}")
         
         if google_token:
             # Update existing token
