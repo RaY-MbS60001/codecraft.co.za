@@ -2,6 +2,7 @@
 import base64
 import os
 import json
+import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -10,6 +11,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from flask import current_app
+from socket import timeout
 
 def build_credentials(token_json):
     """Build Google credentials from token JSON"""
@@ -95,22 +97,104 @@ def create_message_with_attachments(sender, to, subject, body, file_paths=None):
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
     return {'raw': raw}
 
-def send_gmail_message(credentials, message):
-    """Send message using Gmail API"""
+def refresh_credentials_if_needed(credentials):
+    """Refresh credentials if they're expired"""
     try:
-        # Check if we're using a mock credential (for development)
-        if hasattr(credentials, 'valid') and not isinstance(credentials.valid, bool):
-            current_app.logger.info("Using mock credentials - email would be sent in production")
-            return {'id': 'mock-message-id'}
-            
-        service = build('gmail', 'v1', credentials=credentials)
-        sent_message = service.users().messages().send(userId='me', body=message).execute()
-        current_app.logger.info(f"Email sent successfully: {sent_message.get('id')}")
-        return sent_message
-        
-    except HttpError as error:
-        current_app.logger.error(f'Gmail API error: {error}')
-        raise
+        if credentials.expired and credentials.refresh_token:
+            from google.auth.transport.requests import Request
+            credentials.refresh(Request())
+            current_app.logger.info("Credentials refreshed successfully")
+            return True
+        return False
     except Exception as e:
-        current_app.logger.error(f'Error sending email: {str(e)}')
-        raise
+        current_app.logger.error(f"Error refreshing credentials: {str(e)}")
+        return False
+
+def send_gmail_message(credentials, message, max_retries=3, retry_delay=2):
+    """Send message using Gmail API with retry logic for timeouts"""
+    current_app.logger.info("DEBUG: Starting send_gmail_message function")
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            # Check if we're using a mock credential (for development)
+            if hasattr(credentials, 'valid') and not isinstance(credentials.valid, bool):
+                current_app.logger.info("Using mock credentials - email would be sent in production")
+                return {'id': 'mock-message-id'}
+            
+            # Refresh credentials if needed
+            current_app.logger.info("DEBUG: About to refresh credentials if needed")
+            refresh_credentials_if_needed(credentials)
+            
+            # Build Gmail service - ONLY pass credentials, no http parameter
+            current_app.logger.info("DEBUG: About to build Gmail service with credentials only")
+            service = build('gmail', 'v1', credentials=credentials)
+            current_app.logger.info("DEBUG: Gmail service built successfully")
+            
+            # Send the message
+            current_app.logger.info("DEBUG: About to send message")
+            sent_message = service.users().messages().send(userId='me', body=message).execute()
+            current_app.logger.info(f"Email sent successfully: {sent_message.get('id')}")
+            return sent_message
+            
+        except Exception as e:
+            current_app.logger.error(f"DEBUG: Exception in send_gmail_message: {str(e)}")
+            current_app.logger.error(f"DEBUG: Exception type: {type(e)}")
+            
+            # Check if it's the http/credentials error
+            if "Arguments http and credentials are mutually exclusive" in str(e):
+                current_app.logger.error("DEBUG: This is the http/credentials error - investigating...")
+                # Let's see the full stack trace
+                import traceback
+                current_app.logger.error(f"DEBUG: Full traceback: {traceback.format_exc()}")
+            
+            # Handle specific exceptions
+            if isinstance(e, (timeout, TimeoutError)):
+                retry_count += 1
+                current_app.logger.warning(f"Email send timed out (attempt {retry_count}/{max_retries}): {str(e)}")
+                
+                if retry_count < max_retries:
+                    current_app.logger.info(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                    retry_delay = min(retry_delay * 2, 30)
+                else:
+                    current_app.logger.error("Maximum retry attempts reached, giving up.")
+                    raise
+                    
+            elif isinstance(e, HttpError):
+                # Handle HTTP errors
+                error_details = e.error_details if hasattr(e, 'error_details') else str(e)
+                current_app.logger.error(f'Gmail API HttpError: {error_details}')
+                
+                if hasattr(e, 'resp') and e.resp.status == 429:
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        wait_time = retry_delay * (2 ** (retry_count - 1))
+                        current_app.logger.info(f"Rate limited, waiting {wait_time} seconds...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        raise Exception("Rate limit exceeded after all retries")
+                elif hasattr(e, 'resp') and e.resp.status == 401:
+                    raise Exception("Gmail API unauthorized. Please re-authenticate.")
+                elif hasattr(e, 'resp') and e.resp.status == 403:
+                    raise Exception("Gmail API access forbidden. Check your OAuth scopes.")
+                else:
+                    raise
+                    
+            else:
+                # Other exceptions
+                if any(err_type in str(e).lower() for err_type in ['timeout', 'timed out', 'connection', 'network']):
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        current_app.logger.info(f"Network error, retrying in {retry_delay} seconds...")
+                        time.sleep(retry_delay)
+                        retry_delay = min(retry_delay * 2, 30)
+                        continue
+                    else:
+                        current_app.logger.error("Maximum retry attempts reached, giving up.")
+                        raise
+                else:
+                    raise
+    
+    raise Exception("Maximum retry attempts exceeded")

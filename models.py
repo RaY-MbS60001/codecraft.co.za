@@ -1,8 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import synonym
+import uuid
 
 db = SQLAlchemy()
 
@@ -21,6 +22,12 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True)
+    
+    # Session tracking fields - ADD THESE
+    session_token = db.Column(db.String(255), unique=True, nullable=True)
+    session_expires = db.Column(db.DateTime, nullable=True)
+    session_ip = db.Column(db.String(45), nullable=True)  # For IP tracking
+    session_user_agent = db.Column(db.String(500), nullable=True)  # For browser tracking
 
     applications = db.relationship('Application', back_populates='user', lazy=True)
     documents = db.relationship('Document', backref='owner', lazy=True)
@@ -33,6 +40,48 @@ class User(UserMixin, db.Model):
         if self.password_hash:
             return check_password_hash(self.password_hash, password)
         return False
+
+    # ADD THESE SESSION METHODS
+    def generate_session_token(self, ip_address=None, user_agent=None):
+        """Generate a new session token for the user"""
+        self.session_token = str(uuid.uuid4())
+        self.session_expires = datetime.utcnow() + timedelta(hours=2)
+        self.session_ip = ip_address
+        self.session_user_agent = user_agent
+        db.session.commit()
+        return self.session_token
+
+    def is_session_valid(self, session_token=None, ip_address=None):
+        """Check if the current session is valid"""
+        if not self.session_token or not self.session_expires:
+            return False
+        
+        if session_token and session_token != self.session_token:
+            return False
+        
+        if datetime.utcnow() > self.session_expires:
+            self.clear_session()
+            return False
+        
+        # Optional: Check IP address for additional security
+        if ip_address and self.session_ip and ip_address != self.session_ip:
+            return False
+            
+        return True
+
+    def clear_session(self):
+        """Clear the user's session"""
+        self.session_token = None
+        self.session_expires = None
+        self.session_ip = None
+        self.session_user_agent = None
+        db.session.commit()
+
+    def extend_session(self):
+        """Extend the current session"""
+        if self.session_token:
+            self.session_expires = datetime.utcnow() + timedelta(hours=2)
+            db.session.commit()
 
     def to_dict(self):
         return {
@@ -47,6 +96,8 @@ class User(UserMixin, db.Model):
             'last_login': self.last_login.strftime('%Y-%m-%d %H:%M') if self.last_login else 'Never',
             'is_active': self.is_active
         }
+
+# Keep all your other models unchanged...
 
 class Learnership(db.Model):
     __table_args__ = {'extend_existing': True}

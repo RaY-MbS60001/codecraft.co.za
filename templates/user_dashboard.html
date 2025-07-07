@@ -1775,5 +1775,33 @@ function testWhatsAppModal() {
 #whatsappModal.active .modal-content {
     transform: scale(1) translateY(0) !important;
 }
+/* Add vertical scrolling to applications list */
+.applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px; /* Set a maximum height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding-right: 8px; /* Add padding for scrollbar */
+}
+
+/* Custom scrollbar styling */
+.applications-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.applications-list::-webkit-scrollbar-track {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.applications-list::-webkit-scrollbar-thumb {
+    background: var(--text-tertiary);
+    border-radius: 3px;
+}
+
+.applications-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
 </style>
 {% endblock %}

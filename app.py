@@ -89,7 +89,6 @@ def get_database_url():
     
     return render_db_url
 
-
 # =============================================================================
 # FLASK APP INITIALIZATION
 # =============================================================================
@@ -98,7 +97,7 @@ app = Flask(__name__)
 
 app.config.from_object(Config)
     
-    # Apply security middleware
+# Apply security middleware
 add_security_headers(app)
     
 # Determine base directory and setup paths
@@ -115,11 +114,15 @@ app.config['SECRET_KEY'] = os.environ.get(
     'SECRET_KEY', 
     'e1f8c81a1e6f0c6e3b23a7d94d72f1f519d6e8f7b6a9d68a23c5c6f27e8ab3f54'
 )
+
+# SESSION SECURITY - UPDATE THESE
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['REMEMBER_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'codecraftco_session'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # ADD THIS
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # ADD THIS
 
 # Load additional configuration
 app.config.from_object(Config)
@@ -140,6 +143,8 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 # OAuth configuration
 oauth = None
@@ -200,7 +205,78 @@ def load_user(user_id):
 # =============================================================================
 # AUTHENTICATION ROUTES
 # =============================================================================
+from flask import session, request, redirect, url_for, flash, g
+from flask_login import current_user, logout_user
 
+from flask import session, request, redirect, url_for, flash, g
+from flask_login import current_user, logout_user
+
+@app.before_request
+def validate_session():
+    """Validate user session on each request"""
+    
+    # Skip validation for static files and auth routes
+    excluded_endpoints = [
+        'static', 'login', 'register', 'forgot_password', 
+        'reset_password', 'google_login', 'google_callback',
+        'privacy', 'terms', 'contact',
+        'admin_login'  # ADD THIS LINE - This is what's missing!
+    ]
+    
+    if request.endpoint in excluded_endpoints:
+        return
+    
+    # Skip validation for AJAX requests to avoid redirect loops
+    if request.is_json:
+        return
+    
+    if current_user.is_authenticated:
+        # Get client info
+        client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
+        
+        # Check if session data exists
+        session_token = session.get('session_token')
+        user_id = session.get('user_id')
+        
+        # Validate session data matches current user
+        if not session_token or not user_id or user_id != current_user.id:
+            app.logger.warning(f"Session mismatch for user {current_user.id}")
+            session.clear()
+            logout_user()
+            flash('Session expired. Please log in again.', 'warning')
+            return redirect(url_for('login'))
+        
+        # Validate session token with database
+        if not current_user.is_session_valid(session_token, client_ip):
+            app.logger.warning(f"Invalid session for user {current_user.id}")
+            session.clear()
+            logout_user()
+            flash('Session expired. Please log in again.', 'warning')
+            return redirect(url_for('login'))
+        
+        # Check if user is still active
+        if not current_user.is_active:
+            app.logger.warning(f"Inactive user {current_user.id} attempted access")
+            session.clear()
+            logout_user()
+            flash('Your account has been deactivated.', 'error')
+            return redirect(url_for('login'))
+        
+        # Extend session if it's about to expire (within 30 minutes)
+        if current_user.session_expires:
+            time_left = current_user.session_expires - datetime.utcnow()
+            if time_left.total_seconds() < 1800:  # 30 minutes
+                current_user.extend_session()
+        
+        # Store user info in g for easy access
+        g.current_user = current_user
+        
+    elif request.endpoint and not request.endpoint.startswith('auth'):
+        # User is not authenticated but trying to access protected route
+        flash('Please log in to access this page.', 'info')
+        return redirect(url_for('login'))
+    
 @app.route('/')
 def index():
     """Home page - redirect to appropriate dashboard"""
@@ -209,11 +285,63 @@ def index():
     return redirect(url_for('login'))
 
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    """User login page"""
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        if not email or not password:
+            flash('Please enter both email and password.', 'error')
+            return render_template('login.html')
+        
+        user = User.query.filter_by(email=email).first()
+        
+        if user and user.check_password(password):
+            if not user.is_active:
+                flash('Your account has been deactivated.', 'error')
+                return render_template('login.html')
+            
+            # Get client information
+            client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+            user_agent = request.headers.get('User-Agent', '')
+            
+            # Clear any existing session for this user
+            user.clear_session()
+            
+            # Clear Flask session completely
+            session.clear()
+            
+            # Generate new session token
+            session_token = user.generate_session_token(client_ip, user_agent)
+            
+            # Login the user
+            login_user(user, remember=False)
+            
+            # Set session data
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            session['user_role'] = user.role
+            session['session_token'] = session_token
+            session['login_time'] = datetime.utcnow().isoformat()
+            session.permanent = True
+            
+            # Update last login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            app.logger.info(f"User {user.id} ({user.email}) logged in from {client_ip}")
+            
+            flash(f'Welcome back, {user.full_name or user.email}!', 'success')
+            
+            # Redirect based on role
+            if user.role == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('user_dashboard'))
+        else:
+            flash('Invalid email or password.', 'error')
+    
     return render_template('login.html')
 
 
@@ -228,9 +356,36 @@ def admin_login():
         user = User.query.filter_by(username=form.username.data, role='admin').first()
         
         if user and user.check_password(form.password.data):
+            # Get client information
+            client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+            user_agent = request.headers.get('User-Agent', '')
+            
+            # Clear any existing session for this user
+            user.clear_session()
+            
+            # Clear Flask session completely
+            session.clear()
+            
+            # Generate new session token
+            session_token = user.generate_session_token(client_ip, user_agent)
+            
+            # Login the user
+            login_user(user, remember=False)
+            
+            # Set session data - THIS IS WHAT WAS MISSING!
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            session['user_role'] = user.role
+            session['session_token'] = session_token
+            session['login_time'] = datetime.utcnow().isoformat()
+            session.permanent = True
+            
+            # Update last login
             user.last_login = datetime.utcnow()
             db.session.commit()
-            login_user(user, remember=True)
+            
+            app.logger.info(f"Admin {user.id} ({user.email}) logged in from {client_ip}")
+            
             flash('Welcome back, Admin!', 'success')
             return redirect(url_for('admin_dashboard'))
         else:
@@ -238,6 +393,20 @@ def admin_login():
     
     return render_template('admin_login.html', form=form)
 
+
+@app.cli.command()
+def cleanup_sessions():
+    """Clean up expired sessions"""
+    expired_users = User.query.filter(
+        User.session_expires < datetime.utcnow()
+    ).all()
+    
+    count = 0
+    for user in expired_users:
+        user.clear_session()
+        count += 1
+    
+    print(f"Cleaned up {count} expired sessions")
 
 @app.route('/login/google')
 def google_login():
@@ -256,9 +425,28 @@ def google_login():
             db.session.add(demo_user)
             db.session.commit()
         
+        # Clear existing session
+        demo_user.clear_session()
+        session.clear()
+        
+        # Generate session token
+        client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
+        session_token = demo_user.generate_session_token(client_ip, user_agent)
+        
+        # Login user
+        login_user(demo_user, remember=False)
+        
+        # Set session data
+        session['user_id'] = demo_user.id
+        session['user_email'] = demo_user.email
+        session['user_role'] = demo_user.role
+        session['session_token'] = session_token
+        session.permanent = True
+        
         demo_user.last_login = datetime.utcnow()
         db.session.commit()
-        login_user(demo_user, remember=True)
+        
         flash('Logged in as Demo User (Google OAuth not configured)', 'warning')
         return redirect(url_for('user_dashboard'))
     
@@ -269,6 +457,40 @@ def google_login():
         access_type='offline'
     )
 
+
+@app.route('/logout')
+def logout():
+    if current_user.is_authenticated:
+        app.logger.info(f"User {current_user.id} ({current_user.email}) logged out")
+        
+        # Clear database session
+        current_user.clear_session()
+        
+        # Clear Flask session
+        session.clear()
+        
+        # Logout user
+        logout_user()
+        
+        flash('You have been logged out successfully.', 'success')
+    
+    return redirect(url_for('login'))
+
+
+@app.route('/admin/sessions')
+@login_required
+def admin_sessions():
+    """Admin view for active sessions"""
+    if current_user.role != 'admin':
+        flash('Access denied.', 'error')
+        return redirect(url_for('user_dashboard'))
+    
+    active_sessions = User.query.filter(
+        User.session_token.isnot(None),
+        User.session_expires > datetime.utcnow()
+    ).all()
+    
+    return render_template('admin/sessions.html', sessions=active_sessions)
 
 @app.route('/debug/profile')
 @login_required
@@ -350,14 +572,14 @@ def google_callback():
         from models import GoogleToken
         google_token = GoogleToken.query.filter_by(user_id=user.id).first()
         
-        # FIXED: Prepare token data with ACTUAL scopes from token
+        # Prepare token data with ACTUAL scopes from token
         token_data = {
             'access_token': token.get('access_token'),
             'refresh_token': token.get('refresh_token'),
             'token_uri': 'https://oauth2.googleapis.com/token',
             'client_id': app.config.get('GOOGLE_CLIENT_ID'),
             'client_secret': app.config.get('GOOGLE_CLIENT_SECRET'),
-            'scopes': token.get('scope', '').split(),  # FIX: Use actual scopes from token
+            'scopes': token.get('scope', '').split(),
             'expires_at': token.get('expires_at'),
             'token_type': token.get('token_type', 'Bearer'),
             'expires_in': token.get('expires_in')
@@ -385,8 +607,34 @@ def google_callback():
         # Commit all changes
         db.session.commit()
         
-        # Log in the user
-        login_user(user, remember=True)
+        # ============= ADD THIS SECTION - CRITICAL FIX =============
+        # Get client information
+        client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
+        
+        # Clear any existing session for this user
+        user.clear_session()
+        
+        # Clear Flask session completely
+        session.clear()
+        
+        # Generate new session token
+        session_token = user.generate_session_token(client_ip, user_agent)
+        
+        # Login the user
+        login_user(user, remember=False)
+        
+        # Set session data - THIS IS WHAT WAS MISSING!
+        session['user_id'] = user.id
+        session['user_email'] = user.email
+        session['user_role'] = user.role
+        session['session_token'] = session_token
+        session['login_time'] = datetime.utcnow().isoformat()
+        session.permanent = True
+        
+        # Commit session changes
+        db.session.commit()
+        # ============= END OF CRITICAL FIX =============
         
         # Logging for debugging
         app.logger.info(f"User logged in: {user.email}")
@@ -405,14 +653,6 @@ def google_callback():
         flash('Authentication failed. Please try again.', 'error')
         return redirect(url_for('login'))
 
-
-@app.route('/logout')
-@login_required
-def logout():
-    """User logout"""
-    logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('login'))
 
 
 # =============================================================================
@@ -847,8 +1087,10 @@ def apply_bulk_email():
         return redirect(url_for('learnership_emails'))
     
     # Process each selected email
-    applications_created = 0
-    applications_failed = 0
+    successful_companies = []
+    failed_companies = []
+    timeout_companies = []
+    already_applied = []
     
     for email_entry in email_entries:
         # Check if application already exists
@@ -858,47 +1100,100 @@ def apply_bulk_email():
         ).first()
         
         if existing_app:
-            flash(f'You have already applied to {email_entry.company_name}', 'info')
+            already_applied.append(email_entry.company_name)
             continue
         
-        # Send application email
-        email_sent = send_application_email(
-            email_entry.email,
-            email_entry.company_name,
-            current_user
-        )
-        
-        # Create application records if email was sent successfully
-        if email_sent:
-            # Create EmailApplication record
-            app = EmailApplication(
-                user_id=current_user.id,
-                learnership_email_id=email_entry.id,
-                status='sent'
+        try:
+            # Send application email with timeout handling
+            success, message = send_application_email(
+                email_entry.email,
+                email_entry.company_name,
+                current_user
             )
-            db.session.add(app)
             
-            # Create standard Application record
-            std_app = Application(
-                user_id=current_user.id,
-                company_name=email_entry.company_name,
-                learnership_name="Email Application",
-                status='sent'
-            )
-            db.session.add(std_app)
+            # Create application records
+            if success:
+                # Create EmailApplication record
+                app = EmailApplication(
+                    user_id=current_user.id,
+                    learnership_email_id=email_entry.id,
+                    status='sent'
+                )
+                db.session.add(app)
+                
+                # Create standard Application record for dashboard tracking
+                std_app = Application(
+                    user_id=current_user.id,
+                    company_name=email_entry.company_name,
+                    learnership_name="Email Application",
+                    status='sent'
+                )
+                db.session.add(std_app)
+                
+                successful_companies.append(email_entry.company_name)
+                
+            else:
+                # Create records but mark as failed
+                app = EmailApplication(
+                    user_id=current_user.id,
+                    learnership_email_id=email_entry.id,
+                    status='failed'
+                )
+                db.session.add(app)
+                
+                std_app = Application(
+                    user_id=current_user.id,
+                    company_name=email_entry.company_name,
+                    learnership_name="Email Application",
+                    status='pending'  # Could be retried later
+                )
+                db.session.add(std_app)
+                
+                if "timed out" in message.lower() or "timeout" in message.lower():
+                    timeout_companies.append(email_entry.company_name)
+                else:
+                    failed_companies.append(email_entry.company_name)
+                
+            # Commit after each application to prevent losing all if one fails
+            db.session.commit()
+                
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error processing application to {email_entry.company_name}: {str(e)}")
             
-            applications_created += 1
+            if "timeout" in str(e).lower() or "timed out" in str(e).lower():
+                timeout_companies.append(email_entry.company_name)
+            else:
+                failed_companies.append(email_entry.company_name)
+    
+    # Provide detailed feedback to user
+    if successful_companies:
+        if len(successful_companies) <= 5:
+            flash(f"Successfully sent applications to: {', '.join(successful_companies)}", 'success')
         else:
-            applications_failed += 1
+            flash(f"Successfully sent applications to {len(successful_companies)} companies!", 'success')
     
-    db.session.commit()
+    if timeout_companies:
+        if len(timeout_companies) <= 3:
+            flash(f"Network timeout when sending to: {', '.join(timeout_companies)}. Please try these again later.", 'warning')
+        else:
+            flash(f"Network timeout when sending to {len(timeout_companies)} companies. Please check your internet connection and try again later.", 'warning')
     
-    # Provide feedback to user
-    if applications_created > 0:
-        flash(f"Successfully sent applications to {applications_created} companies!", 'success')
+    if failed_companies:
+        if len(failed_companies) <= 3:
+            flash(f"Failed to send applications to: {', '.join(failed_companies)}", 'error')
+        else:
+            flash(f"Failed to send applications to {len(failed_companies)} companies due to errors.", 'error')
     
-    if applications_failed > 0:
-        flash(f"Failed to send applications to {applications_failed} companies.", 'warning')
+    if already_applied:
+        if len(already_applied) <= 3:
+            flash(f"You've already applied to: {', '.join(already_applied)}", 'info')
+        else:
+            flash(f"You've already applied to {len(already_applied)} of the selected companies.", 'info')
+    
+    # Add retry instructions if there were timeouts
+    if timeout_companies:
+        flash("Applications that failed due to network timeouts can be retried from your Applications page.", 'info')
     
     return redirect(url_for('my_applications'))
 
@@ -906,11 +1201,11 @@ def apply_bulk_email():
 # =============================================================================
 # EMAIL SENDING FUNCTIONS
 # =============================================================================
-
 def send_application_email(recipient_email, company_name, user):
     """Send an application email to a company using Gmail API with OAuth"""
     from mailer import build_credentials, create_message_with_attachments, send_gmail_message
     from models import GoogleToken
+    from socket import timeout
     
     # Prepare email content
     subject = f"Learnership Application from {user.full_name or user.email}"
@@ -938,7 +1233,7 @@ Kind regards,
         token_row = GoogleToken.query.filter_by(user_id=user.id).first()
         if not token_row:
             print(f"No Google token found for user {user.id}")
-            return False
+            return False, "Google authorization required"
         
         print(f"Found token for user {user.id}, token length: {len(token_row.token_json)}")
         
@@ -957,7 +1252,7 @@ Kind regards,
         
         print(f"Found {len(file_paths)} attachments for user {user.id}")
         
-        # Create and send email message
+        # Create email message
         message = create_message_with_attachments(
             user.email,
             recipient_email,
@@ -966,15 +1261,28 @@ Kind regards,
             file_paths
         )
         
-        result = send_gmail_message(credentials, message)
-        print(f"Email sent with result: {result}")
-        return True
+        # Send with timeout handling and retries
+        try:
+            result = send_gmail_message(credentials, message, max_retries=3, retry_delay=2)
+            print(f"Email sent with result: {result}")
+            return True, "Email sent successfully"
+        except (timeout, TimeoutError) as e:
+            print(f"Email sending timed out after retries: {str(e)}")
+            app.logger.error(f"Email timeout error to {recipient_email}: {str(e)}")
+            return False, "Connection timed out. Please try again later."
+        except Exception as e:
+            print(f"Error in Gmail API: {str(e)}")
+            app.logger.error(f"Gmail API error: {str(e)}")
+            if "quota" in str(e).lower():
+                return False, "Email quota exceeded. Please try again tomorrow."
+            return False, f"Email sending error: {str(e)}"
         
     except Exception as e:
         print(f"Error sending email to {recipient_email}: {str(e)}")
+        app.logger.error(f"Error sending email: {str(e)}")
         import traceback
         traceback.print_exc()
-        return False
+        return False, f"Error preparing email: {str(e)}"
 
 
 def bulk_send_job(app, user_id, learnerships, attachment_ids):
@@ -1126,38 +1434,95 @@ Email: {user.email}
 @admin_required
 def admin_dashboard():
     """Admin dashboard with system overview and management tools"""
-    # Fetch all system data
-    users = User.query.all()
-    learnerships = Learnership.query.all()
-    applications = Application.query.all()
+    try:
+        print("=== ADMIN DASHBOARD ROUTE ===")
+        
+        # Fetch all system data
+        users = User.query.all()
+        applications = Application.query.all()
+        
+        # Use the existing LearnshipEmail data as learnerships
+        learnerships = LearnshipEmail.query.filter_by(is_active=True).all()
+        
+        # Debug output
+        print(f"DEBUG: Found {len(users)} users")
+        print(f"DEBUG: Found {len(learnerships)} learnerships from LearnshipEmail")
+        print(f"DEBUG: Found {len(applications)} applications")
+        
+        # Show learnerships
+        if learnerships:
+            print("Learnerships from LearnshipEmail:")
+            for i, l in enumerate(learnerships, 1):
+                print(f"  {i}. {l.company_name} - {l.email}")
+        else:
+            print("⚠️  No learnerships found!")
+        
+        # Calculate statistics
+        stats = {
+            'total_users': len(users),
+            'active_users': sum(1 for u in users if u.is_active),
+            'total_learnerships': len(learnerships),
+            'total_applications': len(applications)
+        }
+        
+        # Get recent activity data
+        recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+        recent_learnerships = LearnshipEmail.query.filter_by(is_active=True).order_by(LearnshipEmail.created_at.desc()).limit(5).all()
+        recent_applications = Application.query.order_by(Application.submitted_at.desc()).limit(5).all()
+        
+        # Debug: Print what we're passing
+        print(f"DEBUG: Passing {len(recent_learnerships)} recent learnerships:")
+        for l in recent_learnerships:
+            print(f"  - {l.company_name}: {l.email}")
+        
+        return render_template('admin_dashboard.html', 
+                              users=users,
+                              learnerships=learnerships,  # LearnshipEmail data
+                              applications=applications,
+                              stats=stats,
+                              recent_users=recent_users,
+                              recent_learnerships=recent_learnerships,
+                              recent_applications=recent_applications,
+                              current_user=current_user)
     
-    # Calculate statistics for dashboard
-    stats = {
-        'total_users': User.query.count(),
-        'active_users': User.query.filter_by(is_active=True).count(),
-        'total_learnerships': Learnership.query.count(),
-        'total_applications': Application.query.count()
-    }
-    
-    # Get recent activity data
-    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
-    recent_learnerships = Learnership.query.order_by(Learnership.created_at.desc()).limit(5).all()
-    recent_applications = Application.query.order_by(Application.submitted_at.desc()).limit(5).all()
-    
-    return render_template('admin_dashboard.html', 
-                          users=users,
-                          learnerships=learnerships, 
-                          applications=applications,
-                          stats=stats,
-                          recent_users=recent_users,
-                          recent_learnerships=recent_learnerships,
-                          recent_applications=recent_applications,
-                          current_user=current_user)
-
+    except Exception as e:
+        print(f"ERROR in admin_dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        return render_template('admin_dashboard.html', 
+                              users=[],
+                              learnerships=[], 
+                              applications=[],
+                              stats={'total_users': 0, 'active_users': 0, 'total_learnerships': 0, 'total_applications': 0},
+                              recent_users=[],
+                              recent_learnerships=[],
+                              recent_applications=[],
+                              current_user=current_user)
 
 # =============================================================================
 # ADMIN USER MANAGEMENT ROUTES
 # =============================================================================
+
+# Add this near the top of your mailer.py
+from httplib2 import Http
+from googleapiclient.http import set_user_agent
+
+def create_http_with_timeout(timeout=60):
+    """Create an Http instance with increased timeout"""
+    http = Http(timeout=timeout)
+    return http
+
+def send_gmail_message(credentials, message, max_retries=3, retry_delay=2):
+    """Send a message via Gmail with longer timeout"""
+    from googleapiclient.discovery import build
+    
+    # Use custom HTTP with longer timeout
+    http = create_http_with_timeout(timeout=60)
+    service = build('gmail', 'v1', credentials=credentials, http=http)
+    
+    # Rest of your function with retry logic...
+
 
 # Add routes for privacy and terms
 @app.route('/privacy')
@@ -1396,27 +1761,51 @@ def download_document(document_id):
 # =============================================================================
 # ADMIN LEARNERSHIP MANAGEMENT ROUTES
 # =============================================================================
-
-@app.route('/admin/learnerships/<int:learnership_id>/toggle', methods=['POST'])
+@app.route('/admin/toggle-learnership-status/<int:learnership_id>', methods=['POST'])
 @login_required
 @admin_required
 def toggle_learnership_status(learnership_id):
-    """Toggle learnership active/inactive status"""
-    learnership = Learnership.query.get_or_404(learnership_id)
-    
-    # Toggle status
-    learnership.is_active = not learnership.is_active
-    
+    """Toggle the active status of a learnership email"""
     try:
+        email = LearnshipEmail.query.get_or_404(learnership_id)
+        email.is_active = not email.is_active
         db.session.commit()
-        status = 'activated' if learnership.is_active else 'deactivated'
-        flash(f'Learnership "{learnership.title}" has been {status}', 'success')
+        
+        status = "activated" if email.is_active else "deactivated"
+        flash(f'Learnership email for {email.company_name} has been {status}', 'success')
     except Exception as e:
-        db.session.rollback()
-        flash('Error updating learnership status', 'error')
+        flash(f'Error toggling learnership email: {str(e)}', 'error')
     
     return redirect(url_for('admin_dashboard'))
 
+@app.route('/admin/update-learnership-email/<int:email_id>', methods=['POST'])
+@login_required
+@admin_required
+def update_learnership_email(email_id):
+    """Update a learnership email via AJAX"""
+    try:
+        email = LearnshipEmail.query.get_or_404(email_id)
+        data = request.get_json()
+        
+        # Validate email format
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        new_email = data.get('email', '').strip()
+        
+        if not re.match(email_pattern, new_email):
+            return jsonify({'success': False, 'message': 'Invalid email format'})
+        
+        # Update the fields
+        email.company_name = data.get('company_name', '').strip()
+        email.email = new_email
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Learnership email updated successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+    
 
 @app.route('/admin/learnerships/<int:learnership_id>/delete', methods=['POST'])
 @login_required
@@ -1654,246 +2043,7 @@ def init_learnership_emails():
 
             {"company_name": "Tric Talent Recruitment", "email": "anatte@trictalent.co.za"},
             {"company_name": "Diversity Empowerment", "email": "Info@diversityempowerment.co.za"},
-            {"company_name": "Sparrow Portal", "email": "Enquiries@sparrowportal.co.za"},
-            {"company_name": "Impactful", "email": "Sihle.Nyanga@impactful.co.za"},
-            {"company_name": "CSG Skills", "email": "mseleke@csgskills.co.za"},
-            {"company_name": "AFREC", "email": "Consultant@afrec.co.za"},
-            {"company_name": "Vision Academy", "email": "recruit@visionacademy.co.za"},
-            {"company_name": "The Skills Hub", "email": "info@theskillshub.co.za"},
-            {"company_name": "Rivoningo Consultancy", "email": "careers@rivoningoconsultancy.co.za"},
-            {"company_name": "OKS", "email": "Recruitment@oks.co.za"},
-            {"company_name": "I-Fundi", "email": "Farina.bowen@i-fundi.com"},
-            {"company_name": "MSC", "email": "za031-cvapplications@msc.com"},
-            {"company_name": "Liberty College", "email": "Funda@liberty-college.co.za"},
-            {"company_name": "Sisekelo", "email": "ayandam@sisekelo.co.za"},
-            {"company_name": "AAAT", "email": "apply@aaat.co.za"},
-            {"company_name": "Learn SETA", "email": "hr@learnseta.online"},
-            {"company_name": "Amphisa", "email": "tigane@amphisa.co.za"},
-            {"company_name": "AfriSam", "email": "cm.gpnorthaggregate@za.afrisam.com"},
-            {"company_name": "iLearn", "email": "tinyikom@ilearn.co.za"},
-            {"company_name": "TechTISA", "email": "prabashini@techtisa.co.za"},
-            {"company_name": "Fitho", "email": "cv@fitho.co.za"},
-            {"company_name": "Training Force", "email": "Application@trainingforce.co.za"},
-            {"company_name": "Tidy Swip", "email": "Learnerships@tidyswip.co.za"},
-            {"company_name": "Nthuse Foundation", "email": "brandons@nthusefoundation.co.za"},
-            {"company_name": "Ample Recruitment", "email": "cv@amplerecruitment.co.za"},
-            {"company_name": "I-People", "email": "cv@i-people.co.za"},
-            {"company_name": "FACT SA", "email": "recruitment3@factsa.co.za"},
-            {"company_name": "IKWorx", "email": "recruitment@ikworx.co.za"},
-            {"company_name": "APD JHB", "email": "recruitment@apdjhb.co.za"},
-            {"company_name": "Skill Tech SA", "email": "query@skilltechsa.co.za"},
-            {"company_name": "Camblish", "email": "qualitycontrol@camblish.co.za"},
-            {"company_name": "BPC HR Solutions", "email": "Queen@bpchrsolutions.co.za"},
-            {"company_name": "CTU Training", "email": "walter.mngomezulu@ctutraining.co.za"},
-            {"company_name": "U-Belong", "email": "work@u-belong.co.za"},
-            {"company_name": "eStudy SA", "email": "recruitment@estudysa.co.za"},
-            {"company_name": "Zigna Training Online", "email": "ayo@zignatrainingonline.co.za"},
-            {"company_name": "CDPA", "email": "amelia@cdpa.co.za"},
-            {"company_name": "AFREC", "email": "Cv@afrec.co.za"},
-            {"company_name": "AFREC", "email": "recruit@afrec.co.za"},
-            {"company_name": "AFREC", "email": "recruitment@afrec.co.za"},
-            {"company_name": "AFREC", "email": "Cvs@afrec.co.za"},
-            {"company_name": "Bidvest Catering", "email": "Training2@bidvestcatering.co.za"},
-            {"company_name": "CDA Solutions", "email": "faith.khethani@cdasolutions.co.za"},
-            {"company_name": "Tiger Brands", "email": "Culinary.Recruitment@tigerbrands.com"},
-            {"company_name": "Telebest", "email": "learners@telebest.co.za"},
-            {"company_name": "Access4All SA", "email": "ginab@access4all-sa.co.za"},
-            {"company_name": "GLU", "email": "cv@glu.co.za"},
-            {"company_name": "GLU", "email": "ilze@glu.co.za"},
-            {"company_name": "CSS Solutions", "email": "csshr@csssolutions.co.za"},
-            {"company_name": "Advanced Assessments", "email": "genevieve@advancedassessments.co.za"},
-            {"company_name": "AAAT", "email": "Jonas@aaat.co.za"},
-            {"company_name": "Prime Serv", "email": "Infoct@primeserv.co.za"},
-            {"company_name": "TE Academy", "email": "recruitmentofficer@teacademy.co.za"},
-            {"company_name": "Retshepeng", "email": "training@retshepeng.co.za"},
-            {"company_name": "KDS Training", "email": "Recruitment@kdstraining.co.za"},
-            {"company_name": "Cowhirla Academy", "email": "learn@cowhirlacademy.co.za"},
-            {"company_name": "Roah Consulting", "email": "recruitment@roahconsulting.co.za"},
-            {"company_name": "Kboneng Consulting", "email": "admin@kbonengconsulting.co.za"},
-            {"company_name": "NZ Consultants", "email": "victory@nzconsultancts.co.za"},
-            {"company_name": "AAAT", "email": "Leratomoraba@aaat.co.za"},
-            {"company_name": "Stratism", "email": "learnership@stratism.co.za"},
-            {"company_name": "MPower Smart", "email": "recruitment@mpowersmart.co.za"},
-            {"company_name": "Afrika Tikkun", "email": "LucyC@afrikatikkun.org"},
-            {"company_name": "WeThinkCode", "email": "Info@wethinkcode.co.za"},
-            {"company_name": "B School", "email": "justice.seupe@bschool.edu.za"},
-            {"company_name": "TE Academy", "email": "sdf1@teacademy.co.za"},
-            {"company_name": "African Bank", "email": "NMakazi@afrikanbank.co.za"},
-            {"company_name": "Blind SA", "email": "trainingcentre.admin@blindsa.org.za"},
-            {"company_name": "Pro-Learn", "email": "data.admin@pro-learn.co.za"},
-            {"company_name": "Skills Junction", "email": "learnerships@skillsjunction.co.za"},
-            {"company_name": "Friends 4 Life", "email": "achievement@friends4life.co.za"},
-            {"company_name": "Dial A Dude", "email": "hr@dialadude.co.za"},
-            {"company_name": "IBM SkillsBuild", "email": "ibmskillsbuild.emea@skilluponline.com"},
-            {"company_name": "Snergy", "email": "info@snergy.co.za"},
-            {"company_name": "SA Entrepreneurship Empowerment", "email": "samukelo@saentrepreneurshipempowerment.org.za"},
-            {"company_name": "Signa", "email": "yes@signa.co.za"},
-            {"company_name": "Edu-Wize", "email": "info@edu-wize.co.za"},
-            {"company_name": "Edu-Wize", "email": "elsie@edu-wize.co.za"},
-            {"company_name": "4YS", "email": "recruit@4ys.co.za"},
-            {"company_name": "LeapCo", "email": "olwethu@leapco.co.za"},
-            {"company_name": "LeapCo", "email": "Offer@leapco.co.za"},
-            {"company_name": "Learnex", "email": "cv@learnex.co.za"},
-            {"company_name": "Innovation Advance", "email": "hello@innovationadvance.co.za"},
-            {"company_name": "Dynamic DNA", "email": "Talent@dynamicdna.co.za"},
-            {"company_name": "NCPD", "email": "nombulelo@ncpd.org.za"},
-            {"company_name": "Siyaya Skills", "email": "lebohang.matlala@siyayaskills.co.za"},
-            {"company_name": "Transcend", "email": "learnerships@transcend.co.za"},
-            {"company_name": "iLearn", "email": "Vusumuzig@ilearn.co.za"},
-            {"company_name": "Barnne", "email": "cv@barnne.com"},
-            {"company_name": "SASSETA", "email": "recruitment@sasseta.org"},
-            {"company_name": "WPX Solutions", "email": "hr@wpxsolutions.com"},
-            {"company_name": "Amphisa", "email": "Kruger@amphisa.co.za"},
-            {"company_name": "TIHSA", "email": "faneleg@tihsa.co.za"},
-            {"company_name": "Afrika Tikkun", "email": "pokellom@afrikatikkun.org"},
-            {"company_name": "Swift Skills Academy", "email": "recruitment@swiftskillsacademy.co.za"},
-            {"company_name": "Skills Panda", "email": "refiloe@skillspanda.co.za"},
-            {"company_name": "ICAN SA", "email": "Nalini.cuppusamy@ican-sa.co.za"},
-            {"company_name": "GCC-SD", "email": "placements@gcc-sd.com"},
-            {"company_name": "EH Hassim", "email": "trainingcenter@ehhassim.co.za"},
-            {"company_name": "Anova Health", "email": "Recruitment-parktown@anovahealth.co.za"},
-            {"company_name": "iLearn", "email": "tshepisom@ilearn.co.za"},
-            {"company_name": "Moonstone Info", "email": "faisexam@moonstoneinfo.co.za"},
-            {"company_name": "Phosaane", "email": "recruitment@phosaane.co.za"},
-            {"company_name": "Lethatsi PTY LTD", "email": "Luzuko@lethatsiptyltd.co.za"},
-            {"company_name": "CBM Training", "email": "info@cbm-training.co.za"},
-            {"company_name": "Bradshaw Leroux", "email": "Recruit@bradshawleroux.co.za"},
-            {"company_name": "HRC Training", "email": "Info@Hrctraining.co.za"},
-            {"company_name": "Bee Empowerment Services", "email": "Support@beeempowermentservices.co.za"},
-            {"company_name": "Shimrag", "email": "lesegos@shimrag.co.za"},
-            {"company_name": "TransUnion", "email": "Kgomotso.Modiba@transunion.com"},
-            {"company_name": "Gijima", "email": "lebo.makgale@gijima.com"},
-            {"company_name": "Eshy Brand", "email": "tumelo@eshybrand.co.za"},
-            {"company_name": "Kunaku", "email": "learners@kunaku.co.za"},
-            {"company_name": "Affinity Services", "email": "recruitment@affinityservices.co.za"},
-            {"company_name": "CBM Training", "email": "Gugulethu@cbm-traning.co.za"},
-            {"company_name": "TransUnion", "email": "GCCALearners@transunion.com"},
-            {"company_name": "Quest College", "email": "Maria@questcollege.org.za"},
-            {"company_name": "MI Centre", "email": "info@micentre.org.za"},
-            {"company_name": "CBM Training", "email": "palesa@cbm-training.co.za"},
-            {"company_name": "Consulting By Bongi", "email": "Info@consultingbybongi.com"},
-            {"company_name": "Training Portal", "email": "learn@trainingportal.co.za"},
-            {"company_name": "GCC-SD", "email": "info@gcc-sd.com"},
-            {"company_name": "Retshepeng", "email": "Sales@retshepeng.co.za"},
-            {"company_name": "Retshepeng", "email": "it@retshepeng.co.za"},
-            {"company_name": "Tych", "email": "Precious@tych.co.za"},
-            {"company_name": "Progression", "email": "farhana@progression.co.za"},
-            {"company_name": "QASA", "email": "recruitment@qasa.co.za"},
-            {"company_name": "TLO", "email": "Recruitment@tlo.co.za"},
-            {"company_name": "Dibanisa Learning", "email": "Slindile@dibanisaleaening.co.za"},
-            {"company_name": "Tric Talent", "email": "Anatte@trictalent.co.za"},
-            {"company_name": "Novia One", "email": "Tai@noviaone.com"},
-            {"company_name": "Edge Exec", "email": "kgotso@edgexec.co.za"},
-            {"company_name": "Related Ed", "email": "kagiso@related-ed.com"},
-            {"company_name": "RMA Education", "email": "Skills@rma.edu.co.za"},
-            {"company_name": "Signa", "email": "nkhensani@signa.co.za"},
-            {"company_name": "Learnex", "email": "joyce@learnex.co.za"},
-            {"company_name": "XBO", "email": "cornelia@xbo.co.za"},
-            {"company_name": "Nicasia Holdings", "email": "Primrose.mathe@nicasiaholdings.co.za"},
-            {"company_name": "STS Africa", "email": "Recruitment@sts-africa.co.za"},
-            {"company_name": "BSI Steel", "email": "Sifiso.ntamane@bsisteel.com"},
-            {"company_name": "Progression", "email": "Recruitment@progression.co.za"},
-            {"company_name": "Modern Centric", "email": "applications@moderncentric.co.za"},
-            {"company_name": "Dynamic DNA", "email": "Smacaulay@dynamicdna.co.za"},
-            {"company_name": "Dekra", "email": "reception@dekra.com"},
-            {"company_name": "Quest College", "email": "patience@questcollege.org.za"},
-            {"company_name": "Modern Centric", "email": "karenm@moderncentric.co.za"},
-            {"company_name": "Octopi Renewed", "email": "IvyS@octopi-renewed.co.za"},
-            {"company_name": "Eagle ESS", "email": "training2@eagle-ess.co.za"},
-            {"company_name": "IBUSA", "email": "Mpumi.m@ibusa.co.za"},
-            {"company_name": "RMV Solutions", "email": "Learnership@rmvsolutions.co.za"},
-            {"company_name": "Talent Development", "email": "info@talentdevelooment.co.za"},
-            {"company_name": "Transcend", "email": "unathi.mbiyoza@transcend.co.za"},
-            {"company_name": "SEESA", "email": "helga@seesa.co.za"},
-            {"company_name": "Skills Empire", "email": "admin@skillsempire.co.za"},
-            {"company_name": "Foster Melliar", "email": "kutlwano.mothibe@fostermelliar.co.za"},
-            {"company_name": "Alef Bet Learning", "email": "teddym@alefbetlearning.com"},
-            {"company_name": "Pendula", "email": "rika@pendula.co.za"},
-            {"company_name": "Siza Abantu", "email": "admin@sizaabantu.co.za"},
-            {"company_name": "CBM Training", "email": "lorenzo@cbm-training.co.za"},
-            {"company_name": "CBM Training", "email": "Winile@cbm-training.co.za"},
-            {"company_name": "SERR", "email": "Maria@serr.co.za"},
-            {"company_name": "CSG Skills", "email": "Sdube@csgskills.co.za"},
-            {"company_name": "Modern Centric", "email": "kagisom@moderncentric.co.za"},
-            {"company_name": "SITA", "email": "recruitment@sita.co.za"},
-            {"company_name": "Mudi Training", "email": "kelvi.c@muditraining.co.za"},
-            {"company_name": "Net Campus", "email": "Ntombi.Zondo@netcampus.com"},
-            {"company_name": "Net Campus", "email": "Mary.carelse@netcampus.com"},
-            {"company_name": "EduPower SA", "email": "divan@edupowersa.co.za"},
-            {"company_name": "TLO", "email": "info@tlo.co.za"},
-            {"company_name": "Liquor Barn", "email": "admin4@liquorbarn.co.za"},
-            {"company_name": "King Rec", "email": "Zena@KingRec.co.za"},
-            {"company_name": "Fennell", "email": "Hal@Fennell.co.za"},
-            {"company_name": "SP Forge", "email": "Info@SpForge.co.za"},
-            {"company_name": "Direct Axis", "email": "Careers@Directaxis.co.za"},
-            {"company_name": "Benteler", "email": "Yasmin.theron@benteler.com"},
-            {"company_name": "MASA", "email": "Pe@masa.co.za"},
-            {"company_name": "MASA", "email": "Feziwe@masa.co.za"},
-            {"company_name": "Adcorp Blu", "email": "Kasina.sithole@adcorpblu.com"},
-            {"company_name": "Formex", "email": "enquiries@formex.co.za"},
-            {"company_name": "Formex", "email": "byoyophali@formex.co.za"},
-            {"company_name": "Q-Plas", "email": "Zandile@q-plas.co.za"},
-            {"company_name": "Lumo Tech", "email": "contact@lumotech.co.za"},
-            {"company_name": "Bel Essex", "email": "belcorp@belessex.co.za"},
-            {"company_name": "Workforce", "email": "portelizabeth@workforce.co.za"},
-            {"company_name": "Quest", "email": "lucilleh@quest.co.za"},
-            {"company_name": "Top Personnel", "email": "reception@toppersonnel.co.za"},
-            {"company_name": "MPC", "email": "rosanne@mpc.co.za"},
-            {"company_name": "Online Personnel", "email": "claire@onlinepersonnel.co.za"},
-            {"company_name": "Kelly", "email": "nicola.monsma@kelly.co.za"},
-            {"company_name": "JR Recruitment", "email": "sandi@jrrecruitment.co.za"},
-            {"company_name": "Ikamva Recruitment", "email": "nomsa@ikamvarecruitment.co.za"},
-            {"company_name": "Abantu Staffing Solutions", "email": "tracy@abantustaffingsolutions.co.za"},
-            {"company_name": "Alpha Labour", "email": "wayne@alphalabour.co.za"},
-            {"company_name": "Thomas", "email": "jackiec@thomas.co.za"},
-            {"company_name": "Capacity", "email": "nakitap@capacity.co.za"},
-            {"company_name": "Colven", "email": "natalie@colven.co.za"},
-            {"company_name": "Head Hunt", "email": "admin@headhunt.co.za"},
-            {"company_name": "Icon", "email": "focus@icon.co.za"},
-            {"company_name": "QS Africa", "email": "ADMIN@QSAFRICA.CO.ZA"},
-            {"company_name": "CR Solutions", "email": "chantal@crsolutions.co.za"},
-            {"company_name": "Bell Mark", "email": "zukiswa.nogqala@bell-mark.co.za"},
-            {"company_name": "Pop Up", "email": "nokuthula.ndamase@popup.co.za"},
-            {"company_name": "Seonnyatseng", "email": "Tsholofelo@seonyatseng.co.za"},
-            {"company_name": "TN Electrical", "email": "info@tnelectrical.co.za"},
-            {"company_name": "AAAA", "email": "adminb@aaaa.co.za"},
-            {"company_name": "Ubuhle HR", "email": "reception@ubuhlehr.co.za"},
-            {"company_name": "SITA", "email": "vettinginternship@sita.co.za"},
-            {"company_name": "Careers IT", "email": "leanerships@careersit.co.za"},
-            {"company_name": "TJH Business", "email": "melvin@tjhbusiness.co.za"},
-            {"company_name": "Learner Sphere CD", "email": "recruitment@learnerspherecd.co.za"},
-            {"company_name": "Odin Fin", "email": "alex@odinfin.co.za"},
-            {"company_name": "Platinum Life", "email": "Manaka.Ramukuvhati@platinumlife.co.za"},
-            {"company_name": "Seonnyatseng", "email": "info@seonyatseng.co.za"},
-            {"company_name": "TLO", "email": "Application@tlo.co.za"},
-            {"company_name": "Metanoia Group", "email": "Loren@metanoiagroup.co.za"},
-            {"company_name": "Edu-Wize", "email": "r1@edu-wize.co.za"},
-            {"company_name": "Advanced Assessments", "email": "recruitment@advancedassessments.co.za"},
-            {"company_name": "Enpower", "email": "Angelique.haskins@enpower.co.za"},
-            {"company_name": "ICAN SA", "email": "Jhbsourcing@ican-sa.co.za"},
-            {"company_name": "Talent Development", "email": "Projects@talentdevelopment.co.za"},
-            {"company_name": "Providing Skills", "email": "training1@providingskills.co.za"},
-            {"company_name": "Providing Skills", "email": "thando@providingskills.co.za"},
-            {"company_name": "Camblish", "email": "Info@camblish.co.za"},
-            {"company_name": "Brightrock", "email": "Youniversity@brightrock.co.za"},
-            {"company_name": "Heart Solutions", "email": "admin@heartsolutions.co.za"},
-            {"company_name": "Star Schools", "email": "rnyoka@starschools.co.za"},
-            {"company_name": "Modern Centric", "email": "malvinn@moderncentric.co.za"},
-            {"company_name": "Skills Bureau", "email": "operations2@skillsbureau.co.za"},
-            {"company_name": "Xtensive ICT", "email": "sphiwe@xtensiveict.co.za"},
-            {"company_name": "Engen Oil", "email": "Learnerships@engenoil.com"},
-            {"company_name": "GLU", "email": "ouma@glu.co.za"},
-            {"company_name": "ICAN SA", "email": "Pretty.Dlamini@ican-sa.co.za"},
-            {"company_name": "Vistech", "email": "skills@vistech.co.za"},
-            {"company_name": "Gold Rush", "email": "mpho.moletsane@goldrurush.co.za"},
-            {"company_name": "HCI Skills", "email": "recruitment@hciskills.co.za"},
-            {"company_name": "PMI SA", "email": "boitumelo.makhubela@pmi-sa.co.za"},
-            {"company_name": "Skills Bureau", "email": "talent@skillsbureau.co.za"},
-            {"company_name": "Vital Online", "email": "training@vitalonline.co.za"},
-            {"company_name": "Compare A Quote", "email": "Admin@compareaquote.co.za"},
-            {"company_name": "Besec", "email": "cv@besec.co.za"},
-            {"company_name": "eStudy SA", "email": "trainme@estudysa.co.za"},
-            {"company_name": "Net Campus", "email": "info@netcampus.com"}
+          {"company_name": "Net Campus", "email": "info@netcampus.com"}
         ]
         
         # Add email addresses to the database
