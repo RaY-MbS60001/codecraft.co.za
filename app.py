@@ -89,32 +89,34 @@ instance_path.mkdir(exist_ok=True, parents=True)
 
 import socket
 
+import os
+import socket
+from pathlib import Path
+
+# Define instance_path globally or pass it as an argument
+instance_path = Path(__file__).parent / 'instance'
+
 def get_database_url():
     database_url = os.environ.get('DATABASE_URL')
 
     if not database_url:
-        print("⚠️ DATABASE_URL not set, falling back to SQLite for local development.")
+        print("⚠️ DATABASE_URL not set. Falling back to SQLite for local development.")
         return f"sqlite:///{instance_path / 'codecraft.db'}"
 
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
-    # Check if running locally by trying to resolve the hostname
-    host = database_url.split('@')[1].split('/')[0]
     try:
+        host = database_url.split('@')[1].split('/')[0]
         socket.gethostbyname(host)
-    except socket.gaierror:
-        # Hostname can't be resolved locally, switch to external DNS
-        if 'dpg-d1lknv6r433s73drf130-a' in host:
-            database_url = database_url.replace(
-                'dpg-d1lknv6r433s73drf130-a',
-                'dpg-d1lknv6r433s73drf130-a.oregon-postgres.render.com'
-            )
-            print("⚠️ Using external Render DB hostname for local development.")
+    except (IndexError, socket.gaierror):
+        print("⚠️ Could not resolve hostname. Using external Render DB hostname.")
+        database_url = database_url.replace(
+            'dpg-d1lknv6r433s73drf130-a',
+            'dpg-d1lknv6r433s73drf130-a.oregon-postgres.render.com'
+        )
 
     return database_url
-
-
 
 
 # =============================================================================
