@@ -44,88 +44,101 @@ from decorators import admin_required
 from security_middleware import add_security_headers
 
 
-# Load environment variables
-load_dotenv()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-
 # =============================================================================
-# APPLICATION CONFIGURATION
-# =============================================================================
-
-class ProductionConfig(Config):
-    """Production configuration for deployment on Render"""
-    # Handle Render's PostgreSQL URL
-    DATABASE_URL = os.environ.get('DATABASE_URL')
-    if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
-    SQLALCHEMY_DATABASE_URI = DATABASE_URL or Config.SQLALCHEMY_DATABASE_URI
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_size': 10,
-        'pool_recycle': 3600,
-        'pool_pre_ping': True
-    }
-
-
-def get_database_url():
-    """
-    Get the appropriate database URL for the environment
-    Returns PostgreSQL URL for production, SQLite for development
-    """
-    # Handle Render PostgreSQL URL
-    render_db_url = os.environ.get('DATABASE_URL', '')
-    if render_db_url and render_db_url.startswith('postgres://'):
-        render_db_url = render_db_url.replace('postgres://', 'postgresql://', 1)
-    
-    # Fallback to SQLite with absolute path for development
-    if not render_db_url:
-        base_dir = Path(__file__).resolve().parent
-        instance_path = base_dir / 'instance'
-        instance_path.mkdir(exist_ok=True, parents=True)
-        sqlite_path = instance_path / 'app.db'
-        return f'sqlite:///{sqlite_path}'
-    
-    return render_db_url
-
-# =============================================================================
-# FLASK APP INITIALIZATION
+# FLASK APP INITIALIZATION (MUST COME FIRST!)
 # =============================================================================
 
 app = Flask(__name__)
 
-app.config.from_object(Config)
-    
-# Apply security middleware
-add_security_headers(app)
-    
 # Determine base directory and setup paths
 BASE_DIR = Path(__file__).resolve().parent
 instance_path = BASE_DIR / 'instance'
 instance_path.mkdir(exist_ok=True, parents=True)
 
-# Database configuration
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+
+import os
+from datetime import timedelta
+from urllib.parse import quote_plus
+
+class ProductionConfig(Config):
+    """Production configuration"""
+    DEBUG = False
+    TESTING = False
+
+class DevelopmentConfig(Config):
+    """Development configuration"""
+    DEBUG = True
+    TESTING = False
+    # In development, you might want less strict security
+    SESSION_COOKIE_SECURE = False
+    REMEMBER_COOKIE_SECURE = False
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+from pathlib import Path
+import os
+
+BASE_DIR = Path(__file__).resolve().parent
+instance_path = BASE_DIR / 'instance'
+instance_path.mkdir(exist_ok=True, parents=True)
+
+import socket
+
+def get_database_url():
+    database_url = os.environ.get('DATABASE_URL')
+
+    if not database_url:
+        print("⚠️ DATABASE_URL not set, falling back to SQLite for local development.")
+        return f"sqlite:///{instance_path / 'codecraft.db'}"
+
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+    # Check if running locally by trying to resolve the hostname
+    host = database_url.split('@')[1].split('/')[0]
+    try:
+        socket.gethostbyname(host)
+    except socket.gaierror:
+        # Hostname can't be resolved locally, switch to external DNS
+        if 'dpg-d1lknv6r433s73drf130-a' in host:
+            database_url = database_url.replace(
+                'dpg-d1lknv6r433s73drf130-a',
+                'dpg-d1lknv6r433s73drf130-a.oregon-postgres.render.com'
+            )
+            print("⚠️ Using external Render DB hostname for local development.")
+
+    return database_url
+
+
+
+
+# =============================================================================
+# LOAD CONFIGURATION
+# =============================================================================
+
+# Load configuration based on environment
+if os.environ.get('FLASK_ENV') == 'production':
+    app.config.from_object(ProductionConfig)
+else:
+    app.config.from_object(DevelopmentConfig)
+
+# Database configuration (ONLY SET ONCE)
 app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# Security configuration
-app.config['SECRET_KEY'] = os.environ.get(
-    'SECRET_KEY', 
-    'e1f8c81a1e6f0c6e3b23a7d94d72f1f519d6e8f7b6a9d68a23c5c6f27e8ab3f54'
-)
-
-# SESSION SECURITY - UPDATE THESE
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['REMEMBER_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_NAME'] = 'codecraftco_session'
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # ADD THIS
-app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # ADD THIS
-
-# Load additional configuration
-app.config.from_object(Config)
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 3600,
+    'pool_pre_ping': True,
+    'connect_args': {
+        'sslmode': 'require',
+        'connect_timeout': 10,
+    }
+}
+#db = SQLAlchemy(app)
 
 # File upload configuration
 UPLOAD_FOLDER = BASE_DIR / 'uploads'
@@ -138,6 +151,13 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 (UPLOAD_FOLDER / 'documents').mkdir(exist_ok=True)
 
+# =============================================================================
+# INITIALIZE EXTENSIONS
+# =============================================================================
+
+# Apply security middleware
+add_security_headers(app)
+
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
@@ -149,6 +169,20 @@ login_manager.login_message_category = 'info'
 # OAuth configuration
 oauth = None
 google = None
+
+# =============================================================================
+# DATABASE INITIALIZATION
+# =============================================================================
+
+with app.app_context():
+    try:
+        db.create_all()
+        db.session.commit()
+        print("✓ Database initialized successfully with Render PostgreSQL")
+    except Exception as e:
+        print("✗ Database initialization error:", e)
+        print("⚠️ Check your DATABASE_URL in the .env file or connection settings.")
+        raise SystemExit(e)
 
 # =============================================================================
 # CUSTOM FORM FIELDS

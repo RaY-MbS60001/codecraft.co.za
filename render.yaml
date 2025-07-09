@@ -12,6 +12,6 @@ services:
           name: codecraftco-db
           property: connectionString
       - key: GOOGLE_CLIENT_ID
-        sync: false
+        sync: false  # Add this manually in Render Dashboard
       - key: GOOGLE_CLIENT_SECRET
-        sync: false
+        sync: false  # Add this manually in Render Dashboard
