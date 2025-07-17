@@ -907,6 +907,37 @@ def learnerships():
                            learnership_emails=learnership_emails)
 
 
+
+
+@app.route('/cv-generator')
+@login_required
+def cv_generator():
+    return render_template('index.html')
+
+@app.route('/cv-template/<template>')
+@login_required
+def cv_template(template):
+    """Serve CV template previews"""
+    template_map = {
+        'classic': 'classic.html',
+        'modern': 'modern.html',
+        'creative': 'creative.html',
+        'minimal': 'minimal.html',
+        'sidebar': 'sidebar.html'
+    }
+    
+    template_file = template_map.get(template, 'classic.html')
+    
+    try:
+        return render_template(template_file)
+    except Exception as e:
+        print(f"Error loading template {template_file}: {e}")
+        # Return a fallback template or error message
+        return f"<html><body><h1>Template Error</h1><p>Could not load {template_file}</p><p>Error: {str(e)}</p></body></html>"
+
+
+
+
 @app.route('/user/apply', methods=['GET', 'POST'])
 @login_required
 def apply_learnership():

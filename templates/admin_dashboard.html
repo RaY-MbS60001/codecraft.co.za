@@ -55,6 +55,81 @@
         height: calc(100vh - 80px); /* Subtract nav height */
     }
     
+    /* Search Bar Styles */
+    .search-container {
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .search-input-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        padding-left: 2.5rem; /* Space for search icon */
+        background-color: #2d3446;
+        border: 2px solid #3a4258;
+        border-radius: 8px;
+        color: #e4e6eb;
+        font-size: 0.9rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #5d72e4;
+        box-shadow: 0 0 0 3px rgba(93, 114, 228, 0.1);
+    }
+    
+    .search-input::placeholder {
+        color: #a0a6b3;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        color: #a0a6b3;
+        pointer-events: none;
+    }
+    
+    .search-results {
+        color: #a0a6b3;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        min-width: 120px;
+    }
+    
+    .clear-search {
+        padding: 0.5rem 1rem;
+        background-color: #2d3446;
+        color: #e4e6eb;
+        border: 2px solid #3a4258;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 0.85rem;
+    }
+    
+    .clear-search:hover {
+        background-color: #3a4258;
+    }
+    
+    .clear-search:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
     /* Stats Grid */
     .stats-grid {
         display: grid;
@@ -572,6 +647,20 @@
             height: calc(100vh - 140px);
         }
         
+        .search-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-input-wrapper {
+            min-width: auto;
+        }
+        
+        .search-results {
+            min-width: auto;
+            text-align: center;
+        }
+        
         .stats-grid {
             grid-template-columns: 1fr;
             gap: 1rem;
@@ -841,88 +930,89 @@
             z-index: 11;
         }
     }
-.modal {
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5); /* Slightly darker background */
-    animation: fadeIn 0.3s ease; /* Smooth fade in */
-}
-
-.modal-content {
-    background-color: #0b111a;
-    margin: 10% auto; /* Reduced top margin for better positioning */
-    padding: 25px;
-    border: none; /* Remove border for cleaner look */
-    width: 85%;
-    max-width: 650px;
-    border-radius: 12px; /* Slightly more rounded */
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Add shadow for depth */
-    animation: slideIn 0.3s ease; /* Smooth slide in */
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #19202b; /* Add subtle separator */
-    padding-bottom: 15px;
-}
-
-.modal-header h3 {
-    margin: 0;
-    color: #ffffff;
-    font-size: 1.4em;
-}
-
-.close {
-    color: #aaa;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.close:hover {
-    color: #e74c3c; /* Red on hover */
-}
-
-.learnership-details p {
-    margin: 12px 0;
-    line-height: 1.5;
-}
-
-.email-applications {
-    margin: 20px 0;
-    padding: 15px;
-    background-color: #19202b;
-    border-radius: 6px;
-    border-left: 4px solid #007bff; /* Blue accent */
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideIn {
-    from { transform: translateY(-50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        margin: 5% auto;
-        padding: 20px;
+    
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5); /* Slightly darker background */
+        animation: fadeIn 0.3s ease; /* Smooth fade in */
     }
-}
+    
+    .modal-content {
+        background-color: #0b111a;
+        margin: 10% auto; /* Reduced top margin for better positioning */
+        padding: 25px;
+        border: none; /* Remove border for cleaner look */
+        width: 85%;
+        max-width: 650px;
+        border-radius: 12px; /* Slightly more rounded */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Add shadow for depth */
+        animation: slideIn 0.3s ease; /* Smooth slide in */
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #19202b; /* Add subtle separator */
+        padding-bottom: 15px;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 1.4em;
+    }
+    
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .close:hover {
+        color: #e74c3c; /* Red on hover */
+    }
+    
+    .learnership-details p {
+        margin: 12px 0;
+        line-height: 1.5;
+    }
+    
+    .email-applications {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #19202b;
+        border-radius: 6px;
+        border-left: 4px solid #007bff; /* Blue accent */
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .modal-content {
+            width: 95%;
+            margin: 5% auto;
+            padding: 20px;
+        }
+    }
 </style>
 
 <div class="dashboard-container">
@@ -1065,46 +1155,45 @@
                 </div>
                 
                 <!-- Recent Learnerships -->
-                <!-- Recent Learnerships -->
-<div class="quick-access-card">
-    <div class="card-header">
-        <h3>Recent Learnerships</h3>
-        <a href="{{ url_for('add_learnership') }}" class="btn-add">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Add Learnership
-        </a>
-    </div>
-    <ul class="quick-list">
-        {% for learnership in recent_learnerships %}
-        <li class="quick-item">
-            <div>
-                <div class="item-primary">{{ learnership.company_name }}</div>
-                <div class="item-secondary">{{ learnership.email }}</div>
-            </div>
-            <div class="item-meta">
-                <span class="badge badge-{{ 'active' if learnership.is_active else 'inactive' }}">
-                    {{ 'Active' if learnership.is_active else 'Inactive' }}
-                </span>
-            </div>
-        </li>
-        {% endfor %}
-        {% if not recent_learnerships %}
-        <li class="quick-item">
-            <div class="item-primary" style="color: #666; font-style: italic;">No learnerships found</div>
-        </li>
-        {% endif %}
-    </ul>
-    <div style="text-align: center; margin-top: 1rem;">
-        <a href="#" class="btn-view-all" onclick="showTab('learnerships')">
-            View All Learnerships
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-        </a>
-    </div>
-</div>
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Learnerships</h3>
+                        <a href="{{ url_for('add_learnership') }}" class="btn-add">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Learnership
+                        </a>
+                    </div>
+                    <ul class="quick-list">
+                        {% for learnership in recent_learnerships %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ learnership.company_name }}</div>
+                                <div class="item-secondary">{{ learnership.email }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ 'active' if learnership.is_active else 'inactive' }}">
+                                    {{ 'Active' if learnership.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not recent_learnerships %}
+                        <li class="quick-item">
+                            <div class="item-primary" style="color: #666; font-style: italic;">No learnerships found</div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('learnerships')">
+                            View All Learnerships
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
                 
                 <!-- Recent Applications -->
                 <div class="quick-access-card">
@@ -1140,7 +1229,7 @@
                 </div>
             </div>
             
-            <!-- Users Section -->
+            <!-- Users Section with Search -->
             <div class="users-section">
                 <div class="section-header">
                     <h2>User Management</h2>
@@ -1151,6 +1240,19 @@
                         Add User
                     </a>
                 </div>
+                
+                <!-- Search Bar for Dashboard Users -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="dashboard-user-search" class="search-input" placeholder="Search users by name, email, or role...">
+                    </div>
+                    <div class="search-results" id="dashboard-user-results">Showing {{ users|length }} users</div>
+                    <button class="clear-search" onclick="clearSearch('dashboard-user-search')" disabled>Clear</button>
+                </div>
+                
                 <div class="table-container">
                     <table class="users-table">
                         <thead>
@@ -1166,9 +1268,9 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="dashboard-users-tbody">
                             {% for user in users %}
-                            <tr>
+                            <tr data-searchable="true">
                                 <td>{{ user.id }}</td>
                                 <td>{{ user.email }}</td>
                                 <td>{{ user.full_name or '-' }}</td>
@@ -1205,7 +1307,7 @@
                                                 <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
                                                     {% if user.is_active %}
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
                                                         </svg>
                                                     {% else %}
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1235,7 +1337,7 @@
             </div>
         </div>
         
-        <!-- Users Tab Content -->
+        <!-- Users Tab Content with Search -->
         <div class="tab-content" id="users-tab">
             <div class="data-section">
                 <div class="section-header">
@@ -1247,6 +1349,19 @@
                         Add User
                     </a>
                 </div>
+                
+                <!-- Search Bar for Users Tab -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="users-search" class="search-input" placeholder="Search users by name, email, role, or status...">
+                    </div>
+                    <div class="search-results" id="users-results">Showing {{ users|length }} users</div>
+                    <button class="clear-search" onclick="clearSearch('users-search')" disabled>Clear</button>
+                </div>
+                
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
@@ -1262,9 +1377,9 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="users-tbody">
                             {% for user in users %}
-                            <tr>
+                            <tr data-searchable="true">
                                 <td>{{ user.id }}</td>
                                 <td>{{ user.email }}</td>
                                 <td>{{ user.full_name or '-' }}</td>
@@ -1301,7 +1416,7 @@
                                                 <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
                                                     {% if user.is_active %}
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
                                                         </svg>
                                                     {% else %}
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1330,106 +1445,134 @@
                 </div>
             </div>
         </div>
- <!-- Learnerships Tab Content -->
-<div class="tab-content" id="learnerships-tab">
-    <div class="data-section">
-        <div class="section-header">
-            <h2>Learnership Management</h2>
-            <a href="{{ url_for('add_learnership') }}" class="btn-add">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Learnership
-            </a>
+        
+        <!-- Learnerships Tab Content with Search -->
+        <div class="tab-content" id="learnerships-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>Learnership Management</h2>
+                    <a href="{{ url_for('add_learnership') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Learnership
+                    </a>
+                </div>
+                
+                <!-- Search Bar for Learnerships -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="learnerships-search" class="search-input" placeholder="Search learnerships by company name, email, or status...">
+                    </div>
+                    <div class="search-results" id="learnerships-results">Showing {{ learnerships|length if learnerships else 0 }} learnerships</div>
+                    <button class="clear-search" onclick="clearSearch('learnerships-search')" disabled>Clear</button>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Company Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Applications</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="learnerships-tbody">
+                            {% if learnerships %}
+                                {% for learnership in learnerships %}
+                                <tr data-searchable="true">
+                                    <td>{{ learnership.id }}</td>
+                                    <td>{{ learnership.company_name }}</td>
+                                    <td>{{ learnership.email }}</td>
+                                    <td>
+                                        <span class="status-badge {{ 'active' if learnership.is_active else 'inactive' }}">
+                                            {{ 'Active' if learnership.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ learnership.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ learnership.email_applications|length }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-action btn-view" onclick="viewLearnership({{ loop.index0 }})" title="View Details">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            
+                                            <button class="btn-action btn-edit" onclick="editLearnership({{ learnership.id }})" title="Edit">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            
+                                            <form method="POST" action="{{ url_for('toggle_learnership_status', learnership_id=learnership.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
+                                                    {% if learnership.is_active %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    {% else %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">No learnerships found</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Company Name</th>
-                        <th>Email</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th>Applications</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% if learnerships %}
-                        {% for learnership in learnerships %}
-                        <tr>
-                            <td>{{ learnership.id }}</td>
-                            <td>{{ learnership.company_name }}</td>
-                            <td>{{ learnership.email }}</td>
-                            <td>
-                                <span class="status-badge {{ 'active' if learnership.is_active else 'inactive' }}">
-                                    {{ 'Active' if learnership.is_active else 'Inactive' }}
-                                </span>
-                            </td>
-                            <td>{{ learnership.created_at.strftime('%Y-%m-%d') }}</td>
-                            <td>{{ learnership.email_applications|length }}</td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn-action btn-view" onclick="viewLearnership({{ loop.index0 }})" title="View Details">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    </button>
-                                    
-                                    <button class="btn-action btn-edit" onclick="editLearnership({{ learnership.id }})" title="Edit">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                    </button>
-                                    
-                                    <form method="POST" action="{{ url_for('toggle_learnership_status', learnership_id=learnership.id) }}" style="display: inline;">
-                                        <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
-                                            {% if learnership.is_active %}
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
-                                                </svg>
-                                            {% else %}
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                            {% endif %}
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    {% else %}
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">No learnerships found</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
         <!-- Modal for viewing learnership details -->
-<div id="learnershipModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="modalTitle">Learnership Details</h3>
-            <span class="close" onclick="closeModal()">&times;</span>
+        <div id="learnershipModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Learnership Details</h3>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
         </div>
-        <div class="modal-body" id="modalBody">
-            <!-- Content will be populated by JavaScript -->
-        </div>
-    </div>
-</div>
-        <!-- Applications Tab Content -->
+        
+        <!-- Applications Tab Content with Search -->
         <div class="tab-content" id="applications-tab">
             <div class="data-section">
                 <div class="section-header">
                     <h2>Application Management</h2>
                 </div>
+                
+                <!-- Search Bar for Applications -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="applications-search" class="search-input" placeholder="Search applications by user, learnership, company, or status...">
+                    </div>
+                    <div class="search-results" id="applications-results">Showing {{ applications|length if applications else 0 }} applications</div>
+                    <button class="clear-search" onclick="clearSearch('applications-search')" disabled>Clear</button>
+                </div>
+                
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
@@ -1444,9 +1587,9 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="applications-tbody">
                             {% for application in applications|default([]) %}
-                            <tr>
+                            <tr data-searchable="true">
                                 <td>{{ application.id }}</td>
                                 <td>{{ application.user.full_name or application.user.username }}</td>
                                 <td>{{ application.learnership.title if application.learnership else application.learnership_name }}</td>
@@ -1507,7 +1650,7 @@
     </div>
 </div>
 
-<!-- JavaScript for tab switching -->
+<!-- JavaScript for tab switching and search functionality -->
 <script>
     // Store learnership data for JavaScript access
     const learnershipData = [
@@ -1522,6 +1665,90 @@
         }{% if not loop.last %},{% endif %}
         {% endfor %}
     ];
+
+    // Search functionality
+    function initializeSearch() {
+        // Dashboard users search
+        const dashboardUserSearch = document.getElementById('dashboard-user-search');
+        if (dashboardUserSearch) {
+            dashboardUserSearch.addEventListener('input', function() {
+                searchTable(this.value, 'dashboard-users-tbody', 'dashboard-user-results', 'dashboard-user-search');
+            });
+        }
+
+        // Users tab search
+        const usersSearch = document.getElementById('users-search');
+        if (usersSearch) {
+            usersSearch.addEventListener('input', function() {
+                searchTable(this.value, 'users-tbody', 'users-results', 'users-search');
+            });
+        }
+
+        // Learnerships search
+        const learnershipsSearch = document.getElementById('learnerships-search');
+        if (learnershipsSearch) {
+            learnershipsSearch.addEventListener('input', function() {
+                searchTable(this.value, 'learnerships-tbody', 'learnerships-results', 'learnerships-search');
+            });
+        }
+
+        // Applications search
+        const applicationsSearch = document.getElementById('applications-search');
+        if (applicationsSearch) {
+            applicationsSearch.addEventListener('input', function() {
+                searchTable(this.value, 'applications-tbody', 'applications-results', 'applications-search');
+            });
+        }
+    }
+
+    function searchTable(searchTerm, tbodyId, resultsId, searchInputId) {
+        const tbody = document.getElementById(tbodyId);
+        const results = document.getElementById(resultsId);
+        const clearButton = document.querySelector(`#${searchInputId}`).closest('.search-container').querySelector('.clear-search');
+        
+        if (!tbody || !results) return;
+
+        const rows = tbody.querySelectorAll('tr[data-searchable="true"]');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const matches = text.includes(searchTerm.toLowerCase());
+            
+            if (matches || searchTerm === '') {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update results text
+        const totalCount = rows.length;
+        if (searchTerm === '') {
+            results.textContent = `Showing ${totalCount} ${getEntityName(tbodyId)}`;
+        } else {
+            results.textContent = `Showing ${visibleCount} of ${totalCount} ${getEntityName(tbodyId)}`;
+        }
+
+        // Enable/disable clear button
+        clearButton.disabled = searchTerm === '';
+    }
+
+    function getEntityName(tbodyId) {
+        if (tbodyId.includes('users')) return 'users';
+        if (tbodyId.includes('learnerships')) return 'learnerships';
+        if (tbodyId.includes('applications')) return 'applications';
+        return 'items';
+    }
+
+    function clearSearch(searchInputId) {
+        const input = document.getElementById(searchInputId);
+        if (input) {
+            input.value = '';
+            input.dispatchEvent(new Event('input'));
+        }
+    }
 
     // Function to show selected tab
     function showTab(tabName) {
@@ -1565,49 +1792,50 @@
         
         document.getElementById('learnershipModal').style.display = 'block';
     }
-function editLearnership(id) {
-    const learnership = learnershipData.find(l => l.id == id);
-    if (!learnership) {
-        alert('Learnership not found');
-        return;
-    }
-    
-    const newCompanyName = prompt("Edit Company Name:", learnership.company_name);
-    if (newCompanyName === null) return; // User clicked cancel
-    
-    const newEmail = prompt("Edit Email:", learnership.email);
-    if (newEmail === null) return; // User clicked cancel
-    
-    if (newCompanyName.trim() && newEmail.trim()) {
-        // Send update request
-        fetch(`/admin/update-learnership-email/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
-            },
-            body: JSON.stringify({
-                company_name: newCompanyName.trim(),
-                email: newEmail.trim()
+
+    function editLearnership(id) {
+        const learnership = learnershipData.find(l => l.id == id);
+        if (!learnership) {
+            alert('Learnership not found');
+            return;
+        }
+        
+        const newCompanyName = prompt("Edit Company Name:", learnership.company_name);
+        if (newCompanyName === null) return; // User clicked cancel
+        
+        const newEmail = prompt("Edit Email:", learnership.email);
+        if (newEmail === null) return; // User clicked cancel
+        
+        if (newCompanyName.trim() && newEmail.trim()) {
+            // Send update request
+            fetch(`/admin/update-learnership-email/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    company_name: newCompanyName.trim(),
+                    email: newEmail.trim()
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Learnership updated successfully!');
-                location.reload(); // Refresh the page to show updated data
-            } else {
-                alert('Error updating learnership: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating learnership. Please try again.');
-        });
-    } else {
-        alert('Please enter both company name and email.');
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Learnership updated successfully!');
+                    location.reload(); // Refresh the page to show updated data
+                } else {
+                    alert('Error updating learnership: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating learnership. Please try again.');
+            });
+        } else {
+            alert('Please enter both company name and email.');
+        }
     }
-}
 
     function closeModal() {
         document.getElementById('learnershipModal').style.display = 'none';
@@ -1615,6 +1843,9 @@ function editLearnership(id) {
 
     // Add event listeners to tab buttons
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize search functionality
+        initializeSearch();
+        
         // Tab switching
         document.querySelectorAll('.main-tab').forEach(tab => {
             tab.addEventListener('click', function() {
@@ -1662,6 +1893,184 @@ function editLearnership(id) {
                 modal.style.display = 'none';
             }
         }
+
+        // Add keyboard support for search
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + F to focus search in current tab
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab) {
+                    const searchInput = activeTab.querySelector('.search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
+                }
+            }
+            
+            // Escape key to clear search
+            if (e.key === 'Escape') {
+                const focusedElement = document.activeElement;
+                if (focusedElement && focusedElement.classList.contains('search-input')) {
+                    clearSearch(focusedElement.id);
+                }
+            }
+        });
+
+        // Auto-focus search when switching tabs
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                setTimeout(() => {
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (activeTab) {
+                        const searchInput = activeTab.querySelector('.search-input');
+                        if (searchInput && window.innerWidth > 768) {
+                            // Only auto-focus on desktop
+                            searchInput.focus();
+                        }
+                    }
+                }, 100);
+            });
+        });
+
+        // Add search result highlighting
+        function highlightSearchResults(searchTerm, tbodyId) {
+            if (!searchTerm) return;
+            
+            const tbody = document.getElementById(tbodyId);
+            const rows = tbody.querySelectorAll('tr[data-searchable="true"]');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    const text = cell.textContent;
+                    if (text.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        const regex = new RegExp(`(${searchTerm})`, 'gi');
+                        const highlightedText = text.replace(regex, '<mark style="background-color: #5d72e4; color: white; padding: 0.1rem 0.2rem; border-radius: 2px;">$1</mark>');
+                        cell.innerHTML = highlightedText;
+                    }
+                });
+            });
+        }
+
+        // Enhanced search with debouncing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Apply debouncing to search inputs
+        document.querySelectorAll('.search-input').forEach(input => {
+            const originalHandler = input.oninput;
+            input.oninput = debounce(function(event) {
+                if (originalHandler) {
+                    originalHandler.call(this, event);
+                }
+            }, 300);
+        });
     });
+
+    // Additional utility functions for enhanced search
+    function exportSearchResults(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        const visibleRows = tbody.querySelectorAll('tr[data-searchable="true"]:not([style*="display: none"])');
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Add header
+        const headers = Array.from(tbody.closest('table').querySelectorAll('th')).map(th => th.textContent.trim());
+        csvContent += headers.join(",") + "\n";
+        
+        // Add data rows
+        visibleRows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td')).map(td => {
+                return '"' + td.textContent.trim().replace(/"/g, '""') + '"';
+            });
+            csvContent += cells.join(",") + "\n";
+        });
+        
+        // Download file
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${getEntityName(tbodyId)}_search_results.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Advanced search filters (can be extended)
+    function applyAdvancedFilters(tbodyId, filters) {
+        const tbody = document.getElementById(tbodyId);
+        const rows = tbody.querySelectorAll('tr[data-searchable="true"]');
+        
+        rows.forEach(row => {
+            let shouldShow = true;
+            
+            Object.keys(filters).forEach(filterType => {
+                const filterValue = filters[filterType];
+                if (filterValue && filterValue !== 'all') {
+                    const cellIndex = getCellIndexForFilter(filterType, tbodyId);
+                    if (cellIndex >= 0) {
+                        const cellText = row.cells[cellIndex].textContent.toLowerCase();
+                        if (!cellText.includes(filterValue.toLowerCase())) {
+                            shouldShow = false;
+                        }
+                    }
+                }
+            });
+            
+            row.style.display = shouldShow ? '' : 'none';
+        });
+    }
+
+    function getCellIndexForFilter(filterType, tbodyId) {
+        // Map filter types to column indices based on table structure
+        const columnMappings = {
+            'users': { 'role': 3, 'status': 7, 'auth_method': 4 },
+            'learnerships': { 'status': 3 },
+            'applications': { 'status': 4 }
+        };
+        
+        const tableType = getEntityName(tbodyId);
+        return columnMappings[tableType] ? columnMappings[tableType][filterType] : -1;
+    }
+
+    // Performance optimization for large datasets
+    function virtualizeTable(tbodyId, itemHeight = 50) {
+        const tbody = document.getElementById(tbodyId);
+        const container = tbody.closest('.table-container');
+        const rows = Array.from(tbody.querySelectorAll('tr[data-searchable="true"]'));
+        
+        if (rows.length < 100) return; // Only virtualize for large datasets
+        
+        const visibleRows = Math.ceil(container.clientHeight / itemHeight) + 5;
+        let startIndex = 0;
+        
+        function updateVisibleRows() {
+            const scrollTop = container.scrollTop;
+            startIndex = Math.floor(scrollTop / itemHeight);
+            const endIndex = Math.min(startIndex + visibleRows, rows.length);
+            
+            rows.forEach((row, index) => {
+                if (index >= startIndex && index < endIndex) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        container.addEventListener('scroll', debounce(updateVisibleRows, 16));
+        updateVisibleRows();
+    }
 </script>
-{% endblock %}
+{% endblock %}            

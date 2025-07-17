@@ -1,0 +1,1000 @@
+{% extends "base.html" %}
+
+{% block title %}Professional CV Generator - CodeCraftCo{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cv-generator.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <nav class="navbar">
+        <h2 class="nav-logo">
+            <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+                <div class="logo-container">
+                    <div class="word">
+                        <div class="letter-box red">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">ode</div>
+                    </div>  
+                    <div class="word">
+                        <div class="letter-box blue">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">raft</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box orange">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">o</div>
+                    </div>
+                </div>
+            </a>
+        </h2>
+    </nav>
+
+    <div class="main-container">
+        <div class="form-panel">
+            <div class="form-header">
+                <h1><i class="fas fa-file-alt"></i> CV Generator</h1>
+                <p>Create your professional CV</p>
+            </div>
+
+            <!-- Template Selection -->
+            <div class="form-section">
+                <h3><i class="fas fa-palette"></i> Choose Template</h3>
+                <select id="templateSelector">
+                    <option value="classic">Classic Template</option>
+                    <option value="modern">Modern Template</option>
+                    <option value="creative">Creative Template</option>
+                    <option value="minimal">Minimal Template</option>
+                    <option value="sidebar">Sidebar Template</option>
+                </select>
+            </div>
+
+            <!-- Personal Information -->
+            <div class="form-section">
+                <h3><i class="fas fa-user"></i> Personal Information</h3>
+                <input type="text" id="fullName" placeholder="Full Name" value="{{ current_user.full_name or 'John Doe' }}" />
+                <input type="text" id="jobTitle" placeholder="Job Title" value="Customer Service Representative" />
+                <input type="email" id="email" placeholder="Email" value="{{ current_user.email or 'john.doe@email.com' }}" />
+                <input type="tel" id="phone" placeholder="Phone" value="{{ current_user.phone or '+27 123 456 789' }}" />
+                <input type="text" id="location" placeholder="Location" value="Johannesburg, South Africa" />
+                <input type="text" id="nationality" placeholder="Nationality" value="South African" />
+                <input type="text" id="status" placeholder="Status" value="Single" />
+                <input type="url" id="linkedin" placeholder="LinkedIn" value="linkedin.com/in/johndoe" />
+                <input type="url" id="portfolio" placeholder="Portfolio" value="johndoe.co.za" />
+                <input type="file" id="profilePhoto" accept="image/*" />
+            </div>
+
+            <!-- Summary -->
+            <div class="form-section">
+                <h3><i class="fas fa-quote-left"></i> Professional Summary</h3>
+                <textarea id="summary" placeholder="Professional summary..." rows="4">Dedicated and reliable professional with strong communication skills and a passion for delivering excellent customer service. Experienced in working with diverse teams and managing multiple responsibilities. Seeking to contribute to a dynamic organization where I can utilize my skills and grow professionally.</textarea>
+            </div>
+
+            <!-- Core Competencies -->
+            <div class="form-section">
+                <h3><i class="fas fa-star"></i> Core Competencies</h3>
+                <textarea id="programmingSkills" placeholder="Communication, Leadership, Problem Solving, Team Work, Time Management, Critical Thinking" rows="2">Communication, Leadership, Problem Solving, Team Work, Time Management, Critical Thinking</textarea>
+                <button type="button" class="edit-btn"><i class="fas fa-edit"></i></button>
+            </div>
+
+            <!-- Computer Skills -->
+            <div class="form-section">
+                <h3><i class="fas fa-laptop"></i> Computer Skills</h3>
+                <textarea id="frameworks" placeholder="Microsoft Office, Excel, PowerPoint, Google Workspace, Internet Research, Data Entry" rows="2">Microsoft Office, Excel, PowerPoint, Google Workspace, Internet Research, Data Entry</textarea>
+                <button type="button" class="edit-btn"><i class="fas fa-edit"></i></button>
+            </div>
+
+            <!-- Industry Knowledge -->
+            <div class="form-section">
+                <h3><i class="fas fa-industry"></i> Industry Knowledge</h3>
+                <textarea id="databases" placeholder="Customer Service, Project Management, Sales, Marketing, Administration, Finance" rows="2">Customer Service, Project Management, Sales, Marketing, Administration, Finance</textarea>
+                <button type="button" class="edit-btn"><i class="fas fa-edit"></i></button>
+            </div>
+
+            <!-- Additional Skills -->
+            <div class="form-section">
+                <h3><i class="fas fa-certificate"></i> Additional Skills</h3>
+                <textarea id="tools" placeholder="Public Speaking, Training, Research, Writing, Social Media, Event Planning" rows="2">Public Speaking, Training, Research, Writing, Social Media, Event Planning</textarea>
+                <button type="button" class="edit-btn"><i class="fas fa-edit"></i></button>
+            </div>
+
+            <!-- Experience -->
+            <div class="form-section">
+                <h3><i class="fas fa-briefcase"></i> Professional Experience</h3>
+                <div id="experienceContainer">
+                    <div class="experience-item">
+                        <input type="text" placeholder="Job Title" class="job-title" value="Customer Service Representative" />
+                        <input type="text" placeholder="Company" class="company" value="ABC Company" />
+                        <input type="text" placeholder="Start Date" class="start-date" value="January 2022" />
+                        <input type="text" placeholder="End Date" class="end-date" value="Present" />
+                        <input type="text" placeholder="Location" class="job-location" value="Johannesburg, SA" />
+                        <textarea placeholder="Job description..." class="job-description" rows="3">Provided exceptional customer service to clients via phone, email, and in-person interactions. Resolved customer complaints and inquiries efficiently while maintaining high satisfaction ratings. Collaborated with team members to improve service delivery processes.</textarea>
+                    </div>
+                </div>
+                <button type="button" id="addExperience" class="add-btn">Add Experience</button>
+            </div>
+
+            <!-- Education -->
+            <div class="form-section">
+                <h3><i class="fas fa-graduation-cap"></i> Education & Qualifications</h3>
+                <div id="educationContainer">
+                    <div class="education-item">
+                        <select class="degree">
+                            <option value="">Select Qualification</option>
+                            <option value="Matric Certificate" selected>Matric Certificate</option>
+                            <option value="National Senior Certificate">National Senior Certificate</option>
+                            <option value="Certificate">Certificate</option>
+                            <option value="Diploma">Diploma</option>
+                            <option value="Higher Certificate">Higher Certificate</option>
+                            <option value="Bachelor's Degree">Bachelor's Degree</option>
+                            <option value="Honours Degree">Honours Degree</option>
+                            <option value="Master's Degree">Master's Degree</option>
+                            <option value="Doctoral Degree">Doctoral Degree</option>
+                            <option value="Professional Qualification">Professional Qualification</option>
+                            <option value="Trade Certificate">Trade Certificate</option>
+                            <option value="Short Course">Short Course</option>
+                        </select>
+                        <input type="text" placeholder="Field of Study/Subjects" class="field-of-study" value="General Studies" />
+                        <input type="text" placeholder="Institution/School" class="institution" value="ABC High School" />
+                        <input type="text" placeholder="Start Year" class="edu-start" value="2018" />
+                        <input type="text" placeholder="End Year" class="edu-end" value="2022" />
+                        <input type="text" placeholder="Location" class="edu-location" value="Johannesburg" />
+                        <textarea placeholder="Additional info (e.g., GPA, Achievements, Subjects)" class="edu-info" rows="2">Mathematics, English, Business Studies, Computer Applications Technology</textarea>
+                    </div>
+                </div>
+                <button type="button" id="addEducation" class="add-btn">Add Education</button>
+            </div>
+
+            <!-- Key Achievements -->
+            <div class="form-section">
+                <h3><i class="fas fa-trophy"></i> Key Achievements</h3>
+                <div id="achievementsContainer">
+                    <div class="achievement-item">
+                        <input type="text" placeholder="Achievement Title" class="achievement-title" value="Employee of the Month" />
+                        <textarea placeholder="Achievement description..." class="achievement-description" rows="2">Recognized as Employee of the Month for consistently exceeding customer satisfaction targets and maintaining excellent attendance record.</textarea>
+                    </div>
+                </div>
+                <button type="button" id="addAchievement" class="add-btn">Add Achievement</button>
+            </div>
+
+            <!-- Languages -->
+            <div class="form-section">
+                <h3><i class="fas fa-language"></i> Languages</h3>
+                <div id="languagesContainer">
+                    <div class="language-item">
+                        <input type="text" placeholder="Language" class="language-name" value="English" />
+                        <select class="language-level">
+                            <option value="Basic">Basic</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Proficient" selected>Proficient</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" id="addLanguage" class="add-btn">Add Language</button>
+            </div>
+
+            <!-- Generate PDF -->
+            <button type="button" id="generatePDF" class="generate-btn">
+                <i class="fas fa-download"></i> Generate PDF
+            </button>
+        </div>
+
+        <div class="preview-panel">
+            <div class="preview-header">
+                <h2>Live Preview</h2>
+                <div class="zoom-controls">
+                    <button type="button" id="zoomOut" class="zoom-btn"><i class="fas fa-search-minus"></i></button>
+                    <span id="zoomLevel">80%</span>
+                    <button type="button" id="zoomIn" class="zoom-btn"><i class="fas fa-search-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="cv-preview" id="cvPreview">
+                <iframe id="templateFrame" src="{{ url_for('cv_template', template='classic') }}" width="100%" height="100%" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for iframe to load
+    const iframe = document.getElementById('templateFrame');
+    let isTemplateReady = false;
+    
+    // Listen for template ready message
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'TEMPLATE_READY') {
+            isTemplateReady = true;
+            updateAllFields(); // Initial update
+        }
+    });
+    
+    // Function to send data to iframe
+    function sendToTemplate(type, data) {
+        if (isTemplateReady && iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({
+                type: type,
+                data: data
+            }, '*');
+        }
+    }
+    
+    // Update all fields at once
+    function updateAllFields() {
+        const allData = {
+            personalInfo: getPersonalInfo(),
+            summary: document.getElementById('summary').value,
+            skills: getSkills(),
+            experiences: getExperiences(),
+            education: getEducation(),
+            achievements: getAchievements(),
+            languages: getLanguages(),
+            photoUrl: currentPhotoUrl
+        };
+        
+        sendToTemplate('UPDATE_ALL', allData);
+    }
+    
+    // Helper functions to get form data
+    function getPersonalInfo() {
+        return {
+            fullName: document.getElementById('fullName').value,
+            jobTitle: document.getElementById('jobTitle').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            location: document.getElementById('location').value,
+            nationality: document.getElementById('nationality').value,
+            status: document.getElementById('status').value,
+            linkedin: document.getElementById('linkedin').value,
+            portfolio: document.getElementById('portfolio').value
+        };
+    }
+    
+    function getSkills() {
+        return {
+            programmingSkills: document.getElementById('programmingSkills').value,
+            frameworks: document.getElementById('frameworks').value,
+            databases: document.getElementById('databases').value,
+            tools: document.getElementById('tools').value
+        };
+    }
+    
+    function getExperiences() {
+        const experiences = [];
+        const experienceItems = document.querySelectorAll('.experience-item');
+        
+        experienceItems.forEach(item => {
+            const experience = {
+                jobTitle: item.querySelector('.job-title').value,
+                company: item.querySelector('.company').value,
+                startDate: item.querySelector('.start-date').value,
+                endDate: item.querySelector('.end-date').value,
+                location: item.querySelector('.job-location').value,
+                description: item.querySelector('.job-description').value
+            };
+            experiences.push(experience);
+        });
+        
+        return { experiences };
+    }
+    
+    function getEducation() {
+        const education = [];
+        const educationItems = document.querySelectorAll('.education-item');
+        
+        educationItems.forEach(item => {
+            const edu = {
+                degree: item.querySelector('.degree').value,
+                fieldOfStudy: item.querySelector('.field-of-study').value,
+                institution: item.querySelector('.institution').value,
+                startYear: item.querySelector('.edu-start').value,
+                endYear: item.querySelector('.edu-end').value,
+                location: item.querySelector('.edu-location').value,
+                info: item.querySelector('.edu-info').value
+            };
+            education.push(edu);
+        });
+        
+        return { education };
+    }
+    
+    function getAchievements() {
+        const achievements = [];
+        const achievementItems = document.querySelectorAll('.achievement-item');
+        
+        achievementItems.forEach(item => {
+            const achievement = {
+                title: item.querySelector('.achievement-title').value,
+                description: item.querySelector('.achievement-description').value
+            };
+            achievements.push(achievement);
+        });
+        
+        return { achievements };
+    }
+    
+    function getLanguages() {
+        const languages = [];
+        const languageItems = document.querySelectorAll('.language-item');
+        
+        languageItems.forEach(item => {
+            const language = {
+                name: item.querySelector('.language-name').value,
+                level: item.querySelector('.language-level').value
+            };
+            languages.push(language);
+        });
+        
+        return { languages };
+    }
+    
+    // Add event listeners to all form inputs
+    function setupEventListeners() {
+        // Personal info inputs
+        const personalInputs = ['fullName', 'jobTitle', 'email', 'phone', 'location', 'nationality', 'status', 'linkedin', 'portfolio'];
+        personalInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => {
+                    sendToTemplate('UPDATE_PERSONAL_INFO', getPersonalInfo());
+                });
+            }
+        });
+        
+        // Summary
+        const summaryInput = document.getElementById('summary');
+        if (summaryInput) {
+            summaryInput.addEventListener('input', () => {
+                sendToTemplate('UPDATE_SUMMARY', { summary: summaryInput.value });
+            });
+        }
+        
+        // Skills
+        const skillInputs = ['programmingSkills', 'frameworks', 'databases', 'tools'];
+        skillInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => {
+                    sendToTemplate('UPDATE_SKILLS', getSkills());
+                });
+            }
+        });
+        
+        // Experience - use event delegation for dynamic content
+        document.addEventListener('input', function(e) {
+            if (e.target.closest('.experience-item')) {
+                sendToTemplate('UPDATE_EXPERIENCE', getExperiences());
+            }
+            if (e.target.closest('.education-item')) {
+                sendToTemplate('UPDATE_EDUCATION', getEducation());
+            }
+            if (e.target.closest('.achievement-item')) {
+                sendToTemplate('UPDATE_ACHIEVEMENTS', getAchievements());
+            }
+            if (e.target.closest('.language-item')) {
+                sendToTemplate('UPDATE_LANGUAGES', getLanguages());
+            }
+        });
+    }
+    
+    // Photo handling
+    let currentPhotoUrl = null;
+    const photoInput = document.getElementById('profilePhoto');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentPhotoUrl = e.target.result;
+                    sendToTemplate('UPDATE_PHOTO', { photoUrl: currentPhotoUrl });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Template selector - FIX: Use Flask route instead of direct template access
+    const templateSelector = document.getElementById('templateSelector');
+    if (templateSelector) {
+        templateSelector.addEventListener('change', function(e) {
+            const newTemplate = e.target.value;
+            iframe.src = `/cv-template/${newTemplate}`; // Fixed: Use Flask route
+            isTemplateReady = false;
+            
+            // Wait for new template to load
+            iframe.onload = function() {
+                setTimeout(() => {
+                    updateAllFields();
+                }, 500);
+            };
+        });
+    }
+    
+    // Setup all event listeners
+    setupEventListeners();
+    
+    // Initial iframe load
+    iframe.onload = function() {
+        setTimeout(() => {
+            updateAllFields();
+        }, 500);
+    };
+
+    // Zoom controls
+    const zoomIn = document.getElementById('zoomIn');
+    const zoomOut = document.getElementById('zoomOut');
+    const zoomLevel = document.getElementById('zoomLevel');
+    let currentZoom = 80;
+
+    if (zoomIn) {
+        zoomIn.addEventListener('click', function() {
+            if (currentZoom < 150) {
+                currentZoom += 10;
+                updateZoom();
+            }
+        });
+    }
+
+    if (zoomOut) {
+        zoomOut.addEventListener('click', function() {
+            if (currentZoom > 50) {
+                currentZoom -= 10;
+                updateZoom();
+            }
+        });
+    }
+
+    function updateZoom() {
+        if (zoomLevel) {
+            zoomLevel.textContent = currentZoom + '%';
+        }
+        const previewContainer = document.getElementById('cvPreview');
+        if (previewContainer) {
+            previewContainer.style.transform = `scale(${currentZoom / 100})`;
+            previewContainer.style.transformOrigin = 'top left';
+        }
+    }
+
+    // Add experience functionality
+    const addExperienceBtn = document.getElementById('addExperience');
+    if (addExperienceBtn) {
+        addExperienceBtn.addEventListener('click', function() {
+            const container = document.getElementById('experienceContainer');
+            const newItem = document.createElement('div');
+            newItem.className = 'experience-item';
+            newItem.innerHTML = `
+                <input type="text" placeholder="Job Title" class="job-title" />
+                <input type="text" placeholder="Company" class="company" />
+                <input type="text" placeholder="Start Date" class="start-date" />
+                <input type="text" placeholder="End Date" class="end-date" />
+                <input type="text" placeholder="Location" class="job-location" />
+                <textarea placeholder="Job description..." class="job-description" rows="3"></textarea>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove(); updateExperience();">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            `;
+            container.appendChild(newItem);
+            
+            // Trigger update
+            setTimeout(() => {
+                sendToTemplate('UPDATE_EXPERIENCE', getExperiences());
+            }, 100);
+        });
+    }
+
+    // Add education functionality
+    const addEducationBtn = document.getElementById('addEducation');
+    if (addEducationBtn) {
+        addEducationBtn.addEventListener('click', function() {
+            const container = document.getElementById('educationContainer');
+            const newItem = document.createElement('div');
+            newItem.className = 'education-item';
+            newItem.innerHTML = `
+                <select class="degree">
+                    <option value="">Select Qualification</option>
+                    <option value="Matric Certificate">Matric Certificate</option>
+                    <option value="National Senior Certificate">National Senior Certificate</option>
+                    <option value="Certificate">Certificate</option>
+                    <option value="Diploma">Diploma</option>
+                    <option value="Higher Certificate">Higher Certificate</option>
+                    <option value="Bachelor's Degree">Bachelor's Degree</option>
+                    <option value="Honours Degree">Honours Degree</option>
+                    <option value="Master's Degree">Master's Degree</option>
+                    <option value="Doctoral Degree">Doctoral Degree</option>
+                    <option value="Professional Qualification">Professional Qualification</option>
+                    <option value="Trade Certificate">Trade Certificate</option>
+                    <option value="Short Course">Short Course</option>
+                </select>
+                <input type="text" placeholder="Field of Study/Subjects" class="field-of-study" />
+                <input type="text" placeholder="Institution/School" class="institution" />
+                <input type="text" placeholder="Start Year" class="edu-start" />
+                <input type="text" placeholder="End Year" class="edu-end" />
+                <input type="text" placeholder="Location" class="edu-location" />
+                <textarea placeholder="Additional info (e.g., GPA, Achievements, Subjects)" class="edu-info" rows="2"></textarea>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove(); updateEducation();">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            `;
+            container.appendChild(newItem);
+            
+            // Trigger update
+            setTimeout(() => {
+                sendToTemplate('UPDATE_EDUCATION', getEducation());
+            }, 100);
+        });
+    }
+
+    // Add achievement functionality
+    const addAchievementBtn = document.getElementById('addAchievement');
+    if (addAchievementBtn) {
+        addAchievementBtn.addEventListener('click', function() {
+            const container = document.getElementById('achievementsContainer');
+            const newItem = document.createElement('div');
+            newItem.className = 'achievement-item';
+            newItem.innerHTML = `
+                <input type="text" placeholder="Achievement Title" class="achievement-title" />
+                <textarea placeholder="Achievement description..." class="achievement-description" rows="2"></textarea>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove(); updateAchievements();">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            `;
+            container.appendChild(newItem);
+            
+            // Trigger update
+            setTimeout(() => {
+                sendToTemplate('UPDATE_ACHIEVEMENTS', getAchievements());
+            }, 100);
+        });
+    }
+
+    // Add language functionality
+    const addLanguageBtn = document.getElementById('addLanguage');
+    if (addLanguageBtn) {
+        addLanguageBtn.addEventListener('click', function() {
+            const container = document.getElementById('languagesContainer');
+            const newItem = document.createElement('div');
+            newItem.className = 'language-item';
+            newItem.innerHTML = `
+                <input type="text" placeholder="Language" class="language-name" />
+                <select class="language-level">
+                    <option value="Basic">Basic</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Proficient">Proficient</option>
+                </select>
+                <button type="button" class="remove-btn" onclick="this.parentElement.remove(); updateLanguages();">
+                    <i class="fas fa-trash"></i> Remove
+                </button>
+            `;
+            container.appendChild(newItem);
+            
+            // Trigger update
+            setTimeout(() => {
+                sendToTemplate('UPDATE_LANGUAGES', getLanguages());
+            }, 100);
+        });
+    }
+
+    // Generate PDF functionality
+    const generatePDFBtn = document.getElementById('generatePDF');
+    if (generatePDFBtn) {
+        generatePDFBtn.addEventListener('click', function() {
+            const button = this;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+            button.disabled = true;
+            
+            // Simulate PDF generation
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                alert('PDF generation feature is being implemented. This will download your CV as a PDF file.');
+            }, 2000);
+        });
+    }
+
+    // Global functions for remove buttons
+    window.updateExperience = () => sendToTemplate('UPDATE_EXPERIENCE', getExperiences());
+    window.updateEducation = () => sendToTemplate('UPDATE_EDUCATION', getEducation());
+    window.updateAchievements = () => sendToTemplate('UPDATE_ACHIEVEMENTS', getAchievements());
+    window.updateLanguages = () => sendToTemplate('UPDATE_LANGUAGES', getLanguages());
+});
+    </script>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #111827 0%, #2f3946 100%);
+    min-height: 100vh;
+    padding-top: 70px;
+}
+
+/* Navigation */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #1f2937;
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    padding: 12px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-logo {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.nav-logo a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.word {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.letter-box {
+    width: 30px;
+    height: 30px;
+    background-color: rgba(51, 51, 51, 0.9);
+    border: 2px solid #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.letter-box.red {
+    box-shadow: 0 0 10px #ff0000;
+}
+
+.letter-box.blue {
+    box-shadow: 0 0 10px #0099ff;
+}
+
+.letter-box.orange {
+    box-shadow: 0 0 10px #ff8800;
+}
+
+.letter {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1;
+}
+
+.word-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    margin-left: 2px;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+/* Main Container */
+.main-container {
+    display: flex;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    gap: 30px;
+    height: calc(100vh - 70px);
+}
+
+/* Form Panel */
+.form-panel {
+    width: 350px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    backdrop-filter: blur(10px);
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.form-header h1 {
+    color: #374151;
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    font-weight: 700;
+}
+
+.form-header p {
+    color: #6B7280;
+    font-size: 0.9rem;
+}
+
+.form-section {
+    margin-bottom: 20px;
+}
+
+.form-section h3 {
+    color: #374151;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-section h3 i {
+    color: #3B82F6;
+    font-size: 0.9rem;
+}
+
+.form-section input,
+.form-section textarea,
+.form-section select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #D1D5DB;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.form-section input:focus,
+.form-section textarea:focus,
+.form-section select:focus {
+    outline: none;
+    border-color: #3B82F6;
+}
+
+.form-section textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.edit-btn {
+    background: #F3F4F6;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #6B7280;
+    font-size: 0.8rem;
+    margin-left: 5px;
+}
+
+.edit-btn:hover {
+    background: #E5E7EB;
+}
+
+.add-btn {
+    background: #3B82F6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+    background: #2563EB;
+}
+
+.generate-btn {
+    background: #10B981;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 20px;
+    transition: background-color 0.2s;
+}
+
+.generate-btn:hover {
+    background: #059669;
+}
+
+.experience-item,
+.education-item,
+.achievement-item {
+    background: #F9FAFB;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #E5E7EB;
+}
+
+.language-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.language-item input,
+.language-item select {
+    margin-bottom: 0;
+}
+
+/* Preview Panel */
+.preview-panel {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.preview-header h2 {
+    color: #374151;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.zoom-btn {
+    background: #3B82F6;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.zoom-btn:hover {
+    background: #2563EB;
+}
+
+#zoomLevel {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+/* CV Preview */
+.cv-preview {
+    height: calc(100vh - 160px);
+    overflow-y: auto;
+    padding: 10px;
+    background: #F3F4F6;
+    border-radius: 8px;
+}
+
+#templateFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .main-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .form-panel {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        padding-top: 60px;
+    }
+    
+    .navbar {
+        padding: 8px 15px;
+    }
+    
+    .main-container {
+        padding: 10px;
+    }
+    
+    .form-panel,
+    .preview-panel {
+        padding: 15px;
+    }
+}
+
+/* Custom Scrollbar */
+.form-panel::-webkit-scrollbar,
+.cv-preview::-webkit-scrollbar {
+    width: 6px;
+}
+
+.form-panel::-webkit-scrollbar-track,
+.cv-preview::-webkit-scrollbar-track {
+    background: #F3F4F6;
+    border-radius: 3px;
+}
+
+.form-panel::-webkit-scrollbar-thumb,
+.cv-preview::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 3px;
+}
+
+.form-panel::-webkit-scrollbar-thumb:hover,
+.cv-preview::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+}
+
+/* Loading Animation */
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Smooth Transitions */
+.add-btn:active,
+.generate-btn:active {
+    transform: translateY(1px);
+}</style>
+{% endblock %}
