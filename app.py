@@ -29,6 +29,15 @@ from wtforms.validators import Optional
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # <-- load .env variables into os.environ
+
+DATABASE_URL = os.getenv('DATABASE_URL')
+print(f"DEBUG: DATABASE_URL is '{DATABASE_URL}'")  # <-- Add this line to confirm loading
+
+
 # Local imports
 from tasks import launch_bulk_send
 from models import (
@@ -253,7 +262,7 @@ def validate_session():
     
     # Skip validation for static files and auth routes
     excluded_endpoints = [
-        'static', 'login', 'register', 'forgot_password', 
+        'static', 'index', 'feed', 'home', 'login', 'register', 'forgot_password', 
         'reset_password', 'google_login', 'google_callback',
         'privacy', 'terms', 'contact',
         'admin_login'  # ADD THIS LINE - This is what's missing!
@@ -315,10 +324,14 @@ def validate_session():
     
 @app.route('/')
 def index():
-    """Home page - redirect to appropriate dashboard"""
-    if current_user.is_authenticated:
-        return redirect(url_for('admin_dashboard' if current_user.role == 'admin' else 'user_dashboard'))
-    return redirect(url_for('login'))
+    """Home page - shows beautiful landing page for everyone"""
+    return render_template('home.html', current_year=datetime.now().year)
+
+@app.route('/feed')
+@login_required
+def feed():
+    """Display the main feed with learnership posts"""
+    return render_template('feed.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -374,7 +387,7 @@ def login():
             if user.role == 'admin':
                 return redirect(url_for('admin_dashboard'))
             else:
-                return redirect(url_for('user_dashboard'))
+                return redirect(url_for('feed'))  # Instead of user_dashboard
         else:
             flash('Invalid email or password.', 'error')
     
@@ -510,7 +523,7 @@ def logout():
         
         flash('You have been logged out successfully.', 'success')
     
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 
 @app.route('/admin/sessions')
@@ -679,7 +692,7 @@ def google_callback():
         print(f"Token stored successfully for user {user.id}")
         
         flash(f'Welcome, {user.full_name or user.email}!', 'success')
-        return redirect(url_for('user_dashboard', login='success'))
+        return redirect(url_for('feed', login='success'))
 
         
     except Exception as e:

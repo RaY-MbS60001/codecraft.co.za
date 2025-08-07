@@ -36,6 +36,13 @@
 </div>
 
         <div class="nav-right">
+                        <a href="{{ url_for('feed') }}" class="nav-feed-button" aria-label="View Feed">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 011 1h0a1 1 0 01-1 1h0a1 1 0 01-1-1h0a1 1 0 011-1z"/>
+                </svg>
+                <span>Feed</span>
+            </a>
             <div class="user-menu">
                 <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
                     <div class="user-avatar-small">
@@ -1802,6 +1809,50 @@ function testWhatsAppModal() {
 
 .applications-list::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+
+.nav-feed-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    margin-right: 16px;
+    border-radius: 8px;
+    background: var(--surface-alt);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.nav-feed-button:hover {
+    background: var(--surface-hover);
+    transform: translateY(-1px);
+}
+
+.nav-feed-button svg {
+    color: var(--primary-color);
+}
+
+.nav-feed-button span {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-feed-button span {
+        display: none;
+    }
+    
+    .nav-feed-button {
+        padding: 8px;
+        margin-right: 8px;
+    }
+}
+
+.user-name {
+    color: #fff;
 }
 </style>
 {% endblock %}

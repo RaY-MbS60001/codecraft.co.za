@@ -1,0 +1,2467 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script>class FeedManager {
+    constructor() {
+        this.currentPage = 1;
+        this.currentFilter = 'all';
+        this.currentSearch = '';
+        this.isLoading = false;
+        this.hasMoreData = true;
+        this.modal = null;
+        this.currentLearnshipId = null;
+        
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.initModal();
+        this.loadFeedData();
+        this.loadSidebarData();
+        this.autoHideFlashMessages();
+    }
+
+    bindEvents() {
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filter = e.target.getAttribute('data-filter');
+                this.handleFilterChange(filter);
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.handleSearchChange(e.target.value);
+                }, 500);
+            });
+        }
+
+        // Load more button
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                this.loadMoreData();
+            });
+        }
+
+        // Apply buttons (delegated event)
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-apply')) {
+                const btn = e.target.closest('.btn-apply');
+                const learnshipId = btn.getAttribute('data-learnership-id');
+                const company = btn.getAttribute('data-company');
+                const title = btn.getAttribute('data-title');
+                
+                if (learnshipId) {
+                    this.handleApplyClick(learnshipId, company, title, btn);
+                }
+            }
+        });
+
+        // Learn more buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-learn-more')) {
+                const btn = e.target.closest('.btn-learn-more');
+                const learnshipId = btn.getAttribute('data-learnership-id');
+                
+                if (learnshipId) {
+                    this.handleLearnMoreClick(learnshipId);
+                }
+            }
+        });
+    }
+
+    initModal() {
+        this.modal = document.getElementById('application-modal');
+        const modalClose = document.getElementById('modal-close');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalApply = document.getElementById('modal-apply');
+
+        // Close modal events
+        if (modalClose) {
+            modalClose.addEventListener('click', () => this.closeModal());
+        }
+
+        if (modalCancel) {
+            modalCancel.addEventListener('click', () => this.closeModal());
+        }
+
+        // Click outside to close
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.closeModal();
+            }
+        });
+
+        // Escape key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
+                this.closeModal();
+            }
+        });
+
+        // Apply from modal
+        if (modalApply) {
+            modalApply.addEventListener('click', () => {
+                if (this.currentLearnshipId) {
+                    this.redirectToApplication(this.currentLearnshipId);
+                }
+            });
+        }
+    }
+
+    handleFilterChange(filter) {
+        // Update active filter button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+
+        this.currentFilter = filter;
+        this.resetAndLoad();
+    }
+
+    handleSearchChange(searchTerm) {
+        this.currentSearch = searchTerm;
+        this.resetAndLoad();
+    }
+
+    resetAndLoad() {
+        this.currentPage = 1;
+        this.hasMoreData = true;
+        const postsContainer = document.getElementById('posts-container');
+        
+        // Clear existing posts
+        postsContainer.innerHTML = '';
+        
+        // Hide load more button
+        const loadMoreSection = document.getElementById('load-more-section');
+        if (loadMoreSection) {
+            loadMoreSection.style.display = 'none';
+        }
+        
+        this.loadFeedData();
+    }
+
+    async loadFeedData() {
+        if (this.isLoading || !this.hasMoreData) return;
+
+        this.isLoading = true;
+        this.showLoading();
+
+        try {
+            const params = new URLSearchParams({
+                filter: this.currentFilter,
+                search: this.currentSearch,
+                page: this.currentPage,
+                per_page: 10
+            });
+
+            const response = await fetch(`/api/feed/data?${params}`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.renderFeedItems(data.items);
+                this.hasMoreData = data.pagination.has_next;
+                
+                if (this.hasMoreData) {
+                    this.showLoadMoreButton();
+                }
+
+                // Show no results message if first page and no items
+                if (this.currentPage === 1 && data.items.length === 0) {
+                    this.showNoResults();
+                }
+            } else {
+                this.showError(data.error || 'Failed to load feed data');
+            }
+        } catch (error) {
+            console.error('Error loading feed data:', error);
+            this.showError('Network error occurred');
+        } finally {
+            this.isLoading = false;
+            this.hideLoading();
+        }
+    }
+
+    async loadMoreData() {
+        if (this.isLoading || !this.hasMoreData) return;
+        
+        this.currentPage++;
+        await this.loadFeedData();
+    }
+
+    renderFeedItems(items) {
+        const postsContainer = document.getElementById('posts-container');
+        
+        items.forEach(item => {
+            const postCard = this.createPostCard(item);
+            postsContainer.appendChild(postCard);
+        });
+
+        // Add entrance animation
+        const newCards = postsContainer.querySelectorAll('.post-card:not(.animated)');
+        newCards.forEach((card, index) => {
+            card.classList.add('animated');
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    }
+
+    createPostCard(item) {
+        const postCard = document.createElement('article');
+        postCard.className = 'post-card';
+        postCard.setAttribute('data-learnership-id', item.id);
+        postCard.style.opacity = '0';
+        postCard.style.transform = 'translateY(20px)';
+        postCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+
+        // Determine status display
+        const statusText = this.getStatusText(item.status);
+        const statusClass = `status-${item.status}`;
+        const isUrgent = item.status === 'closing_soon';
+        const isClosed = item.status === 'closed';
+
+        // Create tags HTML
+        const tagsHtml = item.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('');
+
+        // Create primary button
+        const primaryButton = this.createPrimaryButton(item, isUrgent, isClosed);
+
+        postCard.innerHTML = `
+            <div class="post-header">
+                <div class="admin-avatar ${isUrgent ? 'warning' : ''}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13Z"/>
+                    </svg>
+                </div>
+                <div class="post-meta">
+                    <h3 class="organization-name">${this.escapeHtml(item.company)}</h3>
+                    <p class="post-date">Posted ${this.escapeHtml(item.posted_time)} • ${this.escapeHtml(item.category)}</p>
+                </div>
+                <span class="post-status ${statusClass}">
+                    <div class="status-indicator"></div>
+                    ${statusText}
+                </span>
+            </div>
+            
+            <div class="post-content">
+                <h2 class="post-title">${this.escapeHtml(item.title)}</h2>
+                <p class="post-text">${this.addEmoji(this.escapeHtml(item.description))}</p>
+                
+                <div class="post-details">
+                    ${item.location ? `
+                    <div class="detail-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                        </svg>
+                        <span>${this.escapeHtml(item.location)}</span>
+                    </div>
+                    ` : ''}
+                    ${item.duration ? `
+                    <div class="detail-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                        </svg>
+                        <span>${this.escapeHtml(item.duration)}</span>
+                    </div>
+                    ` : ''}
+                    ${item.stipend ? `
+                    <div class="detail-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17,18C15.89,18 15,18.89 15,20A3,3 0 0,0 18,23A3,3 0 0,0 21,20C21,18.89 20.1,18 19,18H17M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5H5.21L4.27,3H1M7,18C5.89,18 5,18.89 5,20A3,3 0 0,0 8,23A3,3 0 0,0 11,20C11,18.89 10.1,18 9,18H7Z"/>
+                        </svg>
+                        <span>${this.escapeHtml(item.stipend)}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="post-tags">
+                    ${tagsHtml}
+                </div>
+                
+                <div class="post-actions-primary">
+                    ${primaryButton}
+                    <button class="btn-learn-more btn-secondary" data-learnership-id="${item.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        </svg>
+                        Learn More
+                    </button>
+                </div>
+            </div>
+            
+            <div class="post-footer">
+                <div class="post-stats">
+                    <span class="stat">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"/>
+                        </svg>
+                        ${item.interested_count} interested
+                    </span>
+                    <span class="stat">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,17H11V15H13V17M13,13H11V7H13V13Z"/>
+                        </svg>
+                        ${item.application_count} applications
+                    </span>
+                </div>
+                <div class="closing-date ${isUrgent ? 'urgent' : ''}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                    </svg>
+                    Closes: ${this.escapeHtml(item.closing_date)}
+                </div>
+            </div>
+        `;
+
+        return postCard;
+    }
+
+    createPrimaryButton(item, isUrgent, isClosed) {
+        if (isClosed) {
+            return `
+                <button class="btn-primary disabled">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M15.5,17L12,15.19L8.5,17L9.32,13.19L6.5,10.69L10.5,10.29L12,6.8L13.5,10.29L17.5,10.69L14.68,13.19L15.5,17Z"/>
+                    </svg>
+                    Closed
+                </button>
+            `;
+        } else if (item.user_applied) {
+            return `
+                <button class="btn-primary applied">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                    </svg>
+                    Applied (${this.escapeHtml(item.user_application_status)})
+                </button>
+            `;
+        } else {
+            const buttonClass = isUrgent ? 'btn-apply btn-primary urgent' : 'btn-apply btn-primary';
+            const buttonText = isUrgent ? 'Apply Now (Urgent)' : 'Apply Now';
+            return `
+                <button class="${buttonClass}" data-learnership-id="${item.id}" data-company="${this.escapeHtml(item.company)}" data-title="${this.escapeHtml(item.title)}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                    </svg>
+                    ${buttonText}
+                </button>
+            `;
+        }
+    }
+
+    getStatusText(status) {
+        switch (status) {
+            case 'closing_soon':
+                return 'Closing Soon';
+            case 'closed':
+                return 'Closed';
+            case 'active':
+            default:
+                return 'Active';
+        }
+    }
+
+    addEmoji(text) {
+        // Add appropriate emoji based on content
+        if (text.toLowerCase().includes('software') || text.toLowerCase().includes('development')) {
+            return '🎯 ' + text;
+        } else if (text.toLowerCase().includes('marketing')) {
+            return '📢 ' + text;
+        } else if (text.toLowerCase().includes('design')) {
+            return '🎨 ' + text;
+        } else if (text.toLowerCase().includes('data')) {
+            return '📊 ' + text;
+        }
+        return '🚀 ' + text;
+    }
+
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async handleApplyClick(learnshipId, company, title, button) {
+        if (button.classList.contains('disabled') || button.classList.contains('applied')) {
+            return;
+        }
+
+        // Redirect to learnership page with filters
+        this.redirectToApplication(learnshipId, company, title);
+    }
+
+    redirectToApplication(learnshipId, company, title) {
+        // Create URL with pre-filters
+        const params = new URLSearchParams({
+            company: company || '',
+            search: title || '',
+            auto_select: learnshipId,
+            from_feed: 'true'
+        });
+
+        // Redirect to learnerships page with filters
+        window.location.href = `/learnerships?${params.toString()}`;
+    }
+
+    async handleLearnMoreClick(learnshipId) {
+        this.currentLearnshipId = learnshipId;
+        this.showModal();
+        await this.loadModalContent(learnshipId);
+    }
+
+    showModal() {
+        this.modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Reset modal content
+        const modalBody = document.getElementById('modal-body');
+        modalBody.innerHTML = `
+            <div class="modal-loading">
+                <div class="spinner"></div>
+                <p>Loading details...</p>
+            </div>
+        `;
+
+        // Hide apply button initially
+        const modalApply = document.getElementById('modal-apply');
+        if (modalApply) {
+            modalApply.style.display = 'none';
+        }
+    }
+
+    closeModal() {
+        this.modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        this.currentLearnshipId = null;
+    }
+
+    async loadModalContent(learnshipId) {
+        try {
+            const response = await fetch(`/api/learnership/${learnshipId}/details`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.renderModalContent(data.learnership);
+            } else {
+                this.renderModalError(data.error || 'Failed to load details');
+            }
+        } catch (error) {
+            console.error('Error loading modal content:', error);
+            this.renderModalError('Network error occurred');
+        }
+    }
+
+    renderModalContent(learnership) {
+        const modalBody = document.getElementById('modal-body');
+        const modalApply = document.getElementById('modal-apply');
+
+        modalBody.innerHTML = `
+            <div class="modal-learnership-details">
+                <div class="learnership-header">
+                    <div class="company-info">
+                        <div class="company-avatar">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="company-name">${this.escapeHtml(learnership.company)}</h3>
+                            <p class="company-category">${this.escapeHtml(learnership.category)}</p>
+                        </div>
+                    </div>
+                    <div class="learnership-status">
+                        <span class="status-badge status-${learnership.status}">
+                            <div class="status-indicator"></div>
+                            ${this.getStatusText(learnership.status)}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="learnership-title">
+                    <h2>${this.escapeHtml(learnership.title)}</h2>
+                </div>
+
+                <div class="learnership-overview">
+                    <div class="overview-grid">
+                        ${learnership.location ? `
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Location</span>
+                                <span class="overview-value">${this.escapeHtml(learnership.location)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${learnership.duration ? `
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Duration</span>
+                                <span class="overview-value">${this.escapeHtml(learnership.duration)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${learnership.stipend ? `
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M17,18C15.89,18 15,18.89 15,20A3,3 0 0,0 18,23A3,3 0 0,0 21,20C21,18.89 20.1,18 19,18H17M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5H5.21L4.27,3H1M7,18C5.89,18 5,18.89 5,20A3,3 0 0,0 8,23A3,3 0 0,0 11,20C11,18.89 10.1,18 9,18H7Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Stipend</span>
+                                <span class="overview-value">${this.escapeHtml(learnership.stipend)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Closing Date</span>
+                                <span class="overview-value ${learnership.status === 'closing_soon' ? 'urgent' : ''}">${this.escapeHtml(learnership.closing_date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="learnership-description">
+                    <h4>About This Opportunity</h4>
+                    <div class="description-content">
+                        ${this.formatDescription(learnership.description)}
+                    </div>
+                </div>
+
+                ${learnership.requirements && learnership.requirements.length ? `
+                <div class="learnership-requirements">
+                    <h4>Requirements</h4>
+                    <ul class="requirements-list">
+                        ${learnership.requirements.map(req => `<li>${this.escapeHtml(req)}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${learnership.responsibilities && learnership.responsibilities.length ? `
+                <div class="learnership-responsibilities">
+                    <h4>What You'll Learn</h4>
+                    <ul class="responsibilities-list">
+                        ${learnership.responsibilities.map(resp => `<li>${this.escapeHtml(resp)}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${learnership.tags && learnership.tags.length ? `
+                <div class="learnership-tags">
+                    <h4>Skills & Technologies</h4>
+                    <div class="tags-container">
+                        ${learnership.tags.map(tag => `<span class="skill-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="learnership-stats">
+                    <div class="stat-box">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">${learnership.interested_count}</span>
+                            <span class="stat-label">Interested</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,17H11V15H13V17M13,13H11V7H13V13Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">${learnership.application_count}</span>
+                            <span class="stat-label">Applications</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">${learnership.match_percentage || 0}%</span>
+                            <span class="stat-label">Match</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show apply button if not applied and not closed
+        if (modalApply && learnership.status !== 'closed' && !learnership.user_applied) {
+            modalApply.style.display = 'flex';
+            modalApply.setAttribute('data-learnership-id', learnership.id);
+            modalApply.setAttribute('data-company', learnership.company);
+            modalApply.setAttribute('data-title', learnership.title);
+        }
+    }
+
+    renderModalError(error) {
+        const modalBody = document.getElementById('modal-body');
+        modalBody.innerHTML = `
+            <div class="modal-error">
+                <div class="error-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                    </svg>
+                </div>
+                <h3>Unable to Load Details</h3>
+                <p>${this.escapeHtml(error)}</p>
+                <button class="btn-primary" onclick="window.feedManager.loadModalContent(${this.currentLearnshipId})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                    </svg>
+                    Try Again
+                </button>
+            </div>
+        `;
+    }
+
+    formatDescription(description) {
+        // Convert line breaks to paragraphs and handle basic formatting
+        const paragraphs = description.split('\n').filter(p => p.trim().length > 0);
+        return paragraphs.map(p => `<p>${this.escapeHtml(p.trim())}</p>`).join('');
+    }
+
+    async loadSidebarData() {
+        try {
+            // Load user stats
+            const statsResponse = await fetch('/api/user/stats');
+            const statsData = await statsResponse.json();
+            if (statsData.success) {
+                this.updateUserStats(statsData.stats);
+            }
+
+            // Load recent notifications
+            const notificationsResponse = await fetch('/api/notifications/recent');
+            const notificationsData = await notificationsResponse.json();
+            if (notificationsData.success) {
+                this.updateNotifications(notificationsData.notifications);
+            }
+        } catch (error) {
+            console.error('Error loading sidebar data:', error);
+        }
+    }
+
+    updateUserStats(stats) {
+        // Update applications count
+        const applicationsCount = document.getElementById('applications-count');
+        if (applicationsCount) {
+            this.animateNumber(applicationsCount, stats.applications);
+        }
+
+        // Update saved count
+        const savedCount = document.getElementById('saved-count');
+        if (savedCount) {
+            this.animateNumber(savedCount, stats.saved);
+        }
+
+        // Update in review count
+        const inReviewCount = document.getElementById('in-review-count');
+        if (inReviewCount) {
+            this.animateNumber(inReviewCount, stats.in_review);
+        }
+
+        // Update match rate
+        const matchRate = document.getElementById('match-rate');
+        if (matchRate) {
+            this.animateNumber(matchRate, stats.match_rate, '%');
+        }
+
+        // Update progress bars
+        this.updateProgressBars(stats);
+    }
+
+    animateNumber(element, targetValue, suffix = '') {
+        const startValue = parseInt(element.textContent) || 0;
+        const difference = targetValue - startValue;
+        const duration = 1000;
+        const stepTime = 50;
+        const steps = duration / stepTime;
+        const increment = difference / steps;
+
+        let currentValue = startValue;
+        let step = 0;
+
+        const timer = setInterval(() => {
+            step++;
+            currentValue += increment;
+            
+            if (step >= steps) {
+                currentValue = targetValue;
+                clearInterval(timer);
+            }
+            
+            element.textContent = Math.round(currentValue) + suffix;
+        }, stepTime);
+    }
+
+    updateProgressBars(stats) {
+        // Update profile completion
+        const profileBar = document.querySelector('.progress-fill');
+        if (profileBar && stats.profile_completion !== undefined) {
+            setTimeout(() => {
+                profileBar.style.width = `${stats.profile_completion}%`;
+            }, 500);
+        }
+
+        // Update application success rate
+        const successBar = document.querySelector('.progress-fill.success');
+        if (successBar && stats.success_rate !== undefined) {
+            setTimeout(() => {
+                successBar.style.width = `${stats.success_rate}%`;
+            }, 750);
+        }
+    }
+
+    updateNotifications(notifications) {
+        const notificationsList = document.getElementById('notifications-list');
+        if (!notificationsList || !notifications.length) return;
+
+        notificationsList.innerHTML = '';
+
+        notifications.forEach(notification => {
+            const notificationItem = document.createElement('div');
+            notificationItem.className = 'notification-item';
+
+            const iconPath = this.getNotificationIcon(notification.type);
+
+            notificationItem.innerHTML = `
+                <div class="notification-icon ${notification.type}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="${iconPath}"/>
+                    </svg>
+                </div>
+                <div class="notification-content">
+                    <p class="notification-text">${this.escapeHtml(notification.text)}</p>
+                    <span class="notification-time">${this.escapeHtml(notification.time)}</span>
+                </div>
+            `;
+
+            notificationsList.appendChild(notificationItem);
+        });
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            success: "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
+            warning: "M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L12,2L3,7V9H4V15H6V17H18V15H20V9H21M5,9H19V13H5V9Z",
+            info: "M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+            error: "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+        };
+        return icons[type] || icons.info;
+    }
+
+    showLoadMoreButton() {
+        const loadMoreSection = document.getElementById('load-more-section');
+        if (loadMoreSection) {
+            loadMoreSection.style.display = 'block';
+        }
+    }
+
+    showLoading() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+        }
+    }
+
+    hideLoading() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    showNoResults() {
+        const postsContainer = document.getElementById('posts-container');
+        postsContainer.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+                    </svg>
+                </div>
+                <h3>No opportunities found</h3>
+                <p>Try adjusting your search criteria or check back later for new opportunities.</p>
+                <button class="btn-primary" onclick="window.feedManager.resetFilters()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                    </svg>
+                    Reset Filters
+                </button>
+            </div>
+        `;
+    }
+
+    resetFilters() {
+        // Reset all filters and search
+        this.currentFilter = 'all';
+        this.currentSearch = '';
+        
+        // Update UI
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector('[data-filter="all"]').classList.add('active');
+        
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // Reload data
+        this.resetAndLoad();
+    }
+
+    showSuccess(message) {
+        this.showFlashMessage(message, 'success');
+    }
+
+    showError(message) {
+        this.showFlashMessage(message, 'error');
+    }
+
+    showWarning(message) {
+        this.showFlashMessage(message, 'warning');
+    }
+
+    showInfo(message) {
+        this.showFlashMessage(message, 'info');
+    }
+
+    showFlashMessage(message, type = 'info') {
+        // Create flash messages container if it doesn't exist
+        let flashContainer = document.getElementById('flash-messages');
+        if (!flashContainer) {
+            flashContainer = document.createElement('div');
+            flashContainer.id = 'flash-messages';
+            document.body.appendChild(flashContainer);
+        }
+
+        const flashMessage = document.createElement('div');
+        flashMessage.className = `flash-message flash-${type}`;
+        
+        const iconPaths = {
+            success: "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
+            error: "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+            warning: "M12,2L13.09,8.26L22,9L15.5,15L17.18,22L12,19.27L6.82,22L8.5,15L2,9L10.91,8.26L12,2Z",
+            info: "M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+        };
+
+        flashMessage.innerHTML = `
+            <div class="flash-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="${iconPaths[type]}"/>
+                </svg>
+                <span>${this.escapeHtml(message)}</span>
+            </div>
+            <button class="flash-close" onclick="this.parentElement.remove()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+            </button>
+        `;
+
+        flashContainer.appendChild(flashMessage);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (flashMessage.parentElement) {
+                flashMessage.remove();
+            }
+        }, 5000);
+
+        // Trigger entrance animation
+        setTimeout(() => {
+            flashMessage.style.transform = 'translateX(0)';
+            flashMessage.style.opacity = '1';
+        }, 100);
+    }
+
+    autoHideFlashMessages() {
+        // Auto-hide existing flash messages
+        const existingMessages = document.querySelectorAll('.flash-message');
+        existingMessages.forEach((message, index) => {
+            setTimeout(() => {
+                if (message.parentElement) {
+                    message.remove();
+                }
+            }, 5000 + (index * 500));
+        });
+    }
+
+    // Utility method for debouncing
+    debounce(func, wait, immediate) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                timeout = null;
+                if (!immediate) func(...args);
+            };
+            const callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func(...args);
+        };
+    }
+
+    // Method to handle network errors gracefully
+    async fetchWithRetry(url, options = {}, retries = 3) {
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok && response.status >= 500 && i < retries) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                if (i === retries) throw error;
+                
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            }
+        }
+    }
+}
+
+// Initialize feed manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.feedManager = new FeedManager();
+});
+
+// Export for potential use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FeedManager;
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + K for search focus
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    
+    // Escape to clear search
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput && document.activeElement === searchInput) {
+            searchInput.value = '';
+            searchInput.blur();
+            if (window.feedManager) {
+                window.feedManager.handleSearchChange('');
+            }
+        }
+    }
+});
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', (e) => {
+    if (window.feedManager && window.feedManager.modal.classList.contains('active')) {
+        window.feedManager.closeModal();
+    }
+});
+
+// Add intersection observer for infinite scroll (optional enhancement)
+if ('IntersectionObserver' in window) {
+    const observerOptions = {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && window.feedManager) {
+                const loadMoreBtn = document.getElementById('load-more-btn');
+                if (loadMoreBtn && loadMoreBtn.style.display !== 'none') {
+                    window.feedManager.loadMoreData();
+                }
+            }
+        });
+    }, observerOptions);
+
+    // Observe the load more section when it's created
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const loadMoreSection = document.getElementById('load-more-section');
+            if (loadMoreSection) {
+                observer.observe(loadMoreSection);
+            }
+        }, 1000);
+    });
+}
+</script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
+    <script src="{{ url_for('static', filename='js/feed.js') }}" defer></script>
+{% endblock %}
+<script>class FeedManager {
+    constructor() {
+        this.currentPage = 1;
+        this.currentFilter = 'all';
+        this.currentSearch = '';
+        this.isLoading = false;
+        this.hasMoreData = true;
+        this.modal = null;
+        this.currentLearnshipId = null;
+        
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.initModal();
+        this.loadFeedData();
+        this.loadSidebarData();
+        this.autoHideFlashMessages();
+    }
+
+    bindEvents() {
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const filter = e.target.getAttribute('data-filter');
+                this.handleFilterChange(filter);
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.handleSearchChange(e.target.value);
+                }, 500);
+            });
+        }
+
+        // Load more button
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                this.loadMoreData();
+            });
+        }
+
+        // Apply buttons (delegated event)
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-apply')) {
+                const btn = e.target.closest('.btn-apply');
+                const learnshipId = btn.getAttribute('data-learnership-id');
+                const company = btn.getAttribute('data-company');
+                const title = btn.getAttribute('data-title');
+                
+                if (learnshipId) {
+                    this.handleApplyClick(learnshipId, company, title, btn);
+                }
+            }
+        });
+
+        // Learn more buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-learn-more')) {
+                const btn = e.target.closest('.btn-learn-more');
+                const learnshipId = btn.getAttribute('data-learnership-id');
+                
+                if (learnshipId) {
+                    this.handleLearnMoreClick(learnshipId);
+                }
+            }
+        });
+    }
+
+    initModal() {
+        this.modal = document.getElementById('application-modal');
+        const modalClose = document.getElementById('modal-close');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalApply = document.getElementById('modal-apply');
+
+        // Close modal events
+        if (modalClose) {
+            modalClose.addEventListener('click', () => this.closeModal());
+        }
+
+        if (modalCancel) {
+            modalCancel.addEventListener('click', () => this.closeModal());
+        }
+
+        // Click outside to close
+        this.modal.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.closeModal();
+            }
+        });
+
+        // Escape key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.modal.classList.contains('active')) {
+                this.closeModal();
+            }
+        });
+
+        // Apply from modal
+        if (modalApply) {
+            modalApply.addEventListener('click', () => {
+                if (this.currentLearnshipId) {
+                    this.redirectToApplication(this.currentLearnshipId);
+                }
+            });
+        }
+    }
+
+    handleFilterChange(filter) {
+        // Update active filter button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
+
+        this.currentFilter = filter;
+        this.resetAndLoad();
+    }
+
+    handleSearchChange(searchTerm) {
+        this.currentSearch = searchTerm;
+        this.resetAndLoad();
+    }
+
+    resetAndLoad() {
+        this.currentPage = 1;
+        this.hasMoreData = true;
+        const postsContainer = document.getElementById('posts-container');
+        
+        // Clear existing posts
+        postsContainer.innerHTML = '';
+        
+        // Hide load more button
+        const loadMoreSection = document.getElementById('load-more-section');
+        if (loadMoreSection) {
+            loadMoreSection.style.display = 'none';
+        }
+        
+        this.loadFeedData();
+    }
+
+    async loadFeedData() {
+        if (this.isLoading || !this.hasMoreData) return;
+
+        this.isLoading = true;
+        this.showLoading();
+
+        try {
+            const params = new URLSearchParams({
+                filter: this.currentFilter,
+                search: this.currentSearch,
+                page: this.currentPage,
+                per_page: 10
+            });
+
+            const response = await fetch(`/api/feed/data?${params}`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.renderFeedItems(data.items);
+                this.hasMoreData = data.pagination.has_next;
+                
+                if (this.hasMoreData) {
+                    this.showLoadMoreButton();
+                }
+
+                // Show no results message if first page and no items
+                if (this.currentPage === 1 && data.items.length === 0) {
+                    this.showNoResults();
+                }
+            } else {
+                this.showError(data.error || 'Failed to load feed data');
+            }
+        } catch (error) {
+            console.error('Error loading feed data:', error);
+            this.showError('Network error occurred');
+        } finally {
+            this.isLoading = false;
+            this.hideLoading();
+        }
+    }
+
+    async loadMoreData() {
+        if (this.isLoading || !this.hasMoreData) return;
+        
+        this.currentPage++;
+        await this.loadFeedData();
+    }
+
+    renderFeedItems(items) {
+        const postsContainer = document.getElementById('posts-container');
+        
+        items.forEach(item => {
+            const postCard = this.createPostCard(item);
+            postsContainer.appendChild(postCard);
+        });
+
+        // Add entrance animation
+        const newCards = postsContainer.querySelectorAll('.post-card:not(.animated)');
+        newCards.forEach((card, index) => {
+            card.classList.add('animated');
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    }
+
+    createPostCard(item) {
+        const postCard = document.createElement('article');
+        postCard.className = 'post-card';
+        postCard.setAttribute('data-learnership-id', item.id);
+        postCard.style.opacity = '0';
+        postCard.style.transform = 'translateY(20px)';
+        postCard.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+
+        // Determine status display
+        const statusText = this.getStatusText(item.status);
+        const statusClass = `status-${item.status}`;
+        const isUrgent = item.status === 'closing_soon';
+        const isClosed = item.status === 'closed';
+
+        // Create tags HTML
+        const tagsHtml = item.tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('');
+
+        // Create primary button
+        const primaryButton = this.createPrimaryButton(item, isUrgent, isClosed);
+
+        postCard.innerHTML = `
+            <div class="post-header">
+                <div class="admin-avatar ${isUrgent ? 'warning' : ''}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13Z"/>
+                    </svg>
+                </div>
+                <div class="post-meta">
+                    <h3 class="organization-name">${this.escapeHtml(item.company)}</h3>
+                    <p class="post-date">Posted ${this.escapeHtml(item.posted_time)} • ${this.escapeHtml(item.category)}</p>
+                </div>
+                <span class="post-status ${statusClass}">
+                    <div class="status-indicator"></div>
+                    ${statusText}
+                </span>
+            </div>
+            
+            <div class="post-content">
+                <h2 class="post-title">${this.escapeHtml(item.title)}</h2>
+                <p class="post-text">${this.addEmoji(this.escapeHtml(item.description))}</p>
+                
+                <div class="post-details">
+                    ${item.location ? `
+                    <div class="detail-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                        </svg>
+                        <span>${this.escapeHtml(item.location)}</span>
+                    </div>
+                    ` : ''}
+                    ${item.duration ? `
+                    <div class="detail-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                        </svg>
+                        <span>${this.escapeHtml(item.duration)}</span>
+                    </div>
+                    ` : ''}
+                    ${item.stipend ? `
+                    <div class="detail-item">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17,18C15.89,18 15,18.89 15,20A3,3 0 0,0 18,23A3,3 0 0,0 21,20C21,18.89 20.1,18 19,18H17M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5H5.21L4.27,3H1M7,18C5.89,18 5,18.89 5,20A3,3 0 0,0 8,23A3,3 0 0,0 11,20C11,18.89 10.1,18 9,18H7Z"/>
+                        </svg>
+                        <span>${this.escapeHtml(item.stipend)}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="post-tags">
+                    ${tagsHtml}
+                </div>
+                
+                <div class="post-actions-primary">
+                    ${primaryButton}
+                    <button class="btn-learn-more btn-secondary" data-learnership-id="${item.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        </svg>
+                        Learn More
+                    </button>
+                </div>
+            </div>
+            
+            <div class="post-footer">
+                <div class="post-stats">
+                    <span class="stat">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"/>
+                        </svg>
+                        ${item.interested_count} interested
+                    </span>
+                    <span class="stat">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,17H11V15H13V17M13,13H11V7H13V13Z"/>
+                        </svg>
+                        ${item.application_count} applications
+                    </span>
+                </div>
+                <div class="closing-date ${isUrgent ? 'urgent' : ''}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                    </svg>
+                    Closes: ${this.escapeHtml(item.closing_date)}
+                </div>
+            </div>
+        `;
+
+        return postCard;
+    }
+
+    createPrimaryButton(item, isUrgent, isClosed) {
+        if (isClosed) {
+            return `
+                <button class="btn-primary disabled">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M15.5,17L12,15.19L8.5,17L9.32,13.19L6.5,10.69L10.5,10.29L12,6.8L13.5,10.29L17.5,10.69L14.68,13.19L15.5,17Z"/>
+                    </svg>
+                    Closed
+                </button>
+            `;
+        } else if (item.user_applied) {
+            return `
+                <button class="btn-primary applied">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                    </svg>
+                    Applied (${this.escapeHtml(item.user_application_status)})
+                </button>
+            `;
+        } else {
+            const buttonClass = isUrgent ? 'btn-apply btn-primary urgent' : 'btn-apply btn-primary';
+            const buttonText = isUrgent ? 'Apply Now (Urgent)' : 'Apply Now';
+            return `
+                <button class="${buttonClass}" data-learnership-id="${item.id}" data-company="${this.escapeHtml(item.company)}" data-title="${this.escapeHtml(item.title)}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                    </svg>
+                    ${buttonText}
+                </button>
+            `;
+        }
+    }
+
+    getStatusText(status) {
+        switch (status) {
+            case 'closing_soon':
+                return 'Closing Soon';
+            case 'closed':
+                return 'Closed';
+            case 'active':
+            default:
+                return 'Active';
+        }
+    }
+
+    addEmoji(text) {
+        // Add appropriate emoji based on content
+        if (text.toLowerCase().includes('software') || text.toLowerCase().includes('development')) {
+            return '🎯 ' + text;
+        } else if (text.toLowerCase().includes('marketing')) {
+            return '📢 ' + text;
+        } else if (text.toLowerCase().includes('design')) {
+            return '🎨 ' + text;
+        } else if (text.toLowerCase().includes('data')) {
+            return '📊 ' + text;
+        }
+        return '🚀 ' + text;
+    }
+
+    escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async handleApplyClick(learnshipId, company, title, button) {
+        if (button.classList.contains('disabled') || button.classList.contains('applied')) {
+            return;
+        }
+
+        // Redirect to learnership page with filters
+        this.redirectToApplication(learnshipId, company, title);
+    }
+
+    redirectToApplication(learnshipId, company, title) {
+        // Create URL with pre-filters
+        const params = new URLSearchParams({
+            company: company || '',
+            search: title || '',
+            auto_select: learnshipId,
+            from_feed: 'true'
+        });
+
+        // Redirect to learnerships page with filters
+        window.location.href = `/learnerships?${params.toString()}`;
+    }
+
+    async handleLearnMoreClick(learnshipId) {
+        this.currentLearnshipId = learnshipId;
+        this.showModal();
+        await this.loadModalContent(learnshipId);
+    }
+
+    showModal() {
+        this.modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Reset modal content
+        const modalBody = document.getElementById('modal-body');
+        modalBody.innerHTML = `
+            <div class="modal-loading">
+                <div class="spinner"></div>
+                <p>Loading details...</p>
+            </div>
+        `;
+
+        // Hide apply button initially
+        const modalApply = document.getElementById('modal-apply');
+        if (modalApply) {
+            modalApply.style.display = 'none';
+        }
+    }
+
+    closeModal() {
+        this.modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        this.currentLearnshipId = null;
+    }
+
+    async loadModalContent(learnshipId) {
+        try {
+            const response = await fetch(`/api/learnership/${learnshipId}/details`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.renderModalContent(data.learnership);
+            } else {
+                this.renderModalError(data.error || 'Failed to load details');
+            }
+        } catch (error) {
+            console.error('Error loading modal content:', error);
+            this.renderModalError('Network error occurred');
+        }
+    }
+
+    renderModalContent(learnership) {
+        const modalBody = document.getElementById('modal-body');
+        const modalApply = document.getElementById('modal-apply');
+
+        modalBody.innerHTML = `
+            <div class="modal-learnership-details">
+                <div class="learnership-header">
+                    <div class="company-info">
+                        <div class="company-avatar">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="company-name">${this.escapeHtml(learnership.company)}</h3>
+                            <p class="company-category">${this.escapeHtml(learnership.category)}</p>
+                        </div>
+                    </div>
+                    <div class="learnership-status">
+                        <span class="status-badge status-${learnership.status}">
+                            <div class="status-indicator"></div>
+                            ${this.getStatusText(learnership.status)}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="learnership-title">
+                    <h2>${this.escapeHtml(learnership.title)}</h2>
+                </div>
+
+                <div class="learnership-overview">
+                    <div class="overview-grid">
+                        ${learnership.location ? `
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Location</span>
+                                <span class="overview-value">${this.escapeHtml(learnership.location)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${learnership.duration ? `
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Duration</span>
+                                <span class="overview-value">${this.escapeHtml(learnership.duration)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${learnership.stipend ? `
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M17,18C15.89,18 15,18.89 15,20A3,3 0 0,0 18,23A3,3 0 0,0 21,20C21,18.89 20.1,18 19,18H17M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5H5.21L4.27,3H1M7,18C5.89,18 5,18.89 5,20A3,3 0 0,0 8,23A3,3 0 0,0 11,20C11,18.89 10.1,18 9,18H7Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Stipend</span>
+                                <span class="overview-value">${this.escapeHtml(learnership.stipend)}</span>
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="overview-item">
+                            <div class="overview-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="overview-label">Closing Date</span>
+                                <span class="overview-value ${learnership.status === 'closing_soon' ? 'urgent' : ''}">${this.escapeHtml(learnership.closing_date)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="learnership-description">
+                    <h4>About This Opportunity</h4>
+                    <div class="description-content">
+                        ${this.formatDescription(learnership.description)}
+                    </div>
+                </div>
+
+                ${learnership.requirements && learnership.requirements.length ? `
+                <div class="learnership-requirements">
+                    <h4>Requirements</h4>
+                    <ul class="requirements-list">
+                        ${learnership.requirements.map(req => `<li>${this.escapeHtml(req)}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${learnership.responsibilities && learnership.responsibilities.length ? `
+                <div class="learnership-responsibilities">
+                    <h4>What You'll Learn</h4>
+                    <ul class="responsibilities-list">
+                        ${learnership.responsibilities.map(resp => `<li>${this.escapeHtml(resp)}</li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${learnership.tags && learnership.tags.length ? `
+                <div class="learnership-tags">
+                    <h4>Skills & Technologies</h4>
+                    <div class="tags-container">
+                        ${learnership.tags.map(tag => `<span class="skill-tag">${this.escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="learnership-stats">
+                    <div class="stat-box">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">${learnership.interested_count}</span>
+                            <span class="stat-label">Interested</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,17H11V15H13V17M13,13H11V7H13V13Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">${learnership.application_count}</span>
+                            <span class="stat-label">Applications</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">${learnership.match_percentage || 0}%</span>
+                            <span class="stat-label">Match</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show apply button if not applied and not closed
+        if (modalApply && learnership.status !== 'closed' && !learnership.user_applied) {
+            modalApply.style.display = 'flex';
+            modalApply.setAttribute('data-learnership-id', learnership.id);
+            modalApply.setAttribute('data-company', learnership.company);
+            modalApply.setAttribute('data-title', learnership.title);
+        }
+    }
+
+    renderModalError(error) {
+        const modalBody = document.getElementById('modal-body');
+        modalBody.innerHTML = `
+            <div class="modal-error">
+                <div class="error-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                    </svg>
+                </div>
+                <h3>Unable to Load Details</h3>
+                <p>${this.escapeHtml(error)}</p>
+                <button class="btn-primary" onclick="window.feedManager.loadModalContent(${this.currentLearnshipId})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                    </svg>
+                    Try Again
+                </button>
+            </div>
+        `;
+    }
+
+    formatDescription(description) {
+        // Convert line breaks to paragraphs and handle basic formatting
+        const paragraphs = description.split('\n').filter(p => p.trim().length > 0);
+        return paragraphs.map(p => `<p>${this.escapeHtml(p.trim())}</p>`).join('');
+    }
+
+    async loadSidebarData() {
+        try {
+            // Load user stats
+            const statsResponse = await fetch('/api/user/stats');
+            const statsData = await statsResponse.json();
+            if (statsData.success) {
+                this.updateUserStats(statsData.stats);
+            }
+
+            // Load recent notifications
+            const notificationsResponse = await fetch('/api/notifications/recent');
+            const notificationsData = await notificationsResponse.json();
+            if (notificationsData.success) {
+                this.updateNotifications(notificationsData.notifications);
+            }
+        } catch (error) {
+            console.error('Error loading sidebar data:', error);
+        }
+    }
+
+    updateUserStats(stats) {
+        // Update applications count
+        const applicationsCount = document.getElementById('applications-count');
+        if (applicationsCount) {
+            this.animateNumber(applicationsCount, stats.applications);
+        }
+
+        // Update saved count
+        const savedCount = document.getElementById('saved-count');
+        if (savedCount) {
+            this.animateNumber(savedCount, stats.saved);
+        }
+
+        // Update in review count
+        const inReviewCount = document.getElementById('in-review-count');
+        if (inReviewCount) {
+            this.animateNumber(inReviewCount, stats.in_review);
+        }
+
+        // Update match rate
+        const matchRate = document.getElementById('match-rate');
+        if (matchRate) {
+            this.animateNumber(matchRate, stats.match_rate, '%');
+        }
+
+        // Update progress bars
+        this.updateProgressBars(stats);
+    }
+
+    animateNumber(element, targetValue, suffix = '') {
+        const startValue = parseInt(element.textContent) || 0;
+        const difference = targetValue - startValue;
+        const duration = 1000;
+        const stepTime = 50;
+        const steps = duration / stepTime;
+        const increment = difference / steps;
+
+        let currentValue = startValue;
+        let step = 0;
+
+        const timer = setInterval(() => {
+            step++;
+            currentValue += increment;
+            
+            if (step >= steps) {
+                currentValue = targetValue;
+                clearInterval(timer);
+            }
+            
+            element.textContent = Math.round(currentValue) + suffix;
+        }, stepTime);
+    }
+
+    updateProgressBars(stats) {
+        // Update profile completion
+        const profileBar = document.querySelector('.progress-fill');
+        if (profileBar && stats.profile_completion !== undefined) {
+            setTimeout(() => {
+                profileBar.style.width = `${stats.profile_completion}%`;
+            }, 500);
+        }
+
+        // Update application success rate
+        const successBar = document.querySelector('.progress-fill.success');
+        if (successBar && stats.success_rate !== undefined) {
+            setTimeout(() => {
+                successBar.style.width = `${stats.success_rate}%`;
+            }, 750);
+        }
+    }
+
+    updateNotifications(notifications) {
+        const notificationsList = document.getElementById('notifications-list');
+        if (!notificationsList || !notifications.length) return;
+
+        notificationsList.innerHTML = '';
+
+        notifications.forEach(notification => {
+            const notificationItem = document.createElement('div');
+            notificationItem.className = 'notification-item';
+
+            const iconPath = this.getNotificationIcon(notification.type);
+
+            notificationItem.innerHTML = `
+                <div class="notification-icon ${notification.type}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="${iconPath}"/>
+                    </svg>
+                </div>
+                <div class="notification-content">
+                    <p class="notification-text">${this.escapeHtml(notification.text)}</p>
+                    <span class="notification-time">${this.escapeHtml(notification.time)}</span>
+                </div>
+            `;
+
+            notificationsList.appendChild(notificationItem);
+        });
+    }
+
+    getNotificationIcon(type) {
+        const icons = {
+            success: "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
+            warning: "M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L12,2L3,7V9H4V15H6V17H18V15H20V9H21M5,9H19V13H5V9Z",
+            info: "M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+            error: "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+        };
+        return icons[type] || icons.info;
+    }
+
+    showLoadMoreButton() {
+        const loadMoreSection = document.getElementById('load-more-section');
+        if (loadMoreSection) {
+            loadMoreSection.style.display = 'block';
+        }
+    }
+
+    showLoading() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+        }
+    }
+
+    hideLoading() {
+        const loadingIndicator = document.getElementById('loading-indicator');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    showNoResults() {
+        const postsContainer = document.getElementById('posts-container');
+        postsContainer.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+                    </svg>
+                </div>
+                <h3>No opportunities found</h3>
+                <p>Try adjusting your search criteria or check back later for new opportunities.</p>
+                <button class="btn-primary" onclick="window.feedManager.resetFilters()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+                    </svg>
+                    Reset Filters
+                </button>
+            </div>
+        `;
+    }
+
+    resetFilters() {
+        // Reset all filters and search
+        this.currentFilter = 'all';
+        this.currentSearch = '';
+        
+        // Update UI
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector('[data-filter="all"]').classList.add('active');
+        
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        
+        // Reload data
+        this.resetAndLoad();
+    }
+
+    showSuccess(message) {
+        this.showFlashMessage(message, 'success');
+    }
+
+    showError(message) {
+        this.showFlashMessage(message, 'error');
+    }
+
+    showWarning(message) {
+        this.showFlashMessage(message, 'warning');
+    }
+
+    showInfo(message) {
+        this.showFlashMessage(message, 'info');
+    }
+
+    showFlashMessage(message, type = 'info') {
+        // Create flash messages container if it doesn't exist
+        let flashContainer = document.getElementById('flash-messages');
+        if (!flashContainer) {
+            flashContainer = document.createElement('div');
+            flashContainer.id = 'flash-messages';
+            document.body.appendChild(flashContainer);
+        }
+
+        const flashMessage = document.createElement('div');
+        flashMessage.className = `flash-message flash-${type}`;
+        
+        const iconPaths = {
+            success: "M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z",
+            error: "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z",
+            warning: "M12,2L13.09,8.26L22,9L15.5,15L17.18,22L12,19.27L6.82,22L8.5,15L2,9L10.91,8.26L12,2Z",
+            info: "M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+        };
+
+        flashMessage.innerHTML = `
+            <div class="flash-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="${iconPaths[type]}"/>
+                </svg>
+                <span>${this.escapeHtml(message)}</span>
+            </div>
+            <button class="flash-close" onclick="this.parentElement.remove()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+            </button>
+        `;
+
+        flashContainer.appendChild(flashMessage);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (flashMessage.parentElement) {
+                flashMessage.remove();
+            }
+        }, 5000);
+
+        // Trigger entrance animation
+        setTimeout(() => {
+            flashMessage.style.transform = 'translateX(0)';
+            flashMessage.style.opacity = '1';
+        }, 100);
+    }
+
+    autoHideFlashMessages() {
+        // Auto-hide existing flash messages
+        const existingMessages = document.querySelectorAll('.flash-message');
+        existingMessages.forEach((message, index) => {
+            setTimeout(() => {
+                if (message.parentElement) {
+                    message.remove();
+                }
+            }, 5000 + (index * 500));
+        });
+    }
+
+    // Utility method for debouncing
+    debounce(func, wait, immediate) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                timeout = null;
+                if (!immediate) func(...args);
+            };
+            const callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func(...args);
+        };
+    }
+
+    // Method to handle network errors gracefully
+    async fetchWithRetry(url, options = {}, retries = 3) {
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok && response.status >= 500 && i < retries) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                if (i === retries) throw error;
+                
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            }
+        }
+    }
+}
+
+// Initialize feed manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.feedManager = new FeedManager();
+});
+
+// Export for potential use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FeedManager;
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + K for search focus
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
+    }
+    
+    // Escape to clear search
+    if (e.key === 'Escape') {
+        const searchInput = document.getElementById('search-input');
+        if (searchInput && document.activeElement === searchInput) {
+            searchInput.value = '';
+            searchInput.blur();
+            if (window.feedManager) {
+                window.feedManager.handleSearchChange('');
+            }
+        }
+    }
+});
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', (e) => {
+    if (window.feedManager && window.feedManager.modal.classList.contains('active')) {
+        window.feedManager.closeModal();
+    }
+});
+
+// Add intersection observer for infinite scroll (optional enhancement)
+if ('IntersectionObserver' in window) {
+    const observerOptions = {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && window.feedManager) {
+                const loadMoreBtn = document.getElementById('load-more-btn');
+                if (loadMoreBtn && loadMoreBtn.style.display !== 'none') {
+                    window.feedManager.loadMoreData();
+                }
+            }
+        });
+    }, observerOptions);
+
+    // Observe the load more section when it's created
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const loadMoreSection = document.getElementById('load-more-section');
+            if (loadMoreSection) {
+                observer.observe(loadMoreSection);
+            }
+        }, 1000);
+    });
+}
+</script>
+{% block title %}Feed - CodeCraftCo{% endblock %}
+
+{% block content %}
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div id="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    <div class="flash-content">
+                        {% if category == 'success' %}
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                            </svg>
+                        {% elif category == 'error' %}
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                            </svg>
+                        {% elif category == 'warning' %}
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2L13.09,8.26L22,9L15.5,15L17.18,22L12,19.27L6.82,22L8.5,15L2,9L10.91,8.26L12,2Z"/>
+                            </svg>
+                        {% else %}
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                            </svg>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                    </div>
+                    <button class="flash-close" onclick="this.parentElement.remove()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                        </svg>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="feed-container">
+    <main class="main-feed">
+        <!-- Feed Header -->
+        <div class="feed-header">
+            <div class="header-content">
+                <h1 class="feed-title">🚀 Latest Learnership Opportunities</h1>
+                <p class="feed-subtitle">Discover and apply to the newest learnership programs</p>
+            </div>
+            <a href="{{ url_for('user_dashboard') }}" class="dashboard-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All Posts</button>
+                <button class="filter-btn" data-filter="active">Active</button>
+                <button class="filter-btn" data-filter="closing_soon">Closing Soon</button>
+                <button class="filter-btn" data-filter="my_interests">My Interests</button>
+            </div>
+            <div class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+                </svg>
+                <input type="text" placeholder="Search opportunities..." id="search-input">
+            </div>
+        </div>
+
+        <!-- Posts Container -->
+        <div id="posts-container">
+            <!-- Sample Posts (these will be replaced by dynamic content) -->
+            <article class="post-card" data-learnership-id="1">
+                <div class="post-header">
+                    <div class="admin-avatar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M12,13C14.67,13 20,14.33 20,17V20H4V17C4,14.33 9.33,13 12,13Z"/>
+                        </svg>
+                    </div>
+                    <div class="post-meta">
+                        <h3 class="organization-name">TechCorp Solutions</h3>
+                        <p class="post-date">Posted 2 hours ago • Software Development</p>
+                    </div>
+                    <span class="post-status status-active">
+                        <div class="status-indicator"></div>
+                        Active
+                    </span>
+                </div>
+                
+                <div class="post-content">
+                    <h2 class="post-title">Software Development Learnership Program</h2>
+                    <p class="post-text">🎯 Exciting opportunity for Software Development Learnership! Join our team and kickstart your career in tech. We're looking for passionate individuals ready to learn and grow with us.</p>
+                    
+                    <div class="post-details">
+                        <div class="detail-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z"/>
+                            </svg>
+                            <span>Johannesburg, Gauteng</span>
+                        </div>
+                        <div class="detail-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
+                            </svg>
+                            <span>12 months duration</span>
+                        </div>
+                        <div class="detail-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M17,18C15.89,18 15,18.89 15,20A3,3 0 0,0 18,23A3,3 0 0,0 21,20C21,18.89 20.1,18 19,18H17M1,2V4H3L6.6,11.59L5.24,14.04C5.09,14.32 5,14.65 5,15A2,2 0 0,0 7,17H19V15H7.42A0.25,0.25 0 0,1 7.17,14.75C7.17,14.7 7.18,14.66 7.2,14.63L8.1,13H15.55C16.3,13 16.96,12.58 17.3,11.97L20.88,5H5.21L4.27,3H1M7,18C5.89,18 5,18.89 5,20A3,3 0 0,0 8,23A3,3 0 0,0 11,20C11,18.89 10.1,18 9,18H7Z"/>
+                            </svg>
+                            <span>R5000 stipend</span>
+                        </div>
+                    </div>
+                    
+                    <div class="post-tags">
+                        <span class="tag">JavaScript</span>
+                        <span class="tag">React</span>
+                        <span class="tag">Node.js</span>
+                        <span class="tag">Entry Level</span>
+                    </div>
+                    
+                    <div class="post-actions-primary">
+                        <button class="btn-apply btn-primary" data-learnership-id="1" data-company="TechCorp Solutions" data-title="Software Development Learnership Program">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                            </svg>
+                            Apply Now
+                        </button>
+                        <button class="btn-learn-more btn-secondary" data-learnership-id="1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="post-footer">
+                    <div class="post-stats">
+                        <span class="stat">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"/>
+                            </svg>
+                            24 interested
+                        </span>
+                        <span class="stat">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,17H11V15H13V17M13,13H11V7H13V13Z"/>
+                            </svg>
+                            12 applications
+                        </span>
+                    </div>
+                    <div class="closing-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V8H19V19Z"/>
+                        </svg>
+                        Closes: Dec 15, 2024
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- Load More Button -->
+        <div class="load-more" id="load-more-section" style="display: none;">
+            <button class="load-more-btn" id="load-more-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2M10,17L15,12L10,7V17Z"/>
+                </svg>
+                Load More Opportunities
+            </button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading-indicator" id="loading-indicator" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>Loading opportunities...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <!-- Stats Card -->
+        <div class="sidebar-card">
+            <div class="card-header">
+                <h3 class="sidebar-title">📊 Your Activity</h3>
+            </div>
+            <div class="stats-container">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon primary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-number" id="applications-count">5</p>
+                            <p class="stat-label">Applications</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon success">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5 2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-number" id="saved-count">12</p>
+                            <p class="stat-label">Saved</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon warning">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16,12A2,2 0 0,1 18,10A2,2 0 0,1 20,12A2,2 0 0,1 18,14A2,2 0 0,1 16,12M10,12A2,2 0 0,1 12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12M4,12A2,2 0 0,1 6,10A2,2 0 0,1 8,12A2,2 0 0,1 6,14A2,2 0 0,1 4,12Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-number" id="in-review-count">3</p>
+                            <p class="stat-label">In Review</p>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon info">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M13,17H11V15H13V17M13,13H11V7H13V13Z"/>
+                            </svg>
+                        </div>
+                        <div class="stat-content">
+                            <p class="stat-number" id="match-rate">89%</p>
+                                                        <p class="stat-label">Match Rate</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Activity Summary -->
+                <div class="activity-summary">
+                    <div class="activity-item">
+                        <div class="activity-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 75%"></div>
+                            </div>
+                            <span class="progress-text">Profile Completion</span>
+                        </div>
+                        <span class="progress-value">75%</span>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill success" style="width: 60%"></div>
+                            </div>
+                            <span class="progress-text">Application Success</span>
+                        </div>
+                        <span class="progress-value">60%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="sidebar-card">
+            <div class="card-header">
+                <h3 class="sidebar-title">⚡ Quick Actions</h3>
+            </div>
+            <div class="quick-actions">
+                <a href="{{ url_for('my_applications') }}" class="quick-action-btn">
+                    <div class="action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                        </svg>
+                    </div>
+                    <div class="action-content">
+                        <span class="action-title">My Applications</span>
+                        <span class="action-desc">Track your progress</span>
+                    </div>
+                </a>
+                <a href="{{ url_for('learnerships') }}" class="quick-action-btn">
+                    <div class="action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z"/>
+                        </svg>
+                    </div>
+                    <div class="action-content">
+                        <span class="action-title">Browse All</span>
+                        <span class="action-desc">Explore opportunities</span>
+                    </div>
+                </a>
+                <a href="{{ url_for('document_center') }}" class="quick-action-btn">
+                    <div class="action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z"/>
+                        </svg>
+                    </div>
+                    <div class="action-content">
+                        <span class="action-title">Documents</span>
+                        <span class="action-desc">Manage files</span>
+                    </div>
+                </a>
+                <a href="{{ url_for('edit_profile') }}" class="quick-action-btn">
+                    <div class="action-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                        </svg>
+                    </div>
+                    <div class="action-content">
+                        <span class="action-title">Profile</span>
+                        <span class="action-desc">Update settings</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="sidebar-card">
+            <div class="card-header">
+                <h3 class="sidebar-title">🔔 Recent Updates</h3>
+            </div>
+            <div class="notifications" id="notifications-list">
+                <div class="notification-item">
+                    <div class="notification-icon success">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                        </svg>
+                    </div>
+                    <div class="notification-content">
+                        <p class="notification-text">Your application to TechCorp was received</p>
+                        <span class="notification-time">2 hours ago</span>
+                    </div>
+                </div>
+                <div class="notification-item">
+                    <div class="notification-icon warning">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L12,2L3,7V9H4V15H6V17H18V15H20V9H21M5,9H19V13H5V9Z"/>
+                        </svg>
+                    </div>
+                    <div class="notification-content">
+                        <p class="notification-text">Digital Marketing Hub closes in 2 days</p>
+                        <span class="notification-time">1 day ago</span>
+                    </div>
+                </div>
+                <div class="notification-item">
+                    <div class="notification-icon info">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
+                        </svg>
+                    </div>
+                    <div class="notification-content">
+                        <p class="notification-text">New opportunities in your area</p>
+                        <span class="notification-time">3 days ago</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>
+
+<!-- Application Details Modal -->
+<div id="application-modal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 class="modal-title">Application Details</h2>
+            <button class="modal-close" id="modal-close">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" id="modal-body">
+            <!-- Content will be loaded dynamically -->
+            <div class="modal-loading">
+                <div class="spinner"></div>
+                <p>Loading details...</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" id="modal-cancel">Close</button>
+            <button class="btn-primary" id="modal-apply" style="display: none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                </svg>
+                Apply Now
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
