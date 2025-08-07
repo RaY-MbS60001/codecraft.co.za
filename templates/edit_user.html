@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Edit User - {{ user.username or user.email }} - CodeCraftCo Admin{% endblock %}
+
+{% block content %}
+<style>
+    /* Same styles as other admin forms */
+    .container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #151922; /* Dark background */
+        color: #e4e6eb; /* Light text */
+        padding: 2rem;
+    }
+    
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        color: #e4e6eb;
+    }
+    
+    .btn-back {
+        padding: 0.5rem 1rem;
+        background-color: #2d3446;
+        color: #e4e6eb;
+        border-radius: 4px;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-back:hover {
+        background-color: #3a4258;
+    }
+    
+    .card {
+        background-color: #1e2434;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    
+    .card h2 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.5rem;
+        color: #5d72e4;
+        border-bottom: 1px solid #2d3446;
+        padding-bottom: 0.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #e4e6eb;
+        font-weight: 500;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: #252c3e;
+        border: 1px solid #2d3446;
+        border-radius: 4px;
+        color: #e4e6eb;
+        font-size: 1rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: #5d72e4;
+        outline: none;
+    }
+    
+    .form-group small {
+        display: block;
+        margin-top: 0.25rem;
+        color: #a0a6b3;
+        font-size: 0.85rem;
+    }
+    
+    .form-group-inline {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-group-inline input[type="checkbox"] {
+        width: auto;
+    }
+    
+    .form-divider {
+        margin: 2rem 0;
+        border-top: 1px solid #2d3446;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .btn-primary {
+        padding: 0.75rem 1.5rem;
+        background-color: #5d72e4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    
+    .btn-primary:hover {
+        background-color: #4a60d3;
+    }
+    
+    .btn-secondary {
+        padding: 0.75rem 1.5rem;
+        background-color: #2d3446;
+        color: #e4e6eb;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #3a4258;
+    }
+    
+    @media (max-width: 768px) {
+        .container {
+            padding: 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="header">
+        <h1>Edit User</h1>
+        <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn-back">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to User Details
+        </a>
+    </div>
+    
+    <div class="card">
+        <h2>Edit User Information</h2>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ user.username or '' }}">
+                <small>Username is optional but must be unique if provided.</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="full_name">Full Name</label>
+                <input type="text" id="full_name" name="full_name" value="{{ user.full_name or '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" value="{{ user.phone or '' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="role">User Role *</label>
+                <select id="role" name="role" required>
+                    <option value="user" {% if user.role == 'user' %}selected{% endif %}>Regular User</option>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrator</option>
+                </select>
+            </div>
+            
+            <div class="form-group form-group-inline">
+                <input type="checkbox" id="is_active" name="is_active" {% if user.is_active %}checked{% endif %}>
+                <label for="is_active">Account Active</label>
+            </div>
+            
+            <div class="form-divider"></div>
+            
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password">
+                <small>Leave blank to keep the current password. New password should be at least 8 characters and include letters, numbers, and special characters.</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password">
+                <small>Enter the new password again to confirm.</small>
+            </div>
+            
+            <div class="action-buttons">
+                <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Simple password confirmation validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        if (newPassword && newPassword !== confirmPassword) {
+            e.preventDefault();
+            alert('The passwords do not match. Please try again.');
+        }
+    });
+</script>
+{% endblock %}

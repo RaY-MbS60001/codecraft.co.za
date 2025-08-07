@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic CV Template</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="cv-page">
+        <!-- CV Header -->
+        <div class="cv-header">
+            <div class="cv-header-left">
+                <h1 id="previewName">JOHN DOE</h1>
+                <p id="previewJobTitle">Customer Service Representative</p>
+                <div class="contact-info">
+                    <div class="contact-row">
+                        <span><i class="fas fa-phone"></i> <span id="previewPhone">+27 123 456 789</span></span>
+                        <span><i class="fas fa-envelope"></i> <span id="previewEmail">john.doe@email.com</span></span>
+                    </div>
+                    <div class="contact-row">
+                        <span><i class="fab fa-linkedin"></i> <span id="previewLinkedin">linkedin.com/in/johndoe</span></span>
+                        <span><i class="fas fa-globe"></i> <span id="previewPortfolio">johndoe.co.za</span></span>
+                    </div>
+                    <div class="contact-row">
+                        <span><i class="fas fa-map-marker-alt"></i> <span id="previewLocation">Johannesburg, South Africa</span></span>
+                        <span>Nationality: <span id="previewNationality">South African</span></span>
+                        <span>Status: <span id="previewStatus">Single</span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="cv-header-right">
+                <div class="profile-photo" id="profilePhotoContainer">
+                    <img id="profilePhotoPreview" style="display: none;" />
+                    <div id="photoPlaceholder" class="photo-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CV Content -->
+        <div class="cv-content">
+            <div class="cv-left">
+                <!-- Summary -->
+                <div class="cv-section">
+                    <h2>PROFESSIONAL SUMMARY</h2>
+                    <div class="section-divider"></div>
+                    <p id="previewSummary">Dedicated and reliable professional with strong communication skills and a passion for delivering excellent customer service. Experienced in working with diverse teams and managing multiple responsibilities. Seeking to contribute to a dynamic organization where I can utilize my skills and grow professionally.</p>
+                </div>
+
+                <!-- Experience -->
+                <div class="cv-section">
+                    <h2>PROFESSIONAL EXPERIENCE</h2>
+                    <div class="section-divider"></div>
+                    <div id="previewExperience">
+                        <div class="experience-entry">
+                            <h3>Customer Service Representative</h3>
+                            <div class="job-details">
+                                <span class="company">ABC Company</span>
+                                <span class="dates">January 2022 - Present</span>
+                                <span class="location">Johannesburg, SA</span>
+                            </div>
+                            <ul>
+                                <li>Provided exceptional customer service to clients via phone, email, and in-person interactions</li>
+                                <li>Resolved customer complaints and inquiries efficiently while maintaining high satisfaction ratings</li>
+                                <li>Collaborated with team members to improve service delivery processes</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Education -->
+                <div class="cv-section">
+                    <h2>EDUCATION</h2>
+                    <div class="section-divider"></div>
+                    <div id="previewEducation">
+                        <div class="education-entry">
+                            <h3>Matric Certificate in General Studies</h3>
+                            <div class="education-details">
+                                <span class="institution">ABC High School</span>
+                                <span class="dates">2018 - 2022</span>
+                                <span class="location">Johannesburg</span>
+                            </div>
+                            <p>Mathematics, English, Business Studies, Computer Applications Technology</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Languages -->
+                <div class="cv-section">
+                    <h2>LANGUAGES</h2>
+                    <div class="section-divider"></div>
+                    <div id="previewLanguages">
+                        <div class="language-entry">
+                            <span class="language-name">English</span>
+                            <div class="language-dots">
+                                <span class="dot filled"></span>
+                                <span class="dot filled"></span>
+                                <span class="dot filled"></span>
+                                <span class="dot filled"></span>
+                            </div>
+                            <span class="language-level">Proficient</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cv-right">
+                <!-- Skills -->
+                <div class="cv-section">
+                    <h2>SKILLS</h2>
+                    <div class="section-divider"></div>
+                    
+                    <div class="skill-category">
+                        <div class="skill-header">
+                            <i class="fas fa-star"></i>
+                            <h3>Core Competencies</h3>
+                        </div>
+                        <div id="previewProgrammingSkills" class="skill-tags">
+                            <span class="skill-tag">Communication</span>
+                            <span class="skill-tag">Leadership</span>
+                            <span class="skill-tag">Problem Solving</span>
+                            <span class="skill-tag">Team Work</span>
+                            <span class="skill-tag">Time Management</span>
+                            <span class="skill-tag">Critical Thinking</span>
+                        </div>
+                    </div>
+
+                    <div class="skill-category">
+                        <div class="skill-header">
+                            <i class="fas fa-laptop"></i>
+                            <h3>Computer Skills</h3>
+                        </div>
+                        <div id="previewFrameworks" class="skill-tags">
+                            <span class="skill-tag">Microsoft Office</span>
+                            <span class="skill-tag">Excel</span>
+                            <span class="skill-tag">PowerPoint</span>
+                            <span class="skill-tag">Google Workspace</span>
+                            <span class="skill-tag">Internet Research</span>
+                            <span class="skill-tag">Data Entry</span>
+                        </div>
+                    </div>
+
+                    <div class="skill-category">
+                        <div class="skill-header">
+                            <i class="fas fa-industry"></i>
+                            <h3>Industry Knowledge</h3>
+                        </div>
+                        <div id="previewDatabases" class="skill-tags">
+                            <span class="skill-tag">Customer Service</span>
+                            <span class="skill-tag">Project Management</span>
+                            <span class="skill-tag">Sales</span>
+                            <span class="skill-tag">Marketing</span>
+                            <span class="skill-tag">Administration</span>
+                            <span class="skill-tag">Finance</span>
+                        </div>
+                    </div>
+
+                    <div class="skill-category">
+                        <div class="skill-header">
+                            <i class="fas fa-certificate"></i>
+                            <h3>Additional Skills</h3>
+                        </div>
+                        <div id="previewTools" class="skill-tags">
+                            <span class="skill-tag">Public Speaking</span>
+                            <span class="skill-tag">Training</span>
+                            <span class="skill-tag">Research</span>
+                            <span class="skill-tag">Writing</span>
+                            <span class="skill-tag">Social Media</span>
+                            <span class="skill-tag">Event Planning</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Achievements -->
+                <div class="cv-section">
+                    <h2>KEY ACHIEVEMENTS</h2>
+                    <div class="section-divider"></div>
+                    <div id="previewAchievements">
+                        <div class="achievement-entry">
+                            <div class="achievement-icon">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="achievement-content">
+                                <h3>Employee of the Month</h3>
+                                <p>Recognized as Employee of the Month for consistently exceeding customer satisfaction targets and maintaining excellent attendance record.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CV Footer -->
+        <div class="cv-footer">
+            <div class="footer-logo">
+                <a href="{{ url_for('user_dashboard') }}" target="_blank">
+                    <svg width="60" height="12" viewBox="0 0 60 12" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <filter id="redGlow">
+                                <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                                <feMerge> 
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <filter id="blueGlow">
+                                <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                                <feMerge> 
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <filter id="orangeGlow">
+                                <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                                <feMerge> 
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        
+                        <!-- Code -->
+                        <rect x="0" y="2" width="8" height="8" fill="#333" stroke="#ff0000" stroke-width="0.5" filter="url(#redGlow)"/>
+                        <text x="4" y="7.5" font-family="Arial" font-size="6" font-weight="bold" fill="white" text-anchor="middle">C</text>
+                        <text x="10" y="7.5" font-family="Arial" font-size="6" font-weight="500" fill="#374151">ode</text>
+                        
+                        <!-- Craft -->
+                        <rect x="20" y="2" width="8" height="8" fill="#333" stroke="#0099ff" stroke-width="0.5" filter="url(#blueGlow)"/>
+                        <text x="24" y="7.5" font-family="Arial" font-size="6" font-weight="bold" fill="white" text-anchor="middle">C</text>
+                        <text x="30" y="7.5" font-family="Arial" font-size="6" font-weight="500" fill="#374151">raft</text>
+                        
+                        <!-- Co -->
+                        <rect x="40" y="2" width="8" height="8" fill="#333" stroke="#ff8800" stroke-width="0.5" filter="url(#orangeGlow)"/>
+                        <text x="44" y="7.5" font-family="Arial" font-size="6" font-weight="bold" fill="white" text-anchor="middle">C</text>
+                        <text x="50" y="7.5" font-family="Arial" font-size="6" font-weight="500" fill="#374151">o</text>
+                    </svg>
+                </a>
+            </div>
+            <div class="footer-text">
+                <span>Powered with ♡ by CodeCraftCo</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Template communication script
+        document.addEventListener('DOMContentLoaded', function() {
+    const iframe = document.getElementById('templateFrame');
+    let isTemplateReady = false;
+    
+    // Set initial iframe source
+    iframe.src = '/cv-template/classic';
+    
+    // Listen for template ready message
+    window.addEventListener('message', function(event) {
+        console.log('Received message:', event.data);
+        if (event.data.type === 'TEMPLATE_READY') {
+            console.log('Template is ready!');
+            isTemplateReady = true;
+            setTimeout(() => {
+                updateAllFields();
+            }, 100);
+        }
+    });
+    
+    // Function to send data to iframe
+    function sendToTemplate(type, data) {
+        console.log('Sending to template:', type, data);
+        if (iframe && iframe.contentWindow) {
+            try {
+                iframe.contentWindow.postMessage({
+                    type: type,
+                    data: data
+                }, '*');
+            } catch (error) {
+                console.error('Error sending message to iframe:', error);
+            }
+        } else {
+            console.warn('Iframe not ready');
+        }
+    }
+    
+    // Update all fields at once
+    function updateAllFields() {
+        console.log('Updating all fields');
+        const allData = {
+            personalInfo: getPersonalInfo(),
+            summary: document.getElementById('summary').value,
+            skills: getSkills(),
+            experiences: getExperiences(),
+            education: getEducation(),
+            achievements: getAchievements(),
+            languages: getLanguages(),
+            photoUrl: currentPhotoUrl
+        };
+        
+        sendToTemplate('UPDATE_ALL', allData);
+    }
+    
+    // Your existing helper functions here...
+    function getPersonalInfo() {
+        return {
+            fullName: document.getElementById('fullName').value,
+            jobTitle: document.getElementById('jobTitle').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            location: document.getElementById('location').value,
+            nationality: document.getElementById('nationality').value,
+            status: document.getElementById('status').value,
+            linkedin: document.getElementById('linkedin').value,
+            portfolio: document.getElementById('portfolio').value
+        };
+    }
+    
+    // Add the rest of your existing functions...
+    
+    // Setup event listeners for form inputs
+    function setupEventListeners() {
+        const personalInputs = ['fullName', 'jobTitle', 'email', 'phone', 'location', 'nationality', 'status', 'linkedin', 'portfolio'];
+        personalInputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.addEventListener('input', () => {
+                    sendToTemplate('UPDATE_PERSONAL_INFO', getPersonalInfo());
+                });
+            }
+        });
+        
+        const summaryInput = document.getElementById('summary');
+        if (summaryInput) {
+            summaryInput.addEventListener('input', () => {
+                sendToTemplate('UPDATE_SUMMARY', { summary: summaryInput.value });
+            });
+        }
+    }
+    
+    // Initialize everything
+    iframe.onload = function() {
+        console.log('Iframe loaded');
+        setTimeout(() => {
+            updateAllFields();
+        }, 500);
+    };
+    
+    setupEventListeners();
+});
+    </script>
+</body>
+</html>

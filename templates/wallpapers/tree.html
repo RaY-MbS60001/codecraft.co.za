@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Craft Tree Logo</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .level {
+      display: flex;
+      justify-content: center;
+      margin: 30px 0;
+      position: relative;
+    }
+
+    .node {
+      width: 60px;
+      height: 60px;
+      background-color: #111;
+      border: 2px solid white;
+      color: white;
+      font-size: 32px;
+      font-family: monospace;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 20px;
+      position: relative;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(255,255,255,0.2);
+    }
+
+    .glow-red    { box-shadow: 0 0 20px red; }
+    .glow-yellow { box-shadow: 0 0 20px gold; }
+    .glow-orange { box-shadow: 0 0 20px orange; }
+    .glow-green  { box-shadow: 0 0 20px lime; }
+    .glow-pink   { box-shadow: 0 0 20px hotpink; }
+    .glow-cyan   { box-shadow: 0 0 20px cyan; }
+    .glow-white  { box-shadow: 0 0 20px white; }
+
+    .connector {
+      position: absolute;
+      width: 2px;
+      background: white;
+    }
+
+    .from-top {
+      height: 30px;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .from-bottom {
+      height: 30px;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* Optional: Add lines between parent and children */
+    .line-down {
+      width: 2px;
+      height: 30px;
+      background: white;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  </style>
+</head>
+<body>
+
+<div class="tree">
+  <!-- Level 0 -->
+  <div class="level">
+    <div class="node glow-cyan">C</div>
+  </div>
+
+  <!-- Level 1 -->
+  <div class="level">
+    <div class="node glow-yellow">o</div>
+    <div class="node glow-pink">r</div>
+  </div>
+
+  <!-- Level 2 -->
+  <div class="level">
+    <div class="node glow-pink">d</div>
+    <div class="node glow-yellow">e</div>
+    <div class="node glow-orange">a</div>
+    <div class="node glow-green">f</div>
+  </div>
+
+  <!-- Level 3 -->
+  <div class="level">
+    <div class="node glow-white">t</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CodeCraftCo 4K Smooth Logo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: radial-gradient(circle at center, #111 0%, #0a0a0a 100%);
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Roboto Mono', monospace;
+    }
+
+    .center-screen {
+        animation: float 12s ease-in-out infinite;
+        z-index: 10;
+    }
+
+    .nav-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 60px;
+        padding-left: 100px;
+        background: transparent;
+        position: relative;
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
+    }
+
+    .letter-box {
+        width: 160px;
+        height: 160px;
+        background-color: rgba(30, 30, 30, 0.95);
+        border: 4px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(10px);
+        animation: pulse 6s infinite cubic-bezier(0.445, 0.05, 0.55, 0.95);
+    }
+
+    .letter-box.red    { --glow-color: #ff0000; animation-delay: 0s; }
+    .letter-box.blue   { --glow-color: #0099ff; animation-delay: 0.3s; }
+    .letter-box.orange { --glow-color: #ff8800; animation-delay: 0.6s; }
+
+    .letter-box.red,
+    .letter-box.blue,
+    .letter-box.orange {
+        box-shadow: 0 0 0px var(--glow-color);
+    }
+
+    .letter {
+        font-size: 84px;
+        font-weight: bold;
+        color: #fff;
+        font-family: 'Roboto Mono', monospace;
+        position: relative;
+    }
+
+    .word-text {
+        font-size: 84px;
+        font-weight: normal;
+        color: #fff;
+        font-family: 'Roboto Mono', monospace;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        position: relative;
+    }
+
+    /* OAuth Status Panel */
+    .oauth-panel {
+        position: fixed;
+        top: 30px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid #00ff00;
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        color: #00ff00;
+        z-index: 100;
+        min-width: 280px;
+    }
+
+    .oauth-header {
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .oauth-status {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+        padding: 4px 0;
+    }
+
+    .status-active { color: #00ff00; }
+    .status-pending { color: #ff8800; }
+    .status-error { color: #ff0000; }
+
+    /* Thread Pool Monitor */
+    .thread-monitor {
+        position: fixed;
+        top: 30px;
+        left: 30px;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid #0099ff;
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        color: #0099ff;
+        z-index: 100;
+        min-width: 250px;
+    }
+
+    .thread-header {
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .thread-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 6px 0;
+        padding: 3px 0;
+        font-size: 12px;
+    }
+
+    .thread-active { color: #00ff00; }
+    .thread-idle { color: #666; }
+    .thread-working { color: #ff8800; }
+
+    /* Gmail API Status */
+    .gmail-api {
+        position: fixed;
+        bottom: 30px;
+        left: 30px;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid #ff0000;
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        color: #ff0000;
+        z-index: 100;
+        min-width: 300px;
+    }
+
+    .api-header {
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .api-metric {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+        padding: 4px 0;
+    }
+
+    .metric-value {
+        font-weight: bold;
+        color: #fff;
+    }
+
+    /* Cloud Services */
+    .cloud-services {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid #ff8800;
+        border-radius: 10px;
+        padding: 20px;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        color: #ff8800;
+        z-index: 100;
+        min-width: 280px;
+    }
+
+    .cloud-header {
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .cloud-service {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 8px 0;
+        padding: 4px 0;
+    }
+
+    .service-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        animation: pulse-dot 2s infinite;
+    }
+
+    .indicator-online { background: #00ff00; }
+    .indicator-warning { background: #ff8800; }
+    .indicator-error { background: #ff0000; }
+
+    /* Glow animation */
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 0 0px var(--glow-color);
+        }
+        50% {
+            box-shadow: 0 0 40px var(--glow-color), 0 0 80px var(--glow-color);
+        }
+    }
+
+    /* Float animation */
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-25px);
+        }
+    }
+
+    /* Smooth shimmer across text */
+    .letter::before,
+    .word-text::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -75%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(120deg, transparent, rgba(255,255,255,0.15), transparent);
+        transform: skewX(-20deg);
+        animation: shimmer 6s infinite;
+    }
+
+    @keyframes shimmer {
+        0% {
+            left: -75%;
+        }
+        100% {
+            left: 125%;
+        }
+    }
+
+    @keyframes pulse-dot {
+        0%, 100% { 
+            opacity: 1; 
+            transform: scale(1);
+        }
+        50% { 
+            opacity: 0.5; 
+            transform: scale(1.2);
+        }
+    }
+
+    /* Status bar at bottom */
+    .status-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 35px;
+        background: rgba(0, 0, 0, 0.9);
+        border-top: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 12px;
+        color: #fff;
+        z-index: 100;
+    }
+
+    .status-item {
+        margin: 0 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #00ff00;
+        animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0.3; }
+    }
+
+    /* Floating code snippets */
+    .floating-code {
+        position: fixed;
+        font-family: 'Roboto Mono', monospace;
+        font-size: 12px;
+        color: rgba(0, 255, 0, 0.3);
+        pointer-events: none;
+        z-index: 5;
+        animation: float-code 15s infinite linear;
+    }
+
+    @keyframes float-code {
+        0% {
+            transform: translateY(100vh) translateX(0);
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-100vh) translateX(50px);
+            opacity: 0;
+        }
+    }
+  </style>
+</head>
+<body>
+  <!-- OAuth Panel -->
+  <div class="oauth-panel">
+    <div class="oauth-header">
+      🔐 OAuth 2.0 Authentication
+    </div>
+    <div class="oauth-status">
+      <span>Access Token:</span>
+      <span class="status-active">VALID</span>
+    </div>
+    <div class="oauth-status">
+      <span>Refresh Token:</span>
+      <span class="status-active">ACTIVE</span>
+    </div>
+    <div class="oauth-status">
+      <span>Scope:</span>
+      <span class="status-active">gmail.send</span>
+    </div>
+    <div class="oauth-status">
+      <span>Expires In:</span>
+      <span id="token-expiry" class="status-pending">3580s</span>
+    </div>
+    <div class="oauth-status">
+      <span>Grant Type:</span>
+      <span class="status-active">authorization_code</span>
+    </div>
+  </div>
+
+  <!-- Thread Monitor -->
+  <div class="thread-monitor">
+    <div class="thread-header">
+      ⚡ Thread Pool Monitor
+    </div>
+    <div class="thread-item">
+      <span>Thread-1:</span>
+      <span class="thread-active">SENDING</span>
+    </div>
+    <div class="thread-item">
+      <span>Thread-2:</span>
+      <span class="thread-working">PROCESSING</span>
+    </div>
+    <div class="thread-item">
+      <span>Thread-3:</span>
+      <span class="thread-active">SENDING</span>
+    </div>
+    <div class="thread-item">
+      <span>Thread-4:</span>
+      <span class="thread-idle">IDLE</span>
+    </div>
+    <div class="thread-item">
+      <span>Thread-5:</span>
+      <span class="thread-working">QUEUED</span>
+    </div>
+    <div class="thread-item">
+      <span>Thread-6:</span>
+      <span class="thread-active">SENDING</span>
+    </div>
+    <div class="thread-item">
+      <span>Pool Size:</span>
+      <span class="thread-active">6/8</span>
+    </div>
+    <div class="thread-item">
+      <span>Queue:</span>
+      <span id="queue-size" class="thread-working">247</span>
+    </div>
+  </div>
+
+  <!-- Gmail API Status -->
+  <div class="gmail-api">
+    <div class="api-header">
+      📧 Gmail API Status
+    </div>
+    <div class="api-metric">
+      <span>Connection:</span>
+      <span class="metric-value status-active">CONNECTED</span>
+    </div>
+    <div class="api-metric">
+      <span>Rate Limit:</span>
+      <span id="rate-limit" class="metric-value">89/250 req/min</span>
+    </div>
+    <div class="api-metric">
+      <span>Quota Usage:</span>
+      <span id="quota-usage" class="metric-value">1.2M/1B</span>
+    </div>
+    <div class="api-metric">
+      <span>Success Rate:</span>
+      <span class="metric-value status-active">99.7%</span>
+    </div>
+    <div class="api-metric">
+      <span>Avg Response:</span>
+      <span id="avg-response" class="metric-value">1.8ms</span>
+    </div>
+    <div class="api-metric">
+      <span>Emails Sent:</span>
+      <span id="emails-sent" class="metric-value">15,692</span>
+    </div>
+  </div>
+
+  <!-- Cloud Services -->
+  <div class="cloud-services">
+    <div class="cloud-header">
+      ☁️ Cloud Services
+    </div>
+    <div class="cloud-service">
+      <span>Google Cloud Platform</span>
+      <span class="service-indicator indicator-online"></span>
+    </div>
+    <div class="cloud-service">
+      <span>Gmail API Gateway</span>
+      <span class="service-indicator indicator-online"></span>
+    </div>
+    <div class="cloud-service">
+      <span>OAuth 2.0 Service</span>
+      <span class="service-indicator indicator-online"></span>
+    </div>
+    <div class="cloud-service">
+      <span>Redis Cache</span>
+      <span class="service-indicator indicator-warning"></span>
+    </div>
+    <div class="cloud-service">
+      <span>MongoDB Atlas</span>
+      <span class="service-indicator indicator-online"></span>
+    </div>
+    <div class="cloud-service">
+      <span>Docker Registry</span>
+      <span class="service-indicator indicator-online"></span>
+    </div>
+    <div class="cloud-service">
+      <span>Kubernetes Cluster</span>
+      <span class="service-indicator indicator-online"></span>
+    </div>
+  </div>
+
+  <!-- Main Logo -->
+  <div class="center-screen">
+    <h2 class="nav-logo">
+      <a href="#">
+        <div class="logo-container">
+          <div class="word">
+            <div class="letter-box red">
+              <div class="letter">C</div>
+            </div>
+            <div class="word-text">ode</div>
+          </div>
+
+          <div class="word">
+            <div class="letter-box blue">
+              <div class="letter">C</div>
+            </div>
+            <div class="word-text">raft</div>
+          </div>
+
+          <div class="word">
+            <div class="letter-box orange">
+              <div class="letter">C</div>
+            </div>
+            <div class="word-text">o</div>
+          </div>
+        </div>
+      </a>
+    </h2>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-item">
+      <div class="status-dot"></div>
+      <span>gmail-bulk-sender v2.1.3</span>
+    </div>
+    <div class="status-item">
+      <span>📊 Processing: <span id="processing-count">247</span> emails</span>
+    </div>
+    <div class="status-item">
+      <span>⚡ Throughput: <span id="throughput">156</span>/min</span>
+    </div>
+    <div class="status-item">
+      <span id="current-time">14:32:15</span>
+    </div>
+  </div>
+
+  <!-- Floating Code Snippets -->
+  <div class="floating-code" style="left: 5%; animation-delay: 0s;">
+    const auth = await google.auth.getAccessToken();
+  </div>
+  <div class="floating-code" style="left: 15%; animation-delay: 3s;">
+    gmail.users.messages.send({userId: 'me', resource: message});
+  </div>
+  <div class="floating-code" style="left: 25%; animation-delay: 6s;">
+    const oAuth2Client = new google.auth.OAuth2();
+  </div>
+  <div class="floating-code" style="left: 35%; animation-delay: 9s;">
+    await pool.execute(sendBulkEmails, emailBatch);
+  </div>
+  <div class="floating-code" style="left: 45%; animation-delay: 12s;">
+    redis.set(`token:${userId}`, accessToken, 'EX', 3600);
+  </div>
+  <div class="floating-code" style="left: 55%; animation-delay: 15s;">
+    const threadPool = new ThreadPool(8);
+  </div>
+  <div class="floating-code" style="left: 65%; animation-delay: 18s;">
+    if (response.status === 200) processNext();
+  </div>
+  <div class="floating-code" style="left: 75%; animation-delay: 21s;">
+    await rateLimiter.consume(userId);
+  </div>
+  <div class="floating-code" style="left: 85%; animation-delay: 24s;">
+    logger.info('Bulk send completed successfully');
+  </div>
+  <div class="floating-code" style="left: 95%; animation-delay: 27s;">
+    const batch = emails.slice(0, BATCH_SIZE);
+  </div>
+
+  <script>
+    // Real-time data updates
+    function updateMetrics() {
+      // Update OAuth token expiry
+      const tokenExpiry = document.getElementById('token-expiry');
+      let currentExpiry = parseInt(tokenExpiry.textContent);
+      currentExpiry = Math.max(0, currentExpiry - 1);
+      tokenExpiry.textContent = currentExpiry + 's';
+      
+      if (currentExpiry < 300) {
+        tokenExpiry.className = 'status-error';
+      } else if (currentExpiry < 600) {
+        tokenExpiry.className = 'status-pending';
+      }
+      
+      // Refresh token when expired
+      if (currentExpiry <= 0) {
+        tokenExpiry.textContent = '3600s';
+        tokenExpiry.className = 'status-active';
+      }
+    }
+
+    function updateThreads() {
+      const threads = document.querySelectorAll('.thread-item .thread-active, .thread-item .thread-working, .thread-item .thread-idle');
+      const states = ['SENDING', 'PROCESSING', 'QUEUED', 'IDLE', 'AUTHENTICATING'];
+      const classes = ['thread-active', 'thread-working', 'thread-working', 'thread-idle', 'thread-pending'];
+      
+      threads.forEach((thread, index) => {
+        if (index < 6 && Math.random() > 0.7) { // Only update first 6 threads
+          const randomState = Math.floor(Math.random() * states.length);
+          thread.textContent = states[randomState];
+          thread.className = classes[randomState];
+        }
+      });
+      
+      // Update queue size
+      const queueSize = document.getElementById('queue-size');
+      const currentQueue = parseInt(queueSize.textContent);
+      const newQueue = Math.max(0, currentQueue + Math.floor(Math.random() * 20) - 10);
+      queueSize.textContent = newQueue;
+    }
+
+    function updateGmailAPI() {
+      // Update rate limit
+      const rateLimit = document.getElementById('rate-limit');
+      const currentRate = Math.floor(Math.random() * 50) + 70;
+      rateLimit.textContent = `${currentRate}/250 req/min`;
+      
+      // Update quota usage
+      const quotaUsage = document.getElementById('quota-usage');
+      const currentQuota = (Math.random() * 0.5 + 1.0).toFixed(1);
+      quotaUsage.textContent = `${currentQuota}M/1B`;
+      
+      // Update average response time
+      const avgResponse = document.getElementById('avg-response');
+      const responseTime = (Math.random() * 3 + 0.5).toFixed(1);
+      avgResponse.textContent = `${responseTime}ms`;
+      
+      // Update emails sent
+      const emailsSent = document.getElementById('emails-sent');
+      const currentCount = parseInt(emailsSent.textContent.replace(/,/g, ''));
+      const newCount = currentCount + Math.floor(Math.random() * 50) + 10;
+      emailsSent.textContent = newCount.toLocaleString();
+    }
+
+    function updateCloudServices() {
+      const indicators = document.querySelectorAll('.service-indicator');
+      indicators.forEach(indicator => {
+        if (Math.random() > 0.9) {
+          const states = ['indicator-online', 'indicator-warning', 'indicator-error'];
+          const randomState = states[Math.floor(Math.random() * states.length)];
+          indicator.className = `service-indicator ${randomState}`;
+        }
+      });
+    }
+
+    function updateStatusBar() {
+      // Update processing count
+      const processingCount = document.getElementById('processing-count');
+      const currentProcessing = parseInt(processingCount.textContent);
+      const newProcessing = Math.max(0, currentProcessing + Math.floor(Math.random() * 40) - 20);
+      processingCount.textContent = newProcessing;
+      
+      // Update throughput
+      const throughput = document.getElementById('throughput');
+      const newThroughput = Math.floor(Math.random() * 100) + 120;
+      throughput.textContent = newThroughput;
+      
+      // Update current time
+      const currentTime = document.getElementById('current-time');
+      currentTime.textContent = new Date().toLocaleTimeString();
+    }
+
+    function addFloatingCode() {
+      const codeSnippets = [
+        'const credentials = await getOAuthCredentials();',
+        'threadPool.submit(processEmailBatch, batch);',
+        'await gmail.users.messages.send(params);',
+        'redis.hset("user:tokens", userId, token);',
+        'const rateLimited = await checkRateLimit();',
+        'logger.debug(`Processing ${emails.length} emails`);',
+        'const oAuth2Client = new google.auth.OAuth2();',
+        'await retryWithBackoff(sendEmail, 3);',
+        'const base64Email = Buffer.from(raw).toString("base64");',
+        'if (response.status !== 200) throw new Error();',
+        'const accessToken = await refreshAccessToken();',
+        'pool.query("INSERT INTO sent_emails VALUES ($1, $2)");',
+        'const emailQueue = new Queue("email-processing");',
+        'await validateEmailAddresses(recipients);',
+        'const bulkOperation = db.collection.initializeUnorderedBulkOp();',
+        'prometheus.counter.inc({method: "send_email"});'
+      ];
+      
+      if (document.querySelectorAll('.floating-code').length < 15) {
+        const codeElement = document.createElement('div');
+        codeElement.className = 'floating-code';
+        codeElement.textContent = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+        codeElement.style.left = Math.random() * 90 + '%';
+        codeElement.style.animationDelay = '0s';
+        codeElement.style.animationDuration = (Math.random() * 5 + 10) + 's';
+        
+        document.body.appendChild(codeElement);
+        
+        // Remove after animation
+        setTimeout(() => {
+          if (document.body.contains(codeElement)) {
+            document.body.removeChild(codeElement);
+          }
+        }, 15000);
+      }
+    }
+
+    function simulateOAuthFlow() {
+      const authSteps = [
+        'Initiating OAuth flow...',
+        'Redirecting to Google...',
+        'User authorization...',
+        'Exchanging code for token...',
+        'Token received successfully!'
+      ];
+      
+      // Simulate OAuth refresh every 30 seconds
+      if (Math.random() > 0.97) {
+        const oauthStatuses = document.querySelectorAll('.oauth-status .status-active, .oauth-status .status-pending');
+        oauthStatuses.forEach(status => {
+          status.className = 'status-pending';
+          status.textContent = 'REFRESHING...';
+        });
+        
+        setTimeout(() => {
+          oauthStatuses.forEach(status => {
+            status.className = 'status-active';
+            status.textContent = 'VALID';
+          });
+        }, 2000);
+      }
+    }
+
+    function updateThreadPoolStats() {
+      const poolStats = document.querySelector('.thread-monitor');
+      if (Math.random() > 0.95) {
+        const header = poolStats.querySelector('.thread-header');
+        const originalText = header.textContent;
+        header.textContent = '⚡ Scaling Thread Pool...';
+        header.style.color = '#ff8800';
+        
+        setTimeout(() => {
+          header.textContent = originalText;
+          header.style.color = '#fff';
+        }, 3000);
+      }
+    }
+
+    // Initialize intervals
+    setInterval(updateMetrics, 1000);
+    setInterval(updateThreads, 3000);
+    setInterval(updateGmailAPI, 2500);
+    setInterval(updateCloudServices, 8000);
+    setInterval(updateStatusBar, 2000);
+    setInterval(addFloatingCode, 4000);
+    setInterval(simulateOAuthFlow, 5000);
+    setInterval(updateThreadPoolStats, 12000);
+
+    // Initial updates
+    updateMetrics();
+    updateThreads();
+    updateGmailAPI();
+    updateStatusBar();
+
+    // Add some initial floating code
+    setTimeout(addFloatingCode, 1000);
+    setTimeout(addFloatingCode, 2000);
+    setTimeout(addFloatingCode, 3000);
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'r' && e.ctrlKey) {
+        e.preventDefault();
+        // Trigger OAuth refresh
+        simulateOAuthFlow();
+      }
+      if (e.key === 't' && e.ctrlKey) {
+        e.preventDefault();
+        // Update all threads
+        updateThreads();
+      }
+      if (e.key === 'c' && e.ctrlKey && e.shiftKey) {
+        e.preventDefault();
+        // Add multiple code snippets
+        for (let i = 0; i < 5; i++) {
+          setTimeout(addFloatingCode, i * 200);
+        }
+      }
+    });
+
+    // Performance monitoring
+    setInterval(() => {
+      const panels = document.querySelectorAll('.oauth-panel, .thread-monitor, .gmail-api, .cloud-services');
+      panels.forEach(panel => {
+        if (Math.random() > 0.98) {
+          panel.style.borderColor = '#ff8800';
+          setTimeout(() => {
+            panel.style.borderColor = '';
+          }, 1000);
+        }
+      });
+    }, 5000);
+  </script>
+</body>
+</html>

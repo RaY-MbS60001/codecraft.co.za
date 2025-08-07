@@ -1,0 +1,2076 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard - CodeCraftCo{% endblock %}
+
+{% block content %}
+<style>
+    /* Dashboard Layout */
+    .dashboard-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #151922; /* Dark background */
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .dashboard-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #1e2434; /* Dark nav background */
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .user-info {
+        font-weight: 500;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .logout-button {
+        padding: 0.5rem 1rem;
+        background-color: #2d3446; /* Dark button */
+        color: #e4e6eb; /* Light text */
+        border-radius: 4px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .logout-button:hover {
+        background-color: #3a4258; /* Slightly lighter on hover */
+    }
+    
+    .dashboard-content {
+        padding: 2rem;
+        flex-grow: 1;
+        overflow-y: auto;
+        height: calc(100vh - 80px); /* Subtract nav height */
+    }
+    
+    /* Search Bar Styles */
+    .search-container {
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .search-input-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        padding-left: 2.5rem; /* Space for search icon */
+        background-color: #2d3446;
+        border: 2px solid #3a4258;
+        border-radius: 8px;
+        color: #e4e6eb;
+        font-size: 0.9rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: #5d72e4;
+        box-shadow: 0 0 0 3px rgba(93, 114, 228, 0.1);
+    }
+    
+    .search-input::placeholder {
+        color: #a0a6b3;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        color: #a0a6b3;
+        pointer-events: none;
+    }
+    
+    .search-results {
+        color: #a0a6b3;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        min-width: 120px;
+    }
+    
+    .clear-search {
+        padding: 0.5rem 1rem;
+        background-color: #2d3446;
+        color: #e4e6eb;
+        border: 2px solid #3a4258;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 0.85rem;
+    }
+    
+    .clear-search:hover {
+        background-color: #3a4258;
+    }
+    
+    .clear-search:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background-color: #1e2434; /* Dark card */
+        border-radius: 10px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        background-color: rgba(93, 114, 228, 0.1); /* Purple-blue background */
+        color: #5d72e4; /* Purple-blue icon */
+    }
+    
+    .stat-icon.active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .stat-icon.google {
+        background-color: rgba(234, 67, 53, 0.1);
+        color: #ea4335;
+    }
+    
+    .stat-icon.admin {
+        background-color: rgba(120, 75, 209, 0.1);
+        color: #784bd1;
+    }
+    
+    .stat-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .stat-content h3 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .stat-content p {
+        margin: 0;
+        color: #a0a6b3; /* Lighter secondary text */
+        font-size: 0.9rem;
+    }
+    
+    /* Quick Access Sections */
+    .quick-access-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .quick-access-card {
+        background-color: #1e2434; /* Dark card */
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+        position: sticky;
+        top: 0;
+        background-color: #1e2434;
+        z-index: 10;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .btn-add {
+        display: flex;
+        align-items: center;
+        background-color: #5d72e4; /* Purple-blue button */
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none;
+    }
+    
+    .btn-add:hover {
+        background-color: #4a60d3; /* Darker on hover */
+    }
+    
+    .btn-add svg {
+        width: 16px;
+        height: 16px;
+        margin-right: 0.25rem;
+    }
+    
+    .btn-view-all {
+        color: #5d72e4; /* Purple-blue link */
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .btn-view-all:hover {
+        text-decoration: underline;
+    }
+    
+    .btn-view-all svg {
+        width: 16px;
+        height: 16px;
+        margin-left: 0.25rem;
+    }
+    
+    .quick-list {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .quick-item {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .quick-item:last-child {
+        border-bottom: none;
+    }
+    
+    .item-primary {
+        font-weight: 500;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .item-secondary {
+        color: #a0a6b3; /* Lighter secondary text */
+        font-size: 0.9rem;
+    }
+    
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .badge-admin {
+        background-color: rgba(120, 75, 209, 0.1);
+        color: #784bd1;
+    }
+    
+    .badge-user {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    .badge-active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .badge-inactive {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .badge-pending {
+        background-color: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+    }
+    
+    .badge-approved {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .badge-rejected {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .item-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-action {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background-color: #2d3446; /* Dark button */
+        color: #a0a6b3; /* Lighter text */
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+    }
+    
+    .btn-action:hover {
+        background-color: #3a4258; /* Slightly lighter on hover */
+    }
+    
+    .btn-action svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .btn-edit:hover {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    .btn-delete:hover {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .btn-approve:hover {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .btn-reject:hover {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    /* Users Table */
+    .users-section, .data-section {
+        background-color: #1e2434; /* Dark section */
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        height: 70vh;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+    }
+    
+    .table-container {
+        overflow: auto;
+        flex: 1;
+        border-radius: 8px;
+        border: 1px solid #2d3446;
+    }
+    
+    .users-table, .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px; /* Minimum width for horizontal scroll */
+    }
+    
+    .users-table th, .users-table td,
+    .data-table th, .data-table td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #2d3446; /* Darker border */
+        color: #e4e6eb; /* Light text */
+        white-space: nowrap;
+    }
+    
+    .users-table th, .data-table th {
+        background-color: #252c3e; /* Slightly lighter header */
+        font-weight: 600;
+        color: #e4e6eb; /* Light text */
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .users-table tr:last-child td,
+    .data-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .users-table tr:hover, .data-table tr:hover {
+        background-color: #252c3e; /* Slightly lighter on hover */
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-badge.active {
+        background-color: rgba(75, 192, 112, 0.1);
+        color: #4bc070;
+    }
+    
+    .status-badge.inactive {
+        background-color: rgba(240, 62, 62, 0.1);
+        color: #f03e3e;
+    }
+    
+    .auth-method {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        background-color: #2d3446; /* Dark badge */
+        color: #a0a6b3; /* Lighter text */
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-toggle, .btn-view {
+        background-color: #2d3446; /* Dark button */
+        color: #a0a6b3; /* Lighter text */
+    }
+    
+    .btn-toggle:hover {
+        background-color: rgba(255, 171, 0, 0.1);
+        color: #ffab00;
+    }
+    
+    .btn-view:hover {
+        background-color: rgba(93, 114, 228, 0.1);
+        color: #5d72e4;
+    }
+    
+    /* Tab Navigation for main sections */
+    .main-tabs {
+        display: flex;
+        background-color: #1e2434; /* Dark tabs */
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .main-tab {
+        padding: 1rem 1.5rem;
+        flex: 1;
+        text-align: center;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-weight: 500;
+        color: #a0a6b3; /* Lighter inactive text */
+    }
+    
+    .main-tab.active {
+        background-color: #5d72e4; /* Purple-blue active tab */
+        color: white;
+    }
+    
+    .main-tab:hover:not(.active) {
+        background-color: #252c3e; /* Slightly lighter on hover */
+    }
+    
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    .nav-logo {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+    }
+    
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        transform: translateY(16px); /* Adjusted for better centering */
+    }
+    
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+    
+    .letter-box.red {
+        box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+    }
+    
+    .letter-box.blue {
+        box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+    }
+    
+    .letter-box.orange {
+        box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+    }
+    
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+    }
+    
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
+    
+    /* Mobile Responsive styles */
+    @media (max-width: 768px) {
+        .dashboard-nav {
+            padding: 0.5rem 1rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .nav-right {
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        
+        .user-info {
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        
+        .logout-button {
+            padding: 0.5rem 1rem;
+            align-self: center;
+        }
+        
+        .dashboard-content {
+            padding: 1rem;
+            height: calc(100vh - 140px);
+        }
+        
+        .search-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-input-wrapper {
+            min-width: auto;
+        }
+        
+        .search-results {
+            min-width: auto;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .stat-content h3 {
+            font-size: 1.25rem;
+        }
+        
+        .quick-access-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .quick-access-card {
+            max-height: 300px;
+            padding: 1rem;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+        
+        .main-tabs {
+            flex-direction: column;
+            gap: 0;
+        }
+        
+        .main-tab {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .users-section, .data-section {
+            padding: 1rem;
+            height: 60vh;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        
+        .users-table, .data-table {
+            min-width: 600px;
+        }
+        
+        .users-table th, .users-table td,
+        .data-table th, .data-table td {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .action-buttons {
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        
+        .btn-action {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .logo-container {
+            transform: translateY(0);
+            gap: 4px;
+        }
+        
+        .letter-box {
+            width: 25px;
+            height: 25px;
+        }
+        
+        .letter {
+            font-size: 16px;
+        }
+        
+        .word-text {
+            font-size: 16px;
+        }
+    }
+    
+    /* Extra small screens */
+    @media (max-width: 480px) {
+        .dashboard-nav {
+            padding: 0.5rem;
+        }
+        
+        .dashboard-content {
+            padding: 0.5rem;
+            height: calc(100vh - 120px);
+        }
+        
+        .stats-grid {
+            gap: 0.5rem;
+        }
+        
+        .stat-card {
+            padding: 0.75rem;
+        }
+        
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: 0.5rem;
+        }
+        
+        .stat-content h3 {
+            font-size: 1rem;
+        }
+        
+        .stat-content p {
+            font-size: 0.8rem;
+        }
+        
+        .quick-access-card {
+            padding: 0.75rem;
+            max-height: 250px;
+        }
+        
+        .card-header h3 {
+            font-size: 1rem;
+        }
+        
+        .btn-add {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.6rem;
+        }
+        
+        .main-tab {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        
+        .users-section, .data-section {
+            padding: 0.75rem;
+            height: 50vh;
+        }
+        
+        .section-header h2 {
+            font-size: 1.25rem;
+        }
+        
+        .users-table, .data-table {
+            min-width: 500px;
+        }
+        
+        .users-table th, .users-table td,
+        .data-table th, .data-table td {
+            padding: 0.4rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .auth-method {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .btn-action {
+            width: 28px;
+            height: 28px;
+        }
+        
+        .logo-container {
+            gap: 2px;
+        }
+        
+        .letter-box {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .letter {
+            font-size: 12px;
+        }
+        
+        .word-text {
+            font-size: 12px;
+        }
+    }
+    
+    /* Scrollbar styling for webkit browsers */
+    .table-container::-webkit-scrollbar,
+    .quick-access-card::-webkit-scrollbar,
+    .dashboard-content::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .table-container::-webkit-scrollbar-track,
+    .quick-access-card::-webkit-scrollbar-track,
+    .dashboard-content::-webkit-scrollbar-track {
+        background: #2d3446;
+        border-radius: 4px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb,
+    .quick-access-card::-webkit-scrollbar-thumb,
+    .dashboard-content::-webkit-scrollbar-thumb {
+        background: #5d72e4;
+        border-radius: 4px;
+    }
+    
+    .table-container::-webkit-scrollbar-thumb:hover,
+    .quick-access-card::-webkit-scrollbar-thumb:hover,
+    .dashboard-content::-webkit-scrollbar-thumb:hover {
+        background: #4a60d3;
+    }
+    
+    /* Additional mobile optimizations */
+    @media (max-width: 768px) {
+        .item-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .quick-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .table-container {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .users-table th:first-child,
+        .users-table td:first-child,
+        .data-table th:first-child,
+        .data-table td:first-child {
+            position: sticky;
+            left: 0;
+            background-color: #252c3e;
+            z-index: 11;
+        }
+        
+        .users-table th:last-child,
+        .users-table td:last-child,
+        .data-table th:last-child,
+        .data-table td:last-child {
+            position: sticky;
+            right: 0;
+            background-color: #252c3e;
+            z-index: 11;
+        }
+    }
+    
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5); /* Slightly darker background */
+        animation: fadeIn 0.3s ease; /* Smooth fade in */
+    }
+    
+    .modal-content {
+        background-color: #0b111a;
+        margin: 10% auto; /* Reduced top margin for better positioning */
+        padding: 25px;
+        border: none; /* Remove border for cleaner look */
+        width: 85%;
+        max-width: 650px;
+        border-radius: 12px; /* Slightly more rounded */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3); /* Add shadow for depth */
+        animation: slideIn 0.3s ease; /* Smooth slide in */
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #19202b; /* Add subtle separator */
+        padding-bottom: 15px;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        color: #ffffff;
+        font-size: 1.4em;
+    }
+    
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .close:hover {
+        color: #e74c3c; /* Red on hover */
+    }
+    
+    .learnership-details p {
+        margin: 12px 0;
+        line-height: 1.5;
+    }
+    
+    .email-applications {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #19202b;
+        border-radius: 6px;
+        border-left: 4px solid #007bff; /* Blue accent */
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .modal-content {
+            width: 95%;
+            margin: 5% auto;
+            padding: 20px;
+        }
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Navigation Bar -->
+    <nav class="dashboard-nav">
+        <div class="nav-left">
+            <h2 class="nav-logo">
+                <a href="{{ url_for('admin_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+                    <div class="logo-container">
+                        <div class="word">
+                            <div class="letter-box red">
+                                <div class="letter">C</div>
+                            </div>
+                            <div class="word-text">ode</div>
+                        </div>
+                        
+                        <div class="word">
+                            <div class="letter-box blue">
+                                <div class="letter">C</div>
+                            </div>
+                            <div class="word-text">raft</div>
+                        </div>
+                        
+                        <div class="word">
+                            <div class="letter-box orange">
+                                <div class="letter">C</div>
+                            </div>
+                            <div class="word-text">o</div>
+                        </div>
+                    </div>
+                </a>
+            </h2>
+        </div>
+        <div class="nav-right">
+            <span class="user-info">Welcome, {{ current_user.full_name or current_user.username }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-button">Logout</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="dashboard-content">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_users }}</h3>
+                    <p>Total Users</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon active">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.active_users }}</h3>
+                    <p>Active Users</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_learnerships|default(0) }}</h3>
+                    <p>Learnerships</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_applications|default(0) }}</h3>
+                    <p>Applications</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Tab Navigation -->
+        <div class="main-tabs">
+            <div class="main-tab active" data-tab="dashboard">Dashboard</div>
+            <div class="main-tab" data-tab="users">Users</div>
+            <div class="main-tab" data-tab="learnerships">Learnerships</div>
+            <div class="main-tab" data-tab="applications">Applications</div>
+        </div>
+        
+        <!-- Dashboard Tab Content -->
+        <div class="tab-content active" id="dashboard-tab">
+            <!-- Quick Access Sections -->
+            <div class="quick-access-grid">
+                <!-- Recent Users -->
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Users</h3>
+                        <a href="{{ url_for('add_user') }}" class="btn-add">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add User
+                        </a>
+                    </div>
+                    <ul class="quick-list">
+                        {% for user in recent_users|default(users[:5]) %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ user.full_name or user.username }}</div>
+                                <div class="item-secondary">{{ user.email }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                                <span class="badge badge-{{ 'active' if user.is_active else 'inactive' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('users')">
+                            View All Users
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Learnerships -->
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Learnerships</h3>
+                        <a href="{{ url_for('add_learnership') }}" class="btn-add">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Learnership
+                        </a>
+                    </div>
+                    <ul class="quick-list">
+                        {% for learnership in recent_learnerships %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ learnership.company_name }}</div>
+                                <div class="item-secondary">{{ learnership.email }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ 'active' if learnership.is_active else 'inactive' }}">
+                                    {{ 'Active' if learnership.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not recent_learnerships %}
+                        <li class="quick-item">
+                            <div class="item-primary" style="color: #666; font-style: italic;">No learnerships found</div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('learnerships')">
+                            View All Learnerships
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Applications -->
+                <div class="quick-access-card">
+                    <div class="card-header">
+                        <h3>Recent Applications</h3>
+                    </div>
+                    <ul class="quick-list">
+                        {% for application in recent_applications|default([]) %}
+                        <li class="quick-item">
+                            <div>
+                                <div class="item-primary">{{ application.user.full_name or application.user.username }}</div>
+                                <div class="item-secondary">{{ application.learnership.title if application.learnership else application.learnership_name }}</div>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge badge-{{ application.status }}">{{ application.status|title }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% if not recent_applications|default([]) %}
+                        <li class="quick-item">
+                            <div class="item-primary" style="color: #666; font-style: italic;">No applications found</div>
+                        </li>
+                        {% endif %}
+                    </ul>
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <a href="#" class="btn-view-all" onclick="showTab('applications')">
+                            View All Applications
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Section with Search -->
+            <div class="users-section">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <a href="{{ url_for('add_user') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add User
+                    </a>
+                </div>
+                
+                <!-- Search Bar for Dashboard Users -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="dashboard-user-search" class="search-input" placeholder="Search users by name, email, or role...">
+                    </div>
+                    <div class="search-results" id="dashboard-user-results">Showing {{ users|length }} users</div>
+                    <button class="clear-search" onclick="clearSearch('dashboard-user-search')" disabled>Clear</button>
+                </div>
+                
+                <div class="table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Auth Method</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-users-tbody">
+                            {% for user in users %}
+                            <tr data-searchable="true">
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.full_name or '-' }}</td>
+                                <td>
+                                    <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                                </td>
+                                <td>
+                                    <span class="auth-method">{{ user.auth_method }}</span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                                        {{ 'Active' if user.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn-action btn-view" title="View User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn-action btn-edit" title="Edit User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        {% if user.role != 'admin' %}
+                                            <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
+                                                    {% if user.is_active %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    {% else %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                            
+                                            <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                <button type="submit" class="btn-action btn-delete" title="Delete User">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Users Tab Content with Search -->
+        <div class="tab-content" id="users-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <a href="{{ url_for('add_user') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add User
+                    </a>
+                </div>
+                
+                <!-- Search Bar for Users Tab -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="users-search" class="search-input" placeholder="Search users by name, email, role, or status...">
+                    </div>
+                    <div class="search-results" id="users-results">Showing {{ users|length }} users</div>
+                    <button class="clear-search" onclick="clearSearch('users-search')" disabled>Clear</button>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Auth Method</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            {% for user in users %}
+                            <tr data-searchable="true">
+                                <td>{{ user.id }}</td>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.full_name or '-' }}</td>
+                                <td>
+                                    <span class="badge badge-{{ user.role }}">{{ user.role }}</span>
+                                </td>
+                                <td>
+                                    <span class="auth-method">{{ user.auth_method }}</span>
+                                </td>
+                                <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                                <td>
+                                    <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                                        {{ 'Active' if user.is_active else 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn-action btn-view" title="View User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn-action btn-edit" title="Edit User">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        {% if user.role != 'admin' %}
+                                            <form method="POST" action="{{ url_for('toggle_user_status', user_id=user.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
+                                                    {% if user.is_active %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    {% else %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                            
+                                            <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                                <button type="submit" class="btn-action btn-delete" title="Delete User">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Learnerships Tab Content with Search -->
+        <div class="tab-content" id="learnerships-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>Learnership Management</h2>
+                    <a href="{{ url_for('add_learnership') }}" class="btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Learnership
+                    </a>
+                </div>
+                
+                <!-- Search Bar for Learnerships -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="learnerships-search" class="search-input" placeholder="Search learnerships by company name, email, or status...">
+                    </div>
+                    <div class="search-results" id="learnerships-results">Showing {{ learnerships|length if learnerships else 0 }} learnerships</div>
+                    <button class="clear-search" onclick="clearSearch('learnerships-search')" disabled>Clear</button>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Company Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Applications</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="learnerships-tbody">
+                            {% if learnerships %}
+                                {% for learnership in learnerships %}
+                                <tr data-searchable="true">
+                                    <td>{{ learnership.id }}</td>
+                                    <td>{{ learnership.company_name }}</td>
+                                    <td>{{ learnership.email }}</td>
+                                    <td>
+                                        <span class="status-badge {{ 'active' if learnership.is_active else 'inactive' }}">
+                                            {{ 'Active' if learnership.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ learnership.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ learnership.email_applications|length }}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn-action btn-view" onclick="viewLearnership({{ loop.index0 }})" title="View Details">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </button>
+                                            
+                                            <button class="btn-action btn-edit" onclick="editLearnership({{ learnership.id }})" title="Edit">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            
+                                            <form method="POST" action="{{ url_for('toggle_learnership_status', learnership_id=learnership.id) }}" style="display: inline;">
+                                                <button type="submit" class="btn-action btn-toggle" title="Toggle Status">
+                                                    {% if learnership.is_active %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
+                                                        </svg>
+                                                    {% else %}
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">No learnerships found</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal for viewing learnership details -->
+        <div id="learnershipModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Learnership Details</h3>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Applications Tab Content with Search -->
+        <div class="tab-content" id="applications-tab">
+            <div class="data-section">
+                <div class="section-header">
+                    <h2>Application Management</h2>
+                </div>
+                
+                <!-- Search Bar for Applications -->
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" id="applications-search" class="search-input" placeholder="Search applications by user, learnership, company, or status...">
+                    </div>
+                    <div class="search-results" id="applications-results">Showing {{ applications|length if applications else 0 }} applications</div>
+                    <button class="clear-search" onclick="clearSearch('applications-search')" disabled>Clear</button>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Learnership</th>
+                                <th>Company</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="applications-tbody">
+                            {% for application in applications|default([]) %}
+                            <tr data-searchable="true">
+                                <td>{{ application.id }}</td>
+                                <td>{{ application.user.full_name or application.user.username }}</td>
+                                <td>{{ application.learnership.title if application.learnership else application.learnership_name }}</td>
+                                <td>{{ application.company_name }}</td>
+                                <td>
+                                    <span class="status-badge {{ application.status }}">{{ application.status|title }}</span>
+                                </td>
+                                <td>{{ application.submitted_at.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ application.updated_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_application', application_id=application.id) }}" class="btn-action btn-view" title="View Application">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                        
+                                        {% if application.status == 'pending' %}
+                                        <form method="POST" action="{{ url_for('update_application_status', application_id=application.id, status='approved') }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-approve" title="Approve Application">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        
+                                        <form method="POST" action="{{ url_for('update_application_status', application_id=application.id, status='rejected') }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-reject" title="Reject Application">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        
+                                        <form method="POST" action="{{ url_for('delete_application', application_id=application.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this application?');">
+                                            <button type="submit" class="btn-action btn-delete" title="Delete Application">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not applications|default([]) %}
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: #666;">No applications found</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for tab switching and search functionality -->
+<script>
+    // Store learnership data for JavaScript access
+    const learnershipData = [
+        {% for learnership in learnerships %}
+        {
+            "id": {{ learnership.id }},
+            "company_name": "{{ learnership.company_name }}",
+            "email": "{{ learnership.email }}",
+            "is_active": {{ learnership.is_active|tojson }},
+            "created_at": "{{ learnership.created_at.strftime('%Y-%m-%d') }}",
+            "applications_count": {{ learnership.email_applications|length }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Search functionality
+    function initializeSearch() {
+        // Dashboard users search
+        const dashboardUserSearch = document.getElementById('dashboard-user-search');
+        if (dashboardUserSearch) {
+            dashboardUserSearch.addEventListener('input', function() {
+                searchTable(this.value, 'dashboard-users-tbody', 'dashboard-user-results', 'dashboard-user-search');
+            });
+        }
+
+        // Users tab search
+        const usersSearch = document.getElementById('users-search');
+        if (usersSearch) {
+            usersSearch.addEventListener('input', function() {
+                searchTable(this.value, 'users-tbody', 'users-results', 'users-search');
+            });
+        }
+
+        // Learnerships search
+        const learnershipsSearch = document.getElementById('learnerships-search');
+        if (learnershipsSearch) {
+            learnershipsSearch.addEventListener('input', function() {
+                searchTable(this.value, 'learnerships-tbody', 'learnerships-results', 'learnerships-search');
+            });
+        }
+
+        // Applications search
+        const applicationsSearch = document.getElementById('applications-search');
+        if (applicationsSearch) {
+            applicationsSearch.addEventListener('input', function() {
+                searchTable(this.value, 'applications-tbody', 'applications-results', 'applications-search');
+            });
+        }
+    }
+
+    function searchTable(searchTerm, tbodyId, resultsId, searchInputId) {
+        const tbody = document.getElementById(tbodyId);
+        const results = document.getElementById(resultsId);
+        const clearButton = document.querySelector(`#${searchInputId}`).closest('.search-container').querySelector('.clear-search');
+        
+        if (!tbody || !results) return;
+
+        const rows = tbody.querySelectorAll('tr[data-searchable="true"]');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const matches = text.includes(searchTerm.toLowerCase());
+            
+            if (matches || searchTerm === '') {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update results text
+        const totalCount = rows.length;
+        if (searchTerm === '') {
+            results.textContent = `Showing ${totalCount} ${getEntityName(tbodyId)}`;
+        } else {
+            results.textContent = `Showing ${visibleCount} of ${totalCount} ${getEntityName(tbodyId)}`;
+        }
+
+        // Enable/disable clear button
+        clearButton.disabled = searchTerm === '';
+    }
+
+    function getEntityName(tbodyId) {
+        if (tbodyId.includes('users')) return 'users';
+        if (tbodyId.includes('learnerships')) return 'learnerships';
+        if (tbodyId.includes('applications')) return 'applications';
+        return 'items';
+    }
+
+    function clearSearch(searchInputId) {
+        const input = document.getElementById(searchInputId);
+        if (input) {
+            input.value = '';
+            input.dispatchEvent(new Event('input'));
+        }
+    }
+
+    // Function to show selected tab
+    function showTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Remove active class from all tab buttons
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Show selected tab
+        document.getElementById(tabName + '-tab').classList.add('active');
+        
+        // Add active class to selected tab button
+        document.querySelector(`.main-tab[data-tab="${tabName}"]`).classList.add('active');
+    }
+
+    // Learnership management functions
+    function viewLearnership(index) {
+        const learnership = learnershipData[index];
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        
+        modalTitle.textContent = learnership.company_name;
+        modalBody.innerHTML = `
+            <div class="learnership-details">
+                <p><strong>Company:</strong> ${learnership.company_name}</p>
+                <p><strong>Email:</strong> ${learnership.email}</p>
+                <p><strong>Status:</strong> ${learnership.is_active ? 'Active' : 'Inactive'}</p>
+                <p><strong>Created:</strong> ${learnership.created_at}</p>
+                <p><strong>Applications Sent:</strong> ${learnership.applications_count}</p>
+                <div class="email-applications">
+                    <p><strong>Contact Information:</strong></p>
+                    <p>You can contact this company directly at <a href="mailto:${learnership.email}">${learnership.email}</a></p>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('learnershipModal').style.display = 'block';
+    }
+
+    function editLearnership(id) {
+        const learnership = learnershipData.find(l => l.id == id);
+        if (!learnership) {
+            alert('Learnership not found');
+            return;
+        }
+        
+        const newCompanyName = prompt("Edit Company Name:", learnership.company_name);
+        if (newCompanyName === null) return; // User clicked cancel
+        
+        const newEmail = prompt("Edit Email:", learnership.email);
+        if (newEmail === null) return; // User clicked cancel
+        
+        if (newCompanyName.trim() && newEmail.trim()) {
+            // Send update request
+            fetch(`/admin/update-learnership-email/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    company_name: newCompanyName.trim(),
+                    email: newEmail.trim()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Learnership updated successfully!');
+                    location.reload(); // Refresh the page to show updated data
+                } else {
+                    alert('Error updating learnership: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error updating learnership. Please try again.');
+            });
+        } else {
+            alert('Please enter both company name and email.');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('learnershipModal').style.display = 'none';
+    }
+
+    // Add event listeners to tab buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize search functionality
+        initializeSearch();
+        
+        // Tab switching
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                showTab(tabName);
+            });
+        });
+        
+        // Initialize the first tab
+        showTab('dashboard');
+        
+        // Add touch event support for mobile
+        document.querySelectorAll('.table-container').forEach(container => {
+            let isDown = false;
+            let startX;
+            let scrollLeft;
+            
+            container.addEventListener('mousedown', (e) => {
+                isDown = true;
+                startX = e.pageX - container.offsetLeft;
+                scrollLeft = container.scrollLeft;
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                isDown = false;
+            });
+            
+            container.addEventListener('mouseup', () => {
+                isDown = false;
+            });
+            
+            container.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - container.offsetLeft;
+                const walk = (x - startX) * 2;
+                container.scrollLeft = scrollLeft - walk;
+            });
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('learnershipModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Add keyboard support for search
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + F to focus search in current tab
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                const activeTab = document.querySelector('.tab-content.active');
+                if (activeTab) {
+                    const searchInput = activeTab.querySelector('.search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
+                }
+            }
+            
+            // Escape key to clear search
+            if (e.key === 'Escape') {
+                const focusedElement = document.activeElement;
+                if (focusedElement && focusedElement.classList.contains('search-input')) {
+                    clearSearch(focusedElement.id);
+                }
+            }
+        });
+
+        // Auto-focus search when switching tabs
+        document.querySelectorAll('.main-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                setTimeout(() => {
+                    const activeTab = document.querySelector('.tab-content.active');
+                    if (activeTab) {
+                        const searchInput = activeTab.querySelector('.search-input');
+                        if (searchInput && window.innerWidth > 768) {
+                            // Only auto-focus on desktop
+                            searchInput.focus();
+                        }
+                    }
+                }, 100);
+            });
+        });
+
+        // Add search result highlighting
+        function highlightSearchResults(searchTerm, tbodyId) {
+            if (!searchTerm) return;
+            
+            const tbody = document.getElementById(tbodyId);
+            const rows = tbody.querySelectorAll('tr[data-searchable="true"]');
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    const text = cell.textContent;
+                    if (text.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        const regex = new RegExp(`(${searchTerm})`, 'gi');
+                        const highlightedText = text.replace(regex, '<mark style="background-color: #5d72e4; color: white; padding: 0.1rem 0.2rem; border-radius: 2px;">$1</mark>');
+                        cell.innerHTML = highlightedText;
+                    }
+                });
+            });
+        }
+
+        // Enhanced search with debouncing
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Apply debouncing to search inputs
+        document.querySelectorAll('.search-input').forEach(input => {
+            const originalHandler = input.oninput;
+            input.oninput = debounce(function(event) {
+                if (originalHandler) {
+                    originalHandler.call(this, event);
+                }
+            }, 300);
+        });
+    });
+
+    // Additional utility functions for enhanced search
+    function exportSearchResults(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        const visibleRows = tbody.querySelectorAll('tr[data-searchable="true"]:not([style*="display: none"])');
+        
+        let csvContent = "data:text/csv;charset=utf-8,";
+        
+        // Add header
+        const headers = Array.from(tbody.closest('table').querySelectorAll('th')).map(th => th.textContent.trim());
+        csvContent += headers.join(",") + "\n";
+        
+        // Add data rows
+        visibleRows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td')).map(td => {
+                return '"' + td.textContent.trim().replace(/"/g, '""') + '"';
+            });
+            csvContent += cells.join(",") + "\n";
+        });
+        
+        // Download file
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${getEntityName(tbodyId)}_search_results.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Advanced search filters (can be extended)
+    function applyAdvancedFilters(tbodyId, filters) {
+        const tbody = document.getElementById(tbodyId);
+        const rows = tbody.querySelectorAll('tr[data-searchable="true"]');
+        
+        rows.forEach(row => {
+            let shouldShow = true;
+            
+            Object.keys(filters).forEach(filterType => {
+                const filterValue = filters[filterType];
+                if (filterValue && filterValue !== 'all') {
+                    const cellIndex = getCellIndexForFilter(filterType, tbodyId);
+                    if (cellIndex >= 0) {
+                        const cellText = row.cells[cellIndex].textContent.toLowerCase();
+                        if (!cellText.includes(filterValue.toLowerCase())) {
+                            shouldShow = false;
+                        }
+                    }
+                }
+            });
+            
+            row.style.display = shouldShow ? '' : 'none';
+        });
+    }
+
+    function getCellIndexForFilter(filterType, tbodyId) {
+        // Map filter types to column indices based on table structure
+        const columnMappings = {
+            'users': { 'role': 3, 'status': 7, 'auth_method': 4 },
+            'learnerships': { 'status': 3 },
+            'applications': { 'status': 4 }
+        };
+        
+        const tableType = getEntityName(tbodyId);
+        return columnMappings[tableType] ? columnMappings[tableType][filterType] : -1;
+    }
+
+    // Performance optimization for large datasets
+    function virtualizeTable(tbodyId, itemHeight = 50) {
+        const tbody = document.getElementById(tbodyId);
+        const container = tbody.closest('.table-container');
+        const rows = Array.from(tbody.querySelectorAll('tr[data-searchable="true"]'));
+        
+        if (rows.length < 100) return; // Only virtualize for large datasets
+        
+        const visibleRows = Math.ceil(container.clientHeight / itemHeight) + 5;
+        let startIndex = 0;
+        
+        function updateVisibleRows() {
+            const scrollTop = container.scrollTop;
+            startIndex = Math.floor(scrollTop / itemHeight);
+            const endIndex = Math.min(startIndex + visibleRows, rows.length);
+            
+            rows.forEach((row, index) => {
+                if (index >= startIndex && index < endIndex) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        container.addEventListener('scroll', debounce(updateVisibleRows, 16));
+        updateVisibleRows();
+    }
+</script>
+{% endblock %}            
