@@ -335,7 +335,7 @@ def feed():
 
 
 @app.route('/login', methods=['GET', 'POST'])
-def login():
+def login():  
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
@@ -355,7 +355,6 @@ def login():
             client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
             user_agent = request.headers.get('User-Agent', '')
             
-            # Clear any existing session for this user
             user.clear_session()
             
             # Clear Flask session completely
