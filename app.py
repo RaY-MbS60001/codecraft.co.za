@@ -354,7 +354,7 @@ def login():
             # Get client information
             client_ip = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
             user_agent = request.headers.get('User-Agent', '')
-            
+             #ccccccccccccccccccccccccccccccccccccccc
             user.clear_session()
             
             # Clear Flask session completely
