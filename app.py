@@ -724,22 +724,263 @@ def add_csp_headers(response):
 # =============================================================================
 # USER DASHBOARD AND PROFILE ROUTES
 # =============================================================================
-
 @app.route('/user/dashboard')
 @login_required
 def user_dashboard():
     """User dashboard with overview of applications and documents"""
-    # Get user's recent applications
-    recent_applications = Application.query.filter_by(user_id=current_user.id)\
-        .order_by(Application.created_at.desc()).limit(5).all()
+    try:
+        # Get user's recent applications with enhanced data
+        recent_applications = Application.query.filter_by(user_id=current_user.id)\
+            .order_by(Application.created_at.desc()).limit(5).all()
+        
+        # Get user's documents count
+        documents_count = Document.query.filter_by(user_id=current_user.id, is_active=True).count()
+        
+        # Calculate application statistics
+        total_applications = Application.query.filter_by(user_id=current_user.id).count()
+        pending_applications = Application.query.filter_by(user_id=current_user.id, status='pending').count()
+        
+        # Count responses 
+        responses_count = Application.query.filter(
+            Application.user_id == current_user.id,
+            Application.email_status == 'responded'
+        ).count() if hasattr(Application, 'email_status') else 0
+        
+        # Basic stats object
+        application_stats = {
+            'total': total_applications,
+            'pending': pending_applications, 
+            'responses': responses_count,
+            'response_rate': 0
+        }
+        
+        # Calculate DYNAMIC profile completion
+        profile_completion = calculate_profile_completion(current_user)
+        
+        # Enhanced recent applications with actual company info
+        enhanced_applications = []
+        for app in recent_applications:
+            # Try to get learnership details first, then fallback to app attributes
+            if hasattr(app, 'learnership') and app.learnership:
+                # Using learnership relationship
+                company_name = app.learnership.company
+                position_title = app.learnership.title
+                company_logo = getattr(app.learnership, 'company_logo', None)
+                location = app.learnership.location
+            else:
+                # Fallback to application attributes
+                company_name = getattr(app, 'company_name', None)
+                position_title = getattr(app, 'position_title', None) or getattr(app, 'learnership_title', None)
+                company_logo = getattr(app, 'company_logo', None)
+                location = getattr(app, 'location', None)
+            
+            # Create enhanced application data (clean fallbacks)
+            app_data = {
+                'id': app.id,
+                'company_name': company_name or 'Company Name Not Available',
+                'position_title': position_title or company_name or 'Application',  # Use company name as fallback
+                'company_logo': company_logo,
+                'location': location if location else None,  # Only pass location if it exists
+                'status': getattr(app, 'status', 'pending'),
+                'email_status': getattr(app, 'email_status', None),
+                'created_at': app.created_at,
+                'learnership': getattr(app, 'learnership', None)
+            }
+            enhanced_applications.append(app_data)
+        
+        return render_template('user_dashboard.html', 
+                             user=current_user,
+                             current_user=current_user,
+                             recent_applications=enhanced_applications,
+                             application_stats=application_stats,
+                             profile_completion=profile_completion,  # Dynamic completion
+                             documents_count=documents_count)
     
-    # Get user's documents count
-    documents_count = Document.query.filter_by(user_id=current_user.id, is_active=True).count()
+    except Exception as e:
+        app.logger.error(f"Dashboard error: {str(e)}")
+        # Fallback data if there's an error
+        fallback_stats = {
+            'total': 0,
+            'pending': 0,
+            'responses': 0,
+            'response_rate': 0
+        }
+        
+        return render_template('user_dashboard.html',
+                             user=current_user,
+                             current_user=current_user,
+                             recent_applications=[],
+                             application_stats=fallback_stats,
+                             profile_completion=calculate_profile_completion(current_user),  # Dynamic even in fallback
+                             documents_count=0)
     
-    return render_template('user_dashboard.html', 
-                         user=current_user,
-                         recent_applications=recent_applications,
-                         documents_count=documents_count)
+
+
+def calculate_profile_completion(user):
+    """Calculate user profile completion percentage - SIMPLIFIED"""
+    completion_score = 0
+    total_fields = 6  # Reduced to essential fields only
+    
+    # Essential fields only
+    if user.full_name:
+        completion_score += 1
+    if user.email:
+        completion_score += 1
+    if user.profile_picture:
+        completion_score += 1
+    if hasattr(user, 'phone') and user.phone:
+        completion_score += 1
+    if hasattr(user, 'address') and user.address:
+        completion_score += 1
+    
+    # Documents (any document upload counts)
+    try:
+        has_documents = Document.query.filter_by(
+            user_id=user.id, 
+            is_active=True
+        ).count() > 0
+        
+        if has_documents:
+            completion_score += 1
+    except:
+        pass  # If document check fails, don't break
+    
+    percentage = round((completion_score / total_fields) * 100)
+    
+    # Debug print (remove after testing)
+    print(f"Profile completion for {user.full_name}: {completion_score}/{total_fields} = {percentage}%")
+    
+    return percentage
+
+
+@app.route('/api/dashboard-stats')
+@login_required
+def api_dashboard_stats():
+    """API endpoint for real-time dashboard stats"""
+    try:
+        # Get current stats
+        total_applications = Application.query.filter_by(user_id=current_user.id).count()
+        pending_applications = Application.query.filter_by(user_id=current_user.id, status='pending').count()
+        
+        # Recent applications (last 7 days)
+        from datetime import datetime, timedelta
+        week_ago = datetime.utcnow() - timedelta(days=7)
+        recent_count = Application.query.filter(
+            Application.user_id == current_user.id,
+            Application.created_at >= week_ago
+        ).count()
+        
+        # Responses
+        responses_count = Application.query.filter(
+            Application.user_id == current_user.id,
+            Application.email_status == 'responded'
+        ).count()
+        
+        # Response rate
+        sent_emails = Application.query.filter(
+            Application.user_id == current_user.id,
+            Application.email_status.in_(['sent', 'delivered', 'read', 'responded'])
+        ).count()
+        
+        response_rate = (responses_count / sent_emails * 100) if sent_emails > 0 else 0
+        
+        # Profile completion
+        profile_completion = calculate_profile_completion(current_user)
+        
+        stats = {
+            'total': total_applications,
+            'pending': pending_applications,
+            'recent_count': recent_count,
+            'responses': responses_count,
+            'response_rate': response_rate,
+            'profile_completion': profile_completion
+        }
+        
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        app.logger.error(f"API Dashboard stats error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/recent-applications')
+@login_required
+def api_recent_applications():
+    """API endpoint for real-time recent applications"""
+    try:
+        recent_applications = Application.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Application.created_at.desc()).limit(3).all()
+        
+        applications_data = []
+        for app in recent_applications:
+            learnership = getattr(app, 'learnership', None)
+            
+            app_data = {
+                'id': app.id,
+                'learnership_title': learnership.title if learnership else getattr(app, 'position', 'Application'),
+                'company_name': learnership.company if learnership else getattr(app, 'company_name', 'Company not specified'),
+                'company_logo': learnership.company_logo if learnership else getattr(app, 'company_logo', None),
+                'location': learnership.location if learnership else getattr(app, 'location', None),
+                'status': getattr(app, 'status', 'pending'),
+                'email_status': getattr(app, 'email_status', None),
+                'created_at': app.created_at.isoformat() if app.created_at else None,
+                'gmail_thread_id': getattr(app, 'gmail_thread_id', None),
+                'gmail_tracked': getattr(app, 'gmail_message_id', None) is not None,
+                'has_response': getattr(app, 'email_status', None) == 'responded'
+            }
+            applications_data.append(app_data)
+        
+        return jsonify({
+            'success': True,
+            'applications': applications_data
+        })
+        
+    except Exception as e:
+        app.logger.error(f"API Recent applications error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/application-status/<int:app_id>')
+@login_required
+def api_application_status(app_id):
+    """API endpoint for checking individual application status"""
+    try:
+        application = Application.query.filter_by(
+            id=app_id, 
+            user_id=current_user.id
+        ).first()
+        
+        if not application:
+            return jsonify({
+                'success': False,
+                'error': 'Application not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'status': getattr(application, 'status', 'pending'),
+            'email_status': getattr(application, 'email_status', None),
+            'has_response': getattr(application, 'email_status', None) == 'responded',
+            'gmail_thread_id': getattr(application, 'gmail_thread_id', None),
+            'last_updated': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        app.logger.error(f"API Application status error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    
+
 
 import os
 import requests
@@ -1421,7 +1662,7 @@ def time_ago_filter(date):
     if diff.days > 0:
         return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
     elif diff.seconds > 3600: 
-        hours = diff.seconds // 3600
+        hours = diff.seconds // 3600 
         return f"{hours} hour{'s' if hours != 1 else ''} ago"
     elif diff.seconds > 60:
         minutes = diff.seconds // 60
@@ -2656,4 +2897,4 @@ if __name__ == '__main__':
         host='0.0.0.0',
         port=port,
         debug=debug
-    )
+    ) 
