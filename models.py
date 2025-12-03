@@ -228,7 +228,7 @@ class Application(db.Model):
         return None
     
     def is_recent(self, days=7):
-        """Check if application was sent recently"""
+        """Check if application was sent recently"""  
         if self.sent_at:
             return (datetime.utcnow() - self.sent_at).days <= days
         return False
