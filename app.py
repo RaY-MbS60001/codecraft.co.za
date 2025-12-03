@@ -1420,7 +1420,7 @@ def time_ago_filter(date):
     
     if diff.days > 0:
         return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
-    elif diff.seconds > 3600:
+    elif diff.seconds > 3600: 
         hours = diff.seconds // 3600
         return f"{hours} hour{'s' if hours != 1 else ''} ago"
     elif diff.seconds > 60:
@@ -1429,7 +1429,7 @@ def time_ago_filter(date):
     else:
         return "Just now"
     
-    
+
 def send_application_email_with_gmail(recipient_email, company_name, user):
     """Enhanced email sending function that returns Gmail tracking data"""
     result = send_application_email(recipient_email, company_name, user)

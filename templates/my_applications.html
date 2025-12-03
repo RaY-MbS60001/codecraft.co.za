@@ -1,541 +1,2552 @@
 {% extends "base.html" %}
 
-{% block title %}My Applications{% endblock %}
+{% block title %}My Applications - CodeCraftCo{% endblock %}
 
 {% block content %}
-<style>
-    @import url("{{ url_for('static', filename='css/my-applications.css') }}");
-</style>
 <div class="applications-container">
-    <!-- Header Section -->
-    <div class="applications-header">
-        <div class="header-content">
-            <h1 class="page-title">
-                <i class="icon-briefcase"></i>
-                My Applications
-            </h1>
-            <p class="page-subtitle">Track your learnership applications and email responses</p>
-        </div>
-
-        <div class="header-actions">
-            <button onclick="refreshGmailStatuses()" class="btn btn-primary" id="refreshBtn">
-                <i class="icon-refresh"></i>
-                <span>Refresh Email Status</span>
-            </button>
-
-            <button onclick="checkAllResponses()" class="btn btn-outline">
-                <i class="icon-mail"></i>
-                <span>Check Responses</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Statistics Dashboard -->
-    <div class="stats-dashboard">
-        <div class="stat-card">
-            <div class="stat-icon">📊</div>
-            <div class="stat-info">
-                <div class="stat-number">{{ stats.total }}</div>
-                <div class="stat-label">Total Applications</div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon">📤</div>
-            <div class="stat-info">
-                <div class="stat-number">{{ stats.sent_emails }}</div>
-                <div class="stat-label">Emails Sent</div>
-            </div>
-        </div>
-
-        <div class="stat-card success">
-            <div class="stat-icon">💬</div>
-            <div class="stat-info">
-                <div class="stat-number">{{ stats.responses_received }}</div>
-                <div class="stat-label">Responses Received</div>
-            </div>
-        </div>
-
-        <div class="stat-card warning">
-            <div class="stat-icon">⏳</div>
-            <div class="stat-info">
-                <div class="stat-number">{{ stats.pending_responses }}</div>
-                <div class="stat-label">Awaiting Response</div>
-            </div>
-        </div>
-
-        <div class="stat-card info">
-            <div class="stat-icon">🔗</div>
-            <div class="stat-info">
-                <div class="stat-number">{{ stats.gmail_tracked }}</div>
-                <div class="stat-label">Gmail Tracked</div>
-            </div>
-        </div>
-
-        {% if stats.failed_emails > 0 %}
-        <div class="stat-card danger">
-            <div class="stat-icon">❌</div>
-            <div class="stat-info">
-                <div class="stat-number">{{ stats.failed_emails }}</div>
-                <div class="stat-label">Failed Emails</div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Update Banner -->
-    {% if needs_update > 0 %}
-    <div class="update-banner">
-        <div class="banner-content">
-            <i class="icon-info"></i>
-            <span>{{ needs_update }} applications may have status updates available</span>
-        </div>
-        <button onclick="autoUpdateStatuses()" class="btn btn-sm btn-primary">
-            Update All
-        </button>
-    </div>
-    {% endif %}
-
-    <!-- Filter Tabs -->
-    <div class="filter-tabs">
-        <button class="tab-btn active" onclick="showTab('all')">
-            All Applications <span class="count">{{ stats.total }}</span>
-        </button>
-        <button class="tab-btn" onclick="showTab('sent')">
-            Email Sent <span class="count">{{ email_status_groups.sent|length + email_status_groups.delivered|length +
-                email_status_groups.read|length }}</span>
-        </button>
-        <button class="tab-btn" onclick="showTab('responded')">
-            Responses <span class="count">{{ email_status_groups.responded|length }}</span>
-        </button>
-        <button class="tab-btn" onclick="showTab('pending')">
-            Pending <span class="count">{{ grouped_applications.pending|length }}</span>
-        </button>
-        <button class="tab-btn" onclick="showTab('failed')">
-            Failed <span class="count">{{ email_status_groups.failed|length }}</span>
-        </button>
-    </div>
-
-    <!-- Applications List -->
-    <div class="applications-list" id="applicationsList">
-        {% if applications %}
-        {% for app in applications %}
-        <div class="application-card" data-app-id="{{ app.id }}" data-status="{{ app.status }}"
-            data-email-status="{{ app.email_status or 'draft' }}">
-            <!-- Application Header -->
-            <div class="app-header">
-                <div class="app-title-section">
-                    <h3 class="app-title">{{ app.learnership_name or 'Application' }}</h3>
-                    <p class="app-company">{{ app.company_name or 'Company not specified' }}</p>
-                </div>
-
-                <div class="app-status-section">
-                    <!-- Application Status Badge -->
-                    <span class="status-badge status-{{ app.status }}">
-                        <i class="status-icon"></i>
-                        {{ app.status.title() }}
-                    </span>
-
-                    <!-- Email Status Badge -->
-                    {% set email_status = app.email_status or 'draft' %}
-                    <span class="email-status-badge email-{{ email_status }}">
-                        <i class="email-status-icon"></i>
-                        {% if email_status == 'draft' %}📝 Draft
-                        {% elif email_status == 'sent' %}📤 Sent
-                        {% elif email_status == 'delivered' %}✅ Delivered
-                        {% elif email_status == 'read' %}👁️ Read
-                        {% elif email_status == 'responded' %}💬 Response
-                        {% elif email_status == 'failed' %}❌ Failed
-                        {% else %}📝 {{ email_status.title() }}
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Application Timeline -->
-            <div class="app-timeline">
-                <div class="timeline-item">
-                    <div class="timeline-icon">📝</div>
-                    <div class="timeline-content">
-                        <div class="timeline-title">Application Created</div>
-                        <div class="timeline-date">
-                            {{ app.submitted_at.strftime('%b %d, %Y at %I:%M %p') if app.submitted_at else 'Unknown
-                            date' }}
+    <!-- Navigation Header (matching dashboard style) -->
+    <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
+        <div class="nav-left">
+            <h2 class="nav-logo">
+                <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
+                    <div class="logo-container">
+                        <div class="word">
+                            <div class="letter-box red">
+                                <div class="letter">C</div>
+                            </div>
+                            <div class="word-text">ode</div>
+                        </div>
+                        <div class="word">
+                            <div class="letter-box blue">
+                                <div class="letter">C</div>
+                            </div>
+                            <div class="word-text">raft</div>
+                        </div>
+                        <div class="word">
+                            <div class="letter-box orange">
+                                <div class="letter">C</div>
+                            </div>
+                            <div class="word-text">o</div>
                         </div>
                     </div>
+                </a>
+            </h2>
+        </div>
+        
+        <div class="nav-right">
+            <a href="{{ url_for('feed') }}" class="nav-feed-button" aria-label="View Feed">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 011 1h0a1 1 0 01-1 1h0a1 1 0 01-1-1h0a1 1 0 011-1z"/>
+                </svg>
+                <span>Feed</span>
+            </a>
+            <div class="user-menu">
+                <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
+                    <div class="user-avatar-small">
+                        {% if current_user.profile_picture %}
+                            <img src="{{ current_user.profile_picture }}" alt="">
+                        {% else %}
+                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="user-name">{{ current_user.full_name or current_user.email }}</span>
+                    <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div class="user-menu-dropdown" role="menu">
+                    <a href="{{ url_for('edit_profile') }}" class="menu-item" role="menuitem">
+                        {% if current_user.profile_picture %}
+                        <img src="{{ current_user.profile_picture }}" 
+                            alt="Profile picture" 
+                            style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        {% endif %}
+                        Profile Settings
+                    </a>
+                    <div class="menu-divider"></div>
+                    <a href="{{ url_for('logout') }}" class="menu-item logout" role="menuitem">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
+                        </svg>
+                        Logout
+                    </a>
                 </div>
+            </div>
+        </div>
+    </nav>
 
-                {% if app.sent_at %}
-                <div class="timeline-item">
-                    <div class="timeline-icon">📤</div>
-                    <div class="timeline-content">
-                        <div class="timeline-title">Email Sent</div>
-                        <div class="timeline-date">{{ app.sent_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
+    <main id="main-content" class="applications-content">
+        <!-- Header Section -->
+        <section class="welcome-section">
+            <div class="header-content">
+                <h1>My Applications</h1>
+                <p>Track your learnership applications and email responses</p>
+            </div>
+            <div class="header-actions">
+                <button onclick="refreshGmailStatuses()" class="action-btn primary" id="refreshBtn">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Refresh Status</span>
+                </button>
+                <button onclick="checkAllResponses()" class="action-btn secondary">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    <span>Check Responses</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Statistics Dashboard -->
+        <section class="stats-grid">
+            <article class="stat-card hover-lift">
+                <div class="stat-icon applications">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ stats.total }}</h3>
+                    <p class="stat-label">Total Applications</p>
+                </div>
+            </article>
+
+            <article class="stat-card hover-lift">
+                <div class="stat-icon documents">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ stats.sent_emails }}</h3>
+                    <p class="stat-label">Emails Sent</p>
+                </div>
+            </article>
+
+            <article class="stat-card hover-lift">
+                <div class="stat-icon completion">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ stats.responses_received }}</h3>
+                    <p class="stat-label">Responses Received</p>
+                    <div class="stat-trend positive">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                        </svg>
+                        <span>{{ stats.responses_received }} responses</span>
                     </div>
                 </div>
-                {% endif %}
+            </article>
 
-                {% if app.has_response and app.response_received_at %}
-                <div class="timeline-item highlight">
-                    <div class="timeline-icon">💬</div>
-                    <div class="timeline-content">
-                        <div class="timeline-title">Response Received</div>
-                        <div class="timeline-date">
-                            {{ app.response_received_at.strftime('%b %d, %Y at %I:%M %p') }}
+            {% if stats.pending_responses > 0 %}
+            <article class="stat-card hover-lift warning">
+                <div class="stat-icon pending">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ stats.pending_responses }}</h3>
+                    <p class="stat-label">Awaiting Response</p>
+                </div>
+            </article>
+            {% endif %}
+
+            {% if stats.failed_emails > 0 %}
+            <article class="stat-card hover-lift danger">
+                <div class="stat-icon failed">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <h3 class="stat-number">{{ stats.failed_emails }}</h3>
+                    <p class="stat-label">Failed Emails</p>
+                </div>
+            </article>
+            {% endif %}
+        </section>
+
+        <!-- Update Banner -->
+        {% if needs_update > 0 %}
+        <div class="update-banner glass-effect">
+            <div class="banner-content">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ needs_update }} applications may have status updates available</span>
+            </div>
+            <button onclick="autoUpdateStatuses()" class="update-btn">
+                Update All
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Filter Tabs -->
+        <div class="filter-tabs glass-effect">
+            <button class="tab-btn active" onclick="showTab('all')">
+                All Applications <span class="count">{{ stats.total }}</span>
+            </button>
+            <button class="tab-btn" onclick="showTab('sent')">
+                Email Sent <span class="count">{{ email_status_groups.sent|length + email_status_groups.delivered|length + email_status_groups.read|length }}</span>
+            </button>
+            <button class="tab-btn" onclick="showTab('responded')">
+                Responses <span class="count">{{ email_status_groups.responded|length }}</span>
+            </button>
+            <button class="tab-btn" onclick="showTab('pending')">
+                Pending <span class="count">{{ grouped_applications.pending|length }}</span>
+            </button>
+            {% if stats.failed_emails > 0 %}
+            <button class="tab-btn" onclick="showTab('failed')">
+                Failed <span class="count">{{ email_status_groups.failed|length }}</span>
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Applications Grid -->
+        <div class="applications-grid" id="applicationsList">
+            {% if applications %}
+            {% for app in applications %}
+            <article class="application-card glass-effect hover-lift" data-app-id="{{ app.id }}" data-status="{{ app.status }}" data-email-status="{{ app.email_status or 'draft' }}">
+                <!-- Company Logo -->
+                <div class="app-logo">
+                    <img src="{{ app.company_logo or '/static/images/company-placeholder.svg' }}" 
+                         alt="{{ app.company_name }} logo" width="48" height="48">
+                </div>
+
+                <!-- Application Header -->
+                <div class="app-header">
+                    <h3 class="app-title">{{ app.learnership_name or 'Application' }}</h3>
+                    <p class="app-company">{{ app.company_name or 'Company not specified' }}</p>
+                    
+                    <!-- Status Badges -->
+                    <div class="status-badges">
+                        <span class="status-badge status-{{ app.status }}">
+                            <span class="status-dot"></span>
+                            {{ app.status.title() }}
+                        </span>
+                        
+                        {% set email_status = app.email_status or 'draft' %}
+                        <span class="email-badge email-{{ email_status }}">
+                            {% if email_status == 'draft' %}📝
+                            {% elif email_status == 'sent' %}📤
+                            {% elif email_status == 'delivered' %}✅
+                            {% elif email_status == 'read' %}👁️
+                            {% elif email_status == 'responded' %}💬
+                            {% elif email_status == 'failed' %}❌
+                            {% else %}📝
+                            {% endif %}
+                            {{ email_status.title() }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Application Info -->
+                <div class="app-info">
+                    <div class="info-item">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Applied {{ app.submitted_at.strftime('%b %d, %Y') if app.submitted_at else 'Unknown date' }}</span>
+                    </div>
+                    
+                    {% if app.sent_at %}
+                    <div class="info-item">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        <span>{{ app.sent_at | days_ago }} days since sent</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if app.gmail_message_id %}
+                    <div class="info-item success">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Gmail tracked</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Response Highlight -->
+                {% if app.has_response %}
+                <div class="response-highlight">
+                    <div class="response-content">
+                        <div class="response-icon">🎉</div>
+                        <div class="response-text">
+                            <strong>Response received!</strong>
                             {% if app.response_thread_count %}
-                            <span class="response-count">({{ app.response_thread_count }} message{{ 's' if
-                                app.response_thread_count != 1 else '' }})</span>
+                            <span class="response-count">{{ app.response_thread_count }} message{{ 's' if app.response_thread_count != 1 else '' }}</span>
                             {% endif %}
                         </div>
                     </div>
                 </div>
                 {% endif %}
-            </div>
 
-            <!-- Application Details -->
-            <div class="app-details">
-                {% if app.sent_at %}
-                <div class="detail-item">
-                    <span class="detail-label">Days Since Sent:</span>
-                    <span class="detail-value">{{ app.sent_at | days_ago }}</span>
+                <!-- Action Buttons -->
+                <div class="app-actions">
+                    <button onclick="viewApplicationDetails({{ app.id }}, '{{ app.learnership_name }}', '{{ app.company_name }}', '{{ app.status }}', '{{ email_status }}', '{{ app.submitted_at.strftime('%B %d, %Y at %I:%M %p') if app.submitted_at else 'Unknown' }}', {% if app.sent_at %}'{{ app.sent_at.strftime('%B %d, %Y at %I:%M %p') }}'{% else %}null{% endif %}, {{ app.gmail_message_id|tojson }}, {{ app.has_response|tojson }}, {{ app.response_thread_count or 0 }}, {% if app.response_received_at %}'{{ app.response_received_at.strftime('%B %d, %Y at %I:%M %p') }}'{% else %}null{% endif %})" class="action-btn primary">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                        </svg>
+                        <span>View Details</span>
+                    </button>
+                    
+                    {% if app.gmail_thread_id %}
+                    <a href="https://mail.google.com/mail/u/0/#inbox/{{ app.gmail_thread_id }}" target="_blank" class="action-btn secondary">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        <span>Gmail</span>
+                    </a>
+                    {% endif %}
+                    
+                    <button onclick="checkSingleStatus({{ app.id }})" class="action-btn outline" title="Check Status">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    
+                    {% if app.email_status == 'failed' %}
+                    <button onclick="retryApplication({{ app.id }})" class="action-btn warning" title="Retry Send">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    {% endif %}
                 </div>
-                {% endif %}
-
-                {% if app.gmail_message_id %}
-                <div class="detail-item">
-                    <span class="detail-label">Gmail Tracking:</span>
-                    <span class="detail-value success">
-                        <i class="icon-check"></i> Enabled
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Application Actions -->
-            <div class="app-actions">
-                <button onclick="checkSingleStatus({{ app.id }})" class="action-btn btn-outline">
-                    <i class="icon-refresh"></i>
-                    Check Status
-                </button>
-
-                {% if app.gmail_thread_id %}
-                <a href="https://mail.google.com/mail/u/0/#inbox/{{ app.gmail_thread_id }}" target="_blank"
-                    class="action-btn btn-primary">
-                    <i class="icon-mail"></i>
-                    View in Gmail
-                </a>
-                {% endif %}
-
-                <button onclick="viewApplicationDetails({{ app.id }})" class="action-btn btn-secondary">
-                    <i class="icon-eye"></i>
-                    View Details
-                </button>
-
-                {% if app.email_status == 'failed' %}
-                <button onclick="retryApplication({{ app.id }})" class="action-btn btn-warning">
-                    <i class="icon-repeat"></i>
-                    Retry Send
-                </button>
-                {% endif %}
-            </div>
-
-            <!-- Response Highlight -->
-            {% if app.has_response %}
-            <div class="response-highlight">
-                <div class="response-icon">🎉</div>
-                <div class="response-text">
-                    <strong>Great news!</strong> You've received a response to this application.
-                    <a href="https://mail.google.com/mail/u/0/#inbox/{{ app.gmail_thread_id }}" target="_blank">
-                        View conversation →
+            </article>
+            {% endfor %}
+            {% else %}
+            <!-- Empty State -->
+            <div class="empty-state glass-effect">
+                <div class="empty-state-content">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" width="64" height="64" class="empty-state-icon">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3>No Applications Yet</h3>
+                    <p>You haven't submitted any applications yet. Start applying to learnerships to track them here!</p>
+                    <a href="{{ url_for('learnerships') }}" class="cta-button">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        Browse Learnerships
                     </a>
                 </div>
             </div>
             {% endif %}
         </div>
-        {% endfor %}
-        {% else %}
-        <!-- Empty State -->
-        <div class="empty-state">
-            <div class="empty-icon">📄</div>
-            <h3>No Applications Yet</h3>
-            <p>You haven't submitted any applications yet. Start applying to learnerships to see them here!</p>
-            <a href="{{ url_for('learnerships') }}" class="btn btn-primary">
-                <i class="icon-plus"></i>
-                Browse Learnerships
-            </a>
-        </div>
-        {% endif %}
-    </div>
+    </main>
 </div>
 
 <!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+<div id="loadingOverlay" class="modal-overlay" style="display: none;">
     <div class="loading-content">
         <div class="loading-spinner"></div>
         <p>Updating email statuses...</p>
     </div>
 </div>
 
-<!-- Application Details Modal -->
-<div id="appDetailsModal" class="modal" style="display: none;">
+<!-- Application Details Modal with Real Information -->
+<div id="appDetailsModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Application Details</h3>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-title-section">
+                <h3 id="modalTitle">Application Details</h3>
+                <p id="modalSubtitle" class="modal-subtitle"></p>
+            </div>
+            <button class="modal-close" onclick="closeModal()" aria-label="Close modal">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
         </div>
+        
         <div class="modal-body" id="modalBody">
             <!-- Dynamic content will be loaded here -->
+        </div>
+        
+        <div class="modal-footer" id="modalFooter">
+            <!-- Dynamic actions will be loaded here -->
         </div>
     </div>
 </div>
 
+<!-- Toast Notification Container -->
+<div class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
 <script>
-    // Tab Management
-    function showTab(tabName) {
-        const cards = document.querySelectorAll('.application-card');
-        const tabs = document.querySelectorAll('.tab-btn');
-
-        // Update active tab
-        tabs.forEach(tab => tab.classList.remove('active'));
-        event.target.classList.add('active');
-
-        // Filter cards
-        cards.forEach(card => {
-            const status = card.dataset.status;
-            const emailStatus = card.dataset.emailStatus;
-
-            let show = false;
-
-            switch (tabName) {
-                case 'all':
-                    show = true;
-                    break;
-                case 'sent':
-                    show = ['sent', 'delivered', 'read'].includes(emailStatus);
-                    break;
-                case 'responded':
-                    show = emailStatus === 'responded';
-                    break;
-                case 'pending':
-                    show = status === 'pending';
-                    break;
-                case 'failed':
-                    show = emailStatus === 'failed';
-                    break;
+document.addEventListener('DOMContentLoaded', function() {
+    // User Menu Dropdown (from dashboard)
+    const menuTrigger = document.querySelector('.user-menu-trigger');
+    const menuDropdown = document.querySelector('.user-menu-dropdown');
+    
+    if (menuTrigger && menuDropdown) {
+        menuTrigger.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            menuDropdown.classList.toggle('active');
+        });
+        
+        document.addEventListener('click', function(event) {
+            if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
+                menuTrigger.setAttribute('aria-expanded', 'false');
+                menuDropdown.classList.remove('active');
             }
-
-            card.style.display = show ? 'block' : 'none';
         });
     }
+});
 
-    // Gmail Status Functions
-    function refreshGmailStatuses() {
-        showLoading('Refreshing email statuses...');
+// Tab Management
+function showTab(tabName) {
+    const cards = document.querySelectorAll('.application-card');
+    const tabs = document.querySelectorAll('.tab-btn');
 
-        fetch('/update_application_statuses', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                if (data.success) {
-                    showNotification(`Updated ${data.updated_count} applications!`, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showNotification('Error updating statuses: ' + (data.error || 'Unknown error'), 'error');
-                }
-            })
-            .catch(error => {
-                hideLoading();
-                console.error('Error:', error);
-                showNotification('Network error while updating statuses', 'error');
-            });
-    }
+    // Update active tab
+    tabs.forEach(tab => tab.classList.remove('active'));
+    event.target.classList.add('active');
 
-    function checkAllResponses() {
-        showLoading('Checking for new responses...');
+    // Filter cards with animation
+    cards.forEach((card, index) => {
+        const status = card.dataset.status;
+        const emailStatus = card.dataset.emailStatus;
+        let show = false;
 
-        fetch('/bulk-check-responses')
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                if (data.success) {
-                    if (data.responses_found > 0) {
-                        showNotification(`Found ${data.responses_found} new responses! 🎉`, 'success');
-                        setTimeout(() => location.reload(), 2000);
-                    } else {
-                        showNotification('No new responses found', 'info');
-                    }
-                } else {
-                    showNotification('Error checking responses: ' + (data.error || 'Unknown error'), 'error');
-                }
-            })
-            .catch(error => {
-                hideLoading();
-                console.error('Error:', error);
-                showNotification('Network error while checking responses', 'error');
-            });
-    }
+        switch (tabName) {
+            case 'all':
+                show = true;
+                break;
+            case 'sent':
+                show = ['sent', 'delivered', 'read'].includes(emailStatus);
+                break;
+            case 'responded':
+                show = emailStatus === 'responded';
+                break;
+            case 'pending':
+                show = status === 'pending';
+                break;
+            case 'failed':
+                show = emailStatus === 'failed';
+                break;
+        }
 
-    function checkSingleStatus(appId) {
-        const button = event.target.closest('button');
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="icon-loading"></i> Checking...';
-        button.disabled = true;
+        if (show) {
+            card.style.display = 'block';
+            setTimeout(() => card.classList.add('fade-in'), index * 50);
+        } else {
+            card.classList.remove('fade-in');
+            setTimeout(() => card.style.display = 'none', 150);
+        }
+    });
+}
 
-        fetch(`/api/application_status/${appId}`)
-            .then(response => response.json())
-            .then(data => {
-                button.innerHTML = originalText;
-                button.disabled = false;
+// Application Details Modal with Real Information
+function viewApplicationDetails(appId, title, company, status, emailStatus, submittedAt, sentAt, gmailMessageId, hasResponse, responseCount, responseReceivedAt) {
+    const modal = document.getElementById('appDetailsModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalFooter = document.getElementById('modalFooter');
 
-                console.log('Status data:', data);
-                showNotification('Status updated!', 'info');
+    // Set modal title and subtitle
+    modalTitle.textContent = title || 'Application Details';
+    modalSubtitle.textContent = company || 'Company not specified';
 
-                // Update the card with new status if needed
-                // You can add DOM manipulation here to update the status badges
-            })
-            .catch(error => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-                console.error('Error:', error);
-                showNotification('Error checking status', 'error');
-            });
-    }
-
-    function autoUpdateStatuses() {
-        showLoading('Auto-updating recent applications...');
-
-        fetch('/auto-update-gmail-status')
-            .then(response => response.json())
-            .then(data => {
-                hideLoading();
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    if (data.updated_count > 0) {
-                        setTimeout(() => location.reload(), 1500);
-                    }
-                } else {
-                    showNotification('Error: ' + (data.error || 'Unknown error'), 'error');
-                }
-            })
-            .catch(error => {
-                hideLoading();
-                console.error('Error:', error);
-                showNotification('Network error during auto-update', 'error');
-            });
-    }
-
-    // UI Helper Functions
-    function showLoading(message = 'Loading...') {
-        const overlay = document.getElementById('loadingOverlay');
-        const text = overlay.querySelector('p');
-        text.textContent = message;
-        overlay.style.display = 'flex';
-    }
-
-    function hideLoading() {
-        document.getElementById('loadingOverlay').style.display = 'none';
-    }
-
-    function showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-        <div class="notification-content">
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()">&times;</button>
+    // Build timeline with real data
+    let timelineHTML = '<div class="application-timeline">';
+    
+    // Application created
+    timelineHTML += `
+        <div class="timeline-item">
+            <div class="timeline-icon submitted">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="timeline-content">
+                <div class="timeline-title">Application Submitted</div>
+                <div class="timeline-date">${submittedAt}</div>
+                <div class="timeline-description">Your application was successfully created and prepared for submission.</div>
+            </div>
         </div>
     `;
 
-        // Add to page
-        document.body.appendChild(notification);
-
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 5000);
-    }
-
-    function viewApplicationDetails(appId) {
-        // Show modal with application details
-        const modal = document.getElementById('appDetailsModal');
-        const modalBody = document.getElementById('modalBody');
-
-        modalBody.innerHTML = '<div class="loading-spinner"></div>';
-        modal.style.display = 'flex';
-
-        fetch(`/api/application_status/${appId}`)
-            .then(response => response.json())
-            .then(data => {
-                modalBody.innerHTML = `
-            <div class="detail-grid">
-                <div class="detail-row">
-                    <span class="label">Application ID:</span>
-                    <span class="value">${data.id}</span>
+    // Email sent
+    if (sentAt) {
+        timelineHTML += `
+            <div class="timeline-item">
+                <div class="timeline-icon sent">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                    </svg>
                 </div>
-                <div class="detail-row">
-                    <span class="label">Status:</span>
-                    <span class="value">${data.status}</span>
+                <div class="timeline-content">
+                    <div class="timeline-title">Application Email Sent</div>
+                    <div class="timeline-date">${sentAt}</div>
+                    <div class="timeline-description">Your application email was successfully delivered to ${company}.</div>
                 </div>
-                <div class="detail-row">
-                    <span class="label">Email Status:</span>
-                    <span class="value">${data.email_status}</span>
-                </div>
-                ${data.sent_at ? `
-                <div class="detail-row">
-                    <span class="label">Sent Date:</span>
-                    <span class="value">${new Date(data.sent_at).toLocaleString()}</span>
-                </div>` : ''}
-                ${data.gmail_message_id ? `
-                <div class="detail-row">
-                    <span class="label">Gmail Message ID:</span>
-                    <span class="value font-mono">${data.gmail_message_id}</span>
-                </div>` : ''}
-                ${data.has_response ? `
-                <div class="detail-row">
-                    <span class="label">Response Count:</span>
-                    <span class="value">${data.response_count} messages</span>
-                </div>` : ''}
-                ${data.days_since_sent ? `
-                <div class="detail-row">
-                    <span class="label">Days Since Sent:</span>
-                    <span class="value">${data.days_since_sent} days</span>
-                </div>` : ''}
-            </div>
-            <div class="modal-actions">
-                ${data.gmail_url ? `<a href="${data.gmail_url}" target="_blank" class="btn btn-primary">View in Gmail</a>` : ''}
-                <button onclick="closeModal()" class="btn btn-secondary">Close</button>
             </div>
         `;
-            })
-            .catch(error => {
-                modalBody.innerHTML = `<div class="error">Error loading details: ${error.message}</div>`;
-            });
     }
 
-    function closeModal() {
-        document.getElementById('appDetailsModal').style.display = 'none';
+    // Response received
+    if (hasResponse && responseReceivedAt) {
+        timelineHTML += `
+            <div class="timeline-item highlight">
+                <div class="timeline-icon response">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-title">🎉 Response Received!</div>
+                    <div class="timeline-date">${responseReceivedAt}</div>
+                    <div class="timeline-description">
+                        ${company} has responded to your application with ${responseCount} message${responseCount !== 1 ? 's' : ''}. 
+                        This is great news - they're interested in your profile!
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
-    function retryApplication(appId) {
-        if (confirm('Are you sure you want to retry sending this application?')) {
-            showNotification('Retry functionality coming soon!', 'info');
+    timelineHTML += '</div>';
+
+    // Build application details with real information
+    const detailsHTML = `
+        <div class="application-details">
+            <div class="detail-section">
+                <h4>Application Information</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Position</div>
+                        <div class="detail-value">${title}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Company</div>
+                        <div class="detail-value">${company}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Application Status</div>
+                        <div class="detail-value">
+                            <span class="status-badge status-${status}">
+                                <span class="status-dot"></span>
+                                ${status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Email Status</div>
+                        <div class="detail-value">
+                            <span class="email-badge email-${emailStatus}">
+                                ${emailStatus === 'draft' ? '📝' : 
+                                  emailStatus === 'sent' ? '📤' : 
+                                  emailStatus === 'delivered' ? '✅' : 
+                                  emailStatus === 'read' ? '👁️' : 
+                                  emailStatus === 'responded' ? '💬' : '❌'} 
+                                ${emailStatus.charAt(0).toUpperCase() + emailStatus.slice(1)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            ${gmailMessageId ? `
+                <div class="detail-section">
+                    <h4>Email Tracking</h4>
+                    <div class="tracking-info">
+                        <div class="tracking-item">
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Gmail tracking is active for this application</span>
+                        </div>
+                        <div class="tracking-item">
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                                <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Message ID: ${gmailMessageId.substring(0, 20)}...</span>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+
+            ${hasResponse ? `
+                <div class="detail-section success">
+                    <h4>🎉 Response Details</h4>
+                    <div class="response-info">
+                        <p><strong>Congratulations!</strong> ${company} has responded to your application.</p>
+                        <div class="response-stats">
+                            <div class="response-stat">
+                                <div class="stat-number">${responseCount}</div>
+                                <div class="stat-label">Message${responseCount !== 1 ? 's' : ''}</div>
+                            </div>
+                            <div class="response-stat">
+                                <div class="stat-number">${responseReceivedAt ? new Date(responseReceivedAt).toLocaleDateString() : 'Recently'}</div>
+                                <div class="stat-label">Last Response</div>
+                            </div>
+                        </div>
+                        <div class="response-recommendation">
+                            <strong>Next Steps:</strong> Review the conversation in Gmail and respond promptly to maintain their interest.
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    modalBody.innerHTML = timelineHTML + detailsHTML;
+
+    // Build footer actions with real functionality
+    let footerHTML = `
+        <button onclick="closeModal()" class="action-btn secondary">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+            Close
+        </button>
+        <button onclick="checkSingleStatus(${appId})" class="action-btn outline">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+            </svg>
+            Refresh Status
+        </button>
+    `;
+
+    if (gmailMessageId) {
+        footerHTML += `
+            <a href="https://mail.google.com/mail/u/0/#search/${gmailMessageId}" target="_blank" class="action-btn primary">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                </svg>
+                View in Gmail
+            </a>
+        `;
+    }
+
+    if (emailStatus === 'failed') {
+        footerHTML += `
+            <button onclick="retryApplication(${appId})" class="action-btn warning">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                </svg>
+                Retry Send
+            </button>
+        `;
+    }
+
+    modalFooter.innerHTML = footerHTML;
+    
+    // Show modal
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    const modal = document.getElementById('appDetailsModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+}
+
+// Gmail Status Functions (keeping your existing functionality)
+function refreshGmailStatuses() {
+    showLoading('Refreshing email statuses...');
+
+    fetch('/update_application_statuses', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
         }
-    }
-
-    // Close modal when clicking outside
-    window.onclick = function (event) {
-        const modal = document.getElementById('appDetailsModal');
-        if (event.target === modal) {
-            closeModal();
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading();
+        if (data.success) {
+            showToast(`Updated ${data.updated_count} applications!`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('Error updating statuses: ' + (data.error || 'Unknown error'), 'error');
         }
+    })
+    .catch(error => {
+        hideLoading();
+        console.error('Error:', error);
+        showToast('Network error while updating statuses', 'error');
+    });
+}
+
+function checkAllResponses() {
+    showLoading('Checking for new responses...');
+
+    fetch('/bulk-check-responses')
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                if (data.responses_found > 0) {
+                    showToast(`Found ${data.responses_found} new responses! 🎉`, 'success');
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showToast('No new responses found', 'info');
+                }
+            } else {
+                showToast('Error checking responses: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            showToast('Network error while checking responses', 'error');
+        });
+}
+
+function checkSingleStatus(appId) {
+    const button = event.target.closest('button');
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<div class="spinner"></div> Checking...';
+    button.disabled = true;
+
+    fetch(`/api/application_status/${appId}`)
+        .then(response => response.json())
+        .then(data => {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+            showToast('Status updated!', 'success');
+            
+            // Update the card with new status if needed
+            const card = document.querySelector(`[data-app-id="${appId}"]`);
+            if (card && data.email_status) {
+                card.dataset.emailStatus = data.email_status;
+                const emailBadge = card.querySelector('.email-badge');
+                if (emailBadge) {
+                    emailBadge.className = `email-badge email-${data.email_status}`;
+                    emailBadge.innerHTML = `${getEmailStatusIcon(data.email_status)} ${data.email_status.charAt(0).toUpperCase() + data.email_status.slice(1)}`;
+                }
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+            console.error('Error:', error);
+            showToast('Error checking status', 'error');
+        });
+}
+
+function autoUpdateStatuses() {
+    showLoading('Auto-updating recent applications...');
+
+    fetch('/auto-update-gmail-status')
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                showToast(data.message, 'success');
+                if (data.updated_count > 0) {
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } else {
+                showToast('Error: ' + (data.error || 'Unknown error'), 'error');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error:', error);
+            showToast('Network error during auto-update', 'error');
+        });
+}
+
+function retryApplication(appId) {
+    if (confirm('Are you sure you want to retry sending this application?')) {
+        showToast('Retry functionality will be available soon!', 'info');
     }
+}
+
+// Helper Functions
+function getEmailStatusIcon(status) {
+    const icons = {
+        'draft': '📝',
+        'sent': '📤',
+        'delivered': '✅',
+        'read': '👁️',
+        'responded': '💬',
+        'failed': '❌'
+    };
+    return icons[status] || '📝';
+}
+
+function showLoading(message = 'Loading...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const text = overlay.querySelector('p');
+    text.textContent = message;
+    overlay.style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+function showToast(message, type = 'info') {
+    const toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icon = type === 'success' ? 
+        `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>` : 
+        type === 'error' ? 
+        `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+        </svg>` :
+        `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>`;
+
+    toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-message">${message}</div>
+        <button class="toast-close" aria-label="Close notification">×</button>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.style.animation = 'slideOutRight 0.3s ease-out forwards';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
+
+    // Close button
+    const closeBtn = toast.querySelector('.toast-close');
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            toast.style.animation = 'slideOutRight 0.3s ease-out forwards';
+            setTimeout(() => toast.remove(), 300);
+        };
+    }
+}
+
+// Close modal when clicking outside or pressing escape
+window.onclick = function(event) {
+    const modal = document.getElementById('appDetailsModal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+
+// Profile picture error handling
+const profileImages = document.querySelectorAll('.user-avatar-small img');
+profileImages.forEach(img => {
+    img.addEventListener('error', function() {
+        this.style.display = 'none';
+        const placeholder = this.nextElementSibling;
+        if (placeholder) {
+            placeholder.style.display = 'flex';
+        }
+    });
+});
 </script>
+
+<style>
+/* Import dashboard styles and extend for applications */
+.applications-container {
+    min-height: 100vh;
+    background: var(--background);
+    color: var(--text-primary);
+}
+
+/* Navigation (reusing dashboard nav styles) */
+.dashboard-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+}
+
+.nav-left, .nav-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Logo styles (from dashboard) */
+.nav-logo {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.nav-logo a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    transform: translateY(16px);
+}
+
+.word {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.letter-box {
+    width: 35px;
+    height: 35px;
+    background-color: rgba(51, 51, 51, 0.9);
+    border: 2px solid #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.letter-box.red {
+    box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+}
+
+.letter-box.blue {
+    box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+}
+
+.letter-box.orange {
+    box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+}
+
+.letter {
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+    font-family: 'Arial', sans-serif;
+    line-height: 1;
+}
+
+.word-text {
+    font-size: 20px;
+    font-weight: normal;
+    color: #fff;
+    margin-left: 3px;
+    font-family: 'Arial', sans-serif;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    line-height: 1;
+}
+
+/* User menu styles (from dashboard) */
+.nav-feed-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    margin-right: 16px;
+    border-radius: 8px;
+    background: var(--surface-alt);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.nav-feed-button:hover {
+    background: var(--surface-hover);
+    transform: translateY(-1px);
+}
+
+.nav-feed-button svg {
+    color: var(--primary-color);
+}
+
+.nav-feed-button span {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.user-menu {
+    position: relative;
+}
+
+.user-menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.user-menu-trigger:hover {
+    background-color: var(--surface-hover);
+}
+
+.user-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-weight: 600;
+    overflow: hidden;
+}
+
+.user-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-name {
+    font-weight: 500;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+}
+
+.chevron-icon {
+    transition: transform var(--transition-fast);
+}
+
+.user-menu-trigger[aria-expanded="true"] .chevron-icon {
+    transform: rotate(180deg);
+}
+
+.user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    min-width: 180px;
+    overflow: hidden;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all var(--transition-normal);
+}
+
+.user-menu-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: background-color var(--transition-fast);
+}
+
+.menu-item:hover {
+    background-color: var(--surface-hover);
+}
+
+.menu-item.logout {
+    color: var(--danger-color);
+}
+
+.menu-divider {
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 4px 0;
+}
+
+/* Main content */
+.applications-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+/* Header section */
+.welcome-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    gap: 20px;
+}
+
+.header-content h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.header-content p {
+    color: var(--text-secondary);
+    font-size: 16px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+/* Action buttons */
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-decoration: none;
+}
+
+.action-btn.primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.action-btn.secondary {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.action-btn.secondary:hover {
+    background: var(--border-color);
+}
+
+.action-btn.outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 8px;
+}
+
+.action-btn.outline:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.action-btn.warning {
+    background: var(--warning-color);
+    color: white;
+}
+
+.action-btn.warning:hover {
+    background: var(--warning-hover);
+}
+
+/* Stats grid (from dashboard) */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 20px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-icon.applications {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.stat-icon.documents {
+    background-color: var(--warning-light);
+    color: var(--warning-color);
+}
+
+.stat-icon.completion {
+    background-color: var(--success-light);
+    color: var(--success-color);
+}
+
+.stat-icon.pending {
+    background-color: var(--warning-light);
+    color: var(--warning-color);
+}
+
+.stat-icon.failed {
+    background-color: var(--danger-light);
+    color: var(--danger-color);
+}
+
+.stat-content {
+    flex-grow: 1;
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    line-height: 1;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.stat-trend.positive {
+    color: var(--success-color);
+}
+
+.stat-card.warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.stat-card.danger {
+    border-left: 4px solid var(--danger-color);
+}
+
+/* Update banner */
+.update-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--warning-light), var(--warning-color));
+    color: var(--warning-dark);
+    border: 1px solid var(--warning-color);
+}
+
+.banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.update-btn {
+    padding: 8px 16px;
+    background: white;
+    color: var(--warning-color);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.update-btn:hover {
+    background: var(--warning-color);
+    color: white;
+}
+
+/* Filter tabs */
+.filter-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tab-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.tab-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.count {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+}
+
+.tab-btn:not(.active) .count {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+/* Applications grid */
+.applications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.application-card {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: all var(--transition-normal);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+}
+
+.application-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Glass effect */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Application card header */
+.app-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    background: var(--surface-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.app-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.app-header {
+    margin-bottom: 16px;
+}
+
+.app-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.app-company {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+/* Status badges */
+.status-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.status-badge, .email-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.status-badge {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.status-badge.status-pending {
+    background: var(--warning-light);
+    color: var(--warning-color);
+}
+
+.status-badge.status-approved {
+    background: var(--success-light);
+    color: var(--success-color);
+}
+
+.status-badge.status-rejected {
+    background: var(--danger-light);
+    color: var(--danger-color);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+.email-badge {
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+
+.email-badge.email-sent {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.email-badge.email-delivered {
+    background: var(--success-light);
+    color: var(--success-color);
+}
+
+.email-badge.email-read {
+    background: var(--info-light);
+    color: var(--info-color);
+}
+
+.email-badge.email-responded {
+    background: var(--success-light);
+    color: var(--success-color);
+    animation: pulse-glow 2s infinite;
+}
+
+.email-badge.email-failed {
+    background: var(--danger-light);
+    color: var(--danger-color);
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(34, 197, 94, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.6); }
+}
+
+/* Application info */
+.app-info {
+    margin-bottom: 16px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-item.success {
+    color: var(--success-color);
+}
+
+.info-item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* Response highlight */
+.response-highlight {
+    background: linear-gradient(135deg, var(--success-light), rgba(34, 197, 94, 0.1));
+    border: 1px solid var(--success-color);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    animation: response-glow 3s ease-in-out infinite;
+}
+
+@keyframes response-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+    50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+}
+
+.response-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.response-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.response-text {
+    flex-grow: 1;
+}
+
+.response-text strong {
+    color: var(--success-color);
+}
+
+.response-count {
+    display: inline-block;
+    background: var(--success-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* Application actions */
+.app-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.app-actions .action-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: auto;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.app-actions .action-btn span {
+    display: none;
+}
+
+.app-actions .action-btn:first-child span {
+    display: inline;
+}
+
+/* Empty state */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 40px;
+    border-radius: var(--radius-lg);
+}
+
+.empty-state-content {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.empty-state-icon {
+    color: var(--text-tertiary);
+    margin-bottom: 24px;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.cta-button:hover {
+    background: var(--primary-hover);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Modal styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    padding: 20px;
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title-section h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.modal-subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.modal-close:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+/* Application timeline */
+.application-timeline {
+    margin-bottom: 24px;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 32px;
+    bottom: -20px;
+    width: 2px;
+    background: var(--border-color);
+}
+
+.timeline-item.highlight::after {
+    background: var(--success-color);
+}
+
+.timeline-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-icon.submitted {
+    background: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.timeline-icon.sent {
+    background: var(--info-light);
+    color: var(--info-color);
+}
+
+.timeline-icon.response {
+    background: var(--success-light);
+    color: var(--success-color);
+    animation: pulse-success 2s infinite;
+}
+
+@keyframes pulse-success {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    }
+    50% { 
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    }
+}
+
+.timeline-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.timeline-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.timeline-date {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.timeline-description {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Application details */
+.application-details {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.detail-section {
+    background: var(--surface-hover);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.detail-section h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-section.success {
+    background: linear-gradient(135deg, var(--success-light), rgba(34, 197, 94, 0.05));
+    border: 1px solid var(--success-color);
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.detail-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Tracking info */
+.tracking-info, .response-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tracking-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--success-color);
+    font-size: 14px;
+}
+
+.response-stats {
+    display: flex;
+    gap: 20px;
+    margin: 16px 0;
+}
+
+.response-stat {
+    text-align: center;
+}
+
+.response-stat .stat-number {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.response-stat .stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.response-recommendation {
+    background: rgba(34, 197, 94, 0.1);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Loading content */
+.loading-content {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    text-align: center;
+    max-width: 300px;
+}
+
+.loading-spinner, .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+.spinner {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+    margin: 0;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-content p {
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Toast notifications (from dashboard) */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border-left: 4px solid var(--primary-color);
+    animation: slideInRight 0.3s ease-out;
+    max-width: 100%;
+}
+
+.toast-success {
+    border-left-color: var(--success-color);
+}
+
+.toast-error {
+    border-left-color: var(--danger-color);
+}
+
+.toast-warning {
+    border-left-color: var(--warning-color);
+}
+
+.toast-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-success .toast-icon {
+    color: var(--success-color);
+}
+
+.toast-error .toast-icon {
+    color: var(--danger-color);
+}
+
+.toast-warning .toast-icon {
+    color: var(--warning-color);
+}
+
+.toast-message {
+    flex-grow: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.toast-close:hover {
+    background-color: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* Animation utilities */
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .nav-feed-button span {
+        display: none;
+    }
+    
+    .nav-feed-button {
+        padding: 8px;
+        margin-right: 8px;
+    }
+    
+    .applications-content {
+        padding: 16px;
+    }
+    
+    .welcome-section {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .header-actions {
+        align-self: stretch;
+    }
+    
+    .header-actions .action-btn {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+    }
+    
+    .stat-card {
+        padding: 16px;
+    }
+    
+    .applications-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .app-actions .action-btn span {
+        display: none;
+    }
+    
+    .app-actions {
+        gap: 6px;
+    }
+    
+    .filter-tabs {
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+    
+    .modal-content {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+    }
+    
+    .modal-header {
+        padding: 16px 16px 12px;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px;
+        flex-direction: column;
+    }
+    
+    .modal-footer .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .response-stats {
+        justify-content: space-around;
+    }
+    
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-container {
+        transform: translateY(8px);
+    }
+    
+    .letter-box {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .letter {
+        font-size: 16px;
+    }
+    
+    .word-text {
+        font-size: 16px;
+    }
+    
+    .applications-content {
+        padding: 12px;
+    }
+    
+    .stat-card {
+        padding: 12px;
+    }
+    
+    .stat-number {
+        font-size: 20px;
+    }
+    
+    .application-card {
+        padding: 16px;
+    }
+    
+    .app-actions .action-btn {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0f172a;
+        --surface: #1e293b;
+        --surface-hover: #334155;
+        --surface-alt: #475569;
+        --border-color: #475569;
+        --text-primary: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --primary-light: rgba(59, 130, 246, 0.1);
+        --success-color: #10b981;
+        --success-light: rgba(16, 185, 129, 0.1);
+        --warning-color: #f59e0b;
+        --warning-light: rgba(245, 158, 11, 0.1);
+        --danger-color: #ef4444;
+        --danger-light: rgba(239, 68, 68, 0.1);
+        --info-color: #06b6d4;
+        --info-light: rgba(6, 182, 212, 0.1);
+        --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    }
+    
+.glass-effect {
+    background: rgba(51, 65, 85, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+    
+    .letter-box {
+        background-color: rgba(15, 23, 42, 0.9);
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .status-badge, .email-badge {
+        border: 2px solid currentColor;
+    }
+    
+    .application-card {
+        border: 2px solid var(--border-color);
+    }
+    
+    .action-btn {
+        border: 2px solid currentColor;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .hover-lift:hover {
+        transform: none;
+    }
+    
+    .action-btn:hover {
+        transform: none;
+    }
+    
+    .cta-button:hover {
+        transform: none;
+    }
+    
+    .email-badge.email-responded {
+        animation: none;
+    }
+    
+    .response-highlight {
+        animation: none;
+    }
+    
+    .timeline-icon.response {
+        animation: none;
+    }
+}
+
+/* Focus styles for accessibility */
+.action-btn:focus-visible,
+.tab-btn:focus-visible,
+.user-menu-trigger:focus-visible,
+.modal-close:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .dashboard-nav,
+    .header-actions,
+    .filter-tabs,
+    .app-actions,
+    .modal-overlay,
+    .toast-container {
+        display: none !important;
+    }
+    
+    .applications-content {
+        padding: 0;
+    }
+    
+    .applications-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .application-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 2px solid var(--border-color);
+    }
+    
+    .response-highlight {
+        border: 3px solid var(--success-color);
+        animation: none;
+    }
+}
+
+/* Utility classes */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.font-mono {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    background: var(--surface-hover);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* CSS Custom Properties for theming - DARK BLUE THEME */
+:root {
+    --background: #1e293b;
+    --surface: #334155;
+    --surface-hover: #475569;
+    --surface-alt: #64748b;
+    --border-color: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-light: rgba(59, 130, 246, 0.15);
+    --success-color: #10b981;
+    --success-hover: #059669;
+    --success-light: rgba(16, 185, 129, 0.15);
+    --warning-color: #f59e0b;
+    --warning-hover: #d97706;
+    --warning-light: rgba(245, 158, 11, 0.15);
+    --warning-dark: #92400e;
+    --danger-color: #ef4444;
+    --danger-hover: #dc2626;
+    --danger-light: rgba(239, 68, 68, 0.15);
+    --info-color: #06b6d4;
+    --info-light: rgba(6, 182, 212, 0.15);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 50%;
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* Additional responsive breakpoints */
+@media (min-width: 1200px) {
+    .applications-content {
+        padding: 32px;
+    }
+    
+    .applications-grid {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 24px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+}
+
+@media (min-width: 1440px) {
+    .applications-content {
+        max-width: 1400px;
+    }
+    
+    .applications-grid {
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    }
+}
+
+/* Landscape tablet styles */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+    .welcome-section {
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .header-actions .action-btn span {
+        display: inline;
+    }
+    
+    .applications-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}
+
+/* Animation performance optimizations */
+.application-card,
+.action-btn,
+.stat-card {
+    will-change: transform;
+}
+
+.application-card:hover,
+.stat-card:hover {
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Loading state improvements */
+.action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.action-btn:disabled .spinner {
+    display: inline-block;
+}
+
+/* Better scrollbar styling */
+.applications-grid::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.filter-tabs::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.applications-grid::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.filter-tabs::-webkit-scrollbar-track {
+    background: var(--surface-hover);
+    border-radius: 3px;
+}
+
+.applications-grid::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.filter-tabs::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.applications-grid::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.filter-tabs::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Enhanced focus management */
+.modal-overlay[aria-hidden="true"] {
+    display: none;
+}
+
+.modal-content:focus {
+    outline: none;
+}
+
+/* Better error states */
+.error-state {
+    color: var(--danger-color);
+    background: var(--danger-light);
+    border: 1px solid var(--danger-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.error-state svg {
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
+/* Success states */
+.success-state {
+    color: var(--success-color);
+    background: var(--success-light);
+    border: 1px solid var(--success-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    text-align: center;
+    margin: 20px 0;
+}
+</style>
+
 {% endblock %}
