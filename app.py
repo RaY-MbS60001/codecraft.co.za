@@ -105,27 +105,40 @@ from pathlib import Path
 # Define instance_path globally or pass it as an argument
 instance_path = Path(__file__).parent / 'instance'
 
-def get_database_url():
+def get_database_url_and_options():
+    # Force SQLite in development environment
+    if os.environ.get('FLASK_ENV') == 'development':
+        print("✓ Development mode: Using SQLite database")
+        db_url = f"sqlite:///{instance_path / 'codecraft.db'}"
+        return db_url, {}
+    
+    # Production logic (your existing PostgreSQL code)
     database_url = os.environ.get('DATABASE_URL')
-
+    
     if not database_url:
-        print("⚠️ DATABASE_URL not set. Falling back to SQLite for local development.")
-        return f"sqlite:///{instance_path / 'codecraft.db'}"
-
+        raise ValueError("DATABASE_URL must be set in production environment")
+    
+    # Handle PostgreSQL URLs for production
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
-    try:
-        host = database_url.split('@')[1].split('/')[0]
-        socket.gethostbyname(host)
-    except (IndexError, socket.gaierror):
-        print("⚠️ Could not resolve hostname. Using external Render DB hostname.")
-        database_url = database_url.replace(
-            'dpg-d1lknv6r433s73drf130-a',
-            'dpg-d1lknv6r433s73drf130-a.oregon-postgres.render.com'
-        )
+    # PostgreSQL engine options
+    engine_options = {
+        'pool_size': 10,
+        'pool_recycle': 3600,
+        'pool_pre_ping': True,
+        'connect_args': {
+            'sslmode': 'require',
+            'connect_timeout': 10,
+        }
+    }
+    
+    return database_url, engine_options
 
-    return database_url
+# =============================================================================
+# GMAIL TRACKING STATUS ROUTES
+# =============================================================================
+
 
 
 # =============================================================================
@@ -139,16 +152,10 @@ else:
     app.config.from_object(DevelopmentConfig)
 
 # Database configuration (ONLY SET ONCE)
-app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
-    'pool_recycle': 3600,
-    'pool_pre_ping': True,
-    'connect_args': {
-        'sslmode': 'require',
-        'connect_timeout': 10,
-    }
-}
+# Set SQLAlchemy URL and engine options correctly
+db_url, engine_options = get_database_url_and_options()
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
 #db = SQLAlchemy(app)
 
 # File upload configuration
@@ -701,7 +708,18 @@ def google_callback():
         flash('Authentication failed. Please try again.', 'error')
         return redirect(url_for('login'))
 
-
+@app.after_request
+def add_csp_headers(response):
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-src 'none'; "
+    )
+    return response
 
 # =============================================================================
 # USER DASHBOARD AND PROFILE ROUTES
@@ -1037,13 +1055,17 @@ def apply_learnership():
                           user_documents=user_documents)
 
 
+# =============================================================================
+# GMAIL STATUS TRACKING ROUTES
+# =============================================================================
+
 @app.route('/user/applications')
 @login_required
 def my_applications():
-    """Display user's applications grouped by status"""
-    # Get all user's applications
+    """Display user's applications grouped by status with Gmail tracking"""
+    # Get all user's applications with Gmail tracking info
     applications = Application.query.filter_by(user_id=current_user.id)\
-        .order_by(Application.created_at.desc()).all()
+        .order_by(Application.updated_at.desc()).all()
     
     # Group applications by status
     grouped_applications = {
@@ -1054,13 +1076,248 @@ def my_applications():
         'rejected': []
     }
     
+    # Group by email status for Gmail tracking
+    email_status_groups = {
+        'draft': [],
+        'sent': [],
+        'delivered': [],
+        'read': [],
+        'responded': [],
+        'failed': []
+    }
+    
+    # Statistics counters
+    stats = {
+        'total': len(applications),
+        'sent_emails': 0,
+        'responses_received': 0,
+        'pending_responses': 0,
+        'gmail_tracked': 0,
+        'failed_emails': 0,
+        'recent_activity': 0
+    }
+    
     for app in applications:
+        # Your existing grouping
         if app.status in grouped_applications:
             grouped_applications[app.status].append(app)
+        
+        # Group by email status
+        email_status = getattr(app, 'email_status', 'draft')
+        if email_status in email_status_groups:
+            email_status_groups[email_status].append(app)
+        
+        # Calculate statistics
+        if hasattr(app, 'sent_at') and app.sent_at:
+            stats['sent_emails'] += 1
+        
+        if hasattr(app, 'has_response') and app.has_response:
+            stats['responses_received'] += 1
+        
+        if hasattr(app, 'gmail_message_id') and app.gmail_message_id:
+            stats['gmail_tracked'] += 1
+            
+        if hasattr(app, 'email_status') and app.email_status == 'failed':
+            stats['failed_emails'] += 1
+            
+        # Applications sent but no response yet
+        if (hasattr(app, 'email_status') and app.email_status == 'sent' and 
+            hasattr(app, 'has_response') and not app.has_response):
+            stats['pending_responses'] += 1
+        
+        # Recent activity (last 7 days)
+        if app.is_recent(7):
+            stats['recent_activity'] += 1
+    
+    # Get applications that need status updates (sent in last 30 days)
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    needs_update = Application.query.filter_by(user_id=current_user.id)\
+        .filter(Application.gmail_message_id.isnot(None))\
+        .filter(Application.sent_at >= thirty_days_ago)\
+        .filter(Application.email_status.in_(['sent', 'delivered']))\
+        .count()
     
     return render_template('my_applications.html', 
                          applications=applications,
-                         grouped_applications=grouped_applications)
+                         grouped_applications=grouped_applications,
+                         email_status_groups=email_status_groups,
+                         stats=stats,
+                         needs_update=needs_update)
+
+@app.route('/update_application_statuses', methods=['POST'])
+@login_required
+def update_application_statuses():
+    """Update Gmail statuses for current user's applications"""
+    try:
+        from gmail_status_checker import GmailStatusChecker
+        
+        checker = GmailStatusChecker(current_user.id)
+        updated_count = checker.update_application_statuses()
+        
+        return jsonify({
+            'success': True, 
+            'updated_count': updated_count,
+            'message': f'Updated {updated_count} application statuses'
+        })
+        
+    except Exception as e:
+        print(f"Error updating statuses: {e}")
+        return jsonify({
+            'success': False, 
+            'error': str(e)
+        }), 500
+
+@app.route('/api/application_status/<int:app_id>')
+@login_required
+def get_application_status(app_id):
+    """Get real-time status for a specific application"""
+    application = Application.query.filter_by(
+        id=app_id, 
+        user_id=current_user.id
+    ).first_or_404()
+    
+    live_status = None
+    if application.gmail_message_id:
+        try:
+            from gmail_status_checker import GmailStatusChecker
+            checker = GmailStatusChecker(current_user.id)
+            live_status = checker.check_message_status(application.gmail_message_id)
+        except Exception as e:
+            print(f"Error checking live status: {e}")
+    
+    return jsonify({
+        'id': application.id,
+        'status': application.status,
+        'email_status': application.email_status,
+        'sent_at': application.sent_at.isoformat() if application.sent_at else None,
+        'has_response': application.has_response,
+        'response_count': application.response_thread_count,
+        'response_received_at': application.response_received_at.isoformat() if application.response_received_at else None,
+        'gmail_message_id': application.gmail_message_id,
+        'gmail_thread_id': application.gmail_thread_id,
+        'gmail_url': application.get_gmail_url(),
+        'days_since_sent': application.days_since_sent(),
+        'live_status': live_status
+    })
+
+@app.route('/auto-update-gmail-status')
+@login_required
+def auto_update_gmail_status():
+    """Auto-update Gmail statuses for applications sent in last 7 days"""
+    try:
+        from gmail_status_checker import GmailStatusChecker
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        
+        # Only check recent applications to avoid rate limits
+        recent_applications = Application.query.filter_by(user_id=current_user.id)\
+            .filter(Application.gmail_message_id.isnot(None))\
+            .filter(Application.sent_at >= seven_days_ago)\
+            .all()
+        
+        if not recent_applications:
+            return jsonify({
+                'success': True,
+                'message': 'No recent applications to update',
+                'updated_count': 0
+            })
+        
+        checker = GmailStatusChecker(current_user.id)
+        updated_count = 0
+        
+        for app in recent_applications:
+            try:
+                status_info = checker.check_message_status(app.gmail_message_id)
+                if status_info:
+                    app.update_from_gmail_status(status_info)
+                    updated_count += 1
+                    
+                time.sleep(0.2)  # Slower rate to avoid limits
+            except Exception as e:
+                print(f"Error updating app {app.id}: {e}")
+                continue
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'updated_count': updated_count,
+            'total_checked': len(recent_applications),
+            'message': f'Updated {updated_count} of {len(recent_applications)} recent applications'
+        })
+        
+    except Exception as e:
+        print(f"Error in auto-update: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/bulk-check-responses')
+@login_required
+def bulk_check_responses():
+    """Check for responses on all sent applications"""
+    try:
+        from gmail_status_checker import GmailStatusChecker
+        
+        checker = GmailStatusChecker(current_user.id)
+        responses_found = checker.check_recent_responses(days=30)
+        
+        return jsonify({
+            'success': True,
+            'responses_found': responses_found,
+            'message': f'Found {responses_found} new responses!'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/gmail-status-dashboard')
+@login_required
+def gmail_status_dashboard():
+    """Detailed Gmail status dashboard"""
+    applications_with_gmail = Application.query.filter_by(user_id=current_user.id)\
+        .filter(Application.gmail_message_id.isnot(None))\
+        .order_by(Application.sent_at.desc()).all()
+    
+    # Group by email status
+    status_groups = {
+        'sent': [],
+        'delivered': [],
+        'read': [],
+        'responded': [],
+        'failed': []
+    }
+    
+    response_stats = {
+        'total_tracked': len(applications_with_gmail),
+        'awaiting_response': 0,
+        'got_responses': 0,
+        'avg_response_time': None
+    }
+    
+    response_times = []
+    
+    for app in applications_with_gmail:
+        email_status = getattr(app, 'email_status', 'sent')
+        if email_status in status_groups:
+            status_groups[email_status].append(app)
+        
+        if app.has_response and app.sent_at and app.response_received_at:
+            response_times.append((app.response_received_at - app.sent_at).days)
+            response_stats['got_responses'] += 1
+        elif app.email_status == 'sent' and not app.has_response:
+            response_stats['awaiting_response'] += 1
+    
+    if response_times:
+        response_stats['avg_response_time'] = sum(response_times) / len(response_times)
+    
+    return render_template('gmail_status_dashboard.html',
+                         applications=applications_with_gmail,
+                         status_groups=status_groups,
+                         response_stats=response_stats)
 
 
 # =============================================================================
@@ -1135,20 +1392,72 @@ def delete_document(doc_id):
 # =============================================================================
 # BULK EMAIL APPLICATION ROUTES
 # =============================================================================
+from datetime import datetime
 
-@app.route('/learnerships/emails')
-@login_required
-def learnership_emails():
-    """Display list of learnership email addresses for bulk applications"""
-    learnership_emails = LearnshipEmail.query.filter_by(is_active=True)\
-        .order_by(LearnshipEmail.company_name).all()
-    return render_template('learnerships.html', learnership_emails=learnership_emails)
+@app.template_filter('days_ago')
+def days_ago_filter(date):
+    """Calculate days ago from a given date"""
+    if not date:
+        return "Never"
+    
+    days = (datetime.utcnow() - date).days
+    
+    if days == 0:
+        return "Today"
+    elif days == 1:
+        return "1 day ago"
+    else:
+        return f"{days} days ago"
 
+# Also add this for time differences
+@app.template_filter('time_ago')
+def time_ago_filter(date):
+    """Human readable time ago"""
+    if not date:
+        return "Never"
+    
+    diff = datetime.utcnow() - date
+    
+    if diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    elif diff.seconds > 60:
+        minutes = diff.seconds // 60
+        return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+    else:
+        return "Just now"
+    
+    
+def send_application_email_with_gmail(recipient_email, company_name, user):
+    """Enhanced email sending function that returns Gmail tracking data"""
+    result = send_application_email(recipient_email, company_name, user)
+    
+    # If result is the old format (tuple), convert to new format
+    if isinstance(result, tuple):
+        success, message = result
+        return {
+            'success': success,
+            'message': message,
+            'gmail_data': {}
+        }
+    
+    # If it's already a dict, return as is
+    if isinstance(result, dict):
+        return result
+    
+    # Fallback
+    return {
+        'success': False,
+        'message': 'Unknown email sending result format',
+        'gmail_data': {}
+    }
 
 @app.route('/apply_bulk_email', methods=['POST'])
 @login_required
 def apply_bulk_email():
-    """Process bulk application to selected email addresses"""
+    """Process bulk application to selected email addresses with Gmail tracking"""
     selected_email_ids = request.form.getlist('selected_emails')
     
     if not selected_email_ids:
@@ -1170,6 +1479,7 @@ def apply_bulk_email():
     failed_companies = []
     timeout_companies = []
     already_applied = []
+    gmail_tracked_count = 0
     
     for email_entry in email_entries:
         # Check if application already exists
@@ -1183,49 +1493,75 @@ def apply_bulk_email():
             continue
         
         try:
-            # Send application email with timeout handling
-            success, message = send_application_email(
+            # Send application email with Gmail tracking
+            email_result = send_application_email_with_gmail(
                 email_entry.email,
                 email_entry.company_name,
                 current_user
             )
             
+            success = email_result.get('success', False)
+            message = email_result.get('message', '')
+            gmail_data = email_result.get('gmail_data', {})
+            
             # Create application records
             if success:
                 # Create EmailApplication record
-                app = EmailApplication(
+                app_record = EmailApplication(
                     user_id=current_user.id,
                     learnership_email_id=email_entry.id,
                     status='sent'
                 )
-                db.session.add(app)
+                db.session.add(app_record)
                 
-                # Create standard Application record for dashboard tracking
+                # Create enhanced Application record with Gmail tracking
                 std_app = Application(
                     user_id=current_user.id,
                     company_name=email_entry.company_name,
                     learnership_name="Email Application",
                     status='sent'
                 )
-                db.session.add(std_app)
                 
+                # Add Gmail tracking fields if they exist
+                if hasattr(std_app, 'email_status'):
+                    std_app.email_status = 'sent'
+                if hasattr(std_app, 'sent_at'):
+                    std_app.sent_at = datetime.utcnow()
+                if hasattr(std_app, 'gmail_message_id'):
+                    std_app.gmail_message_id = gmail_data.get('id')
+                if hasattr(std_app, 'gmail_thread_id'):
+                    std_app.gmail_thread_id = gmail_data.get('threadId')
+                if hasattr(std_app, 'has_response'):
+                    std_app.has_response = False
+                if hasattr(std_app, 'response_thread_count'):
+                    std_app.response_thread_count = 0
+                
+                db.session.add(std_app)
                 successful_companies.append(email_entry.company_name)
                 
+                # Count successful Gmail tracking
+                if gmail_data.get('id'):
+                    gmail_tracked_count += 1
+                    
             else:
                 # Create records but mark as failed
-                app = EmailApplication(
+                app_record = EmailApplication(
                     user_id=current_user.id,
                     learnership_email_id=email_entry.id,
                     status='failed'
                 )
-                db.session.add(app)
+                db.session.add(app_record)
                 
                 std_app = Application(
                     user_id=current_user.id,
                     company_name=email_entry.company_name,
                     learnership_name="Email Application",
-                    status='pending'  # Could be retried later
+                    status='pending'
                 )
+                
+                if hasattr(std_app, 'email_status'):
+                    std_app.email_status = 'failed'
+                
                 db.session.add(std_app)
                 
                 if "timed out" in message.lower() or "timeout" in message.lower():
@@ -1238,19 +1574,25 @@ def apply_bulk_email():
                 
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Error processing application to {email_entry.company_name}: {str(e)}")
+            current_app.logger.error(f"Error processing application to {email_entry.company_name}: {str(e)}")
             
             if "timeout" in str(e).lower() or "timed out" in str(e).lower():
                 timeout_companies.append(email_entry.company_name)
             else:
                 failed_companies.append(email_entry.company_name)
     
-    # Provide detailed feedback to user
+    # Enhanced feedback with Gmail tracking info
     if successful_companies:
         if len(successful_companies) <= 5:
-            flash(f"Successfully sent applications to: {', '.join(successful_companies)}", 'success')
+            base_message = f"Successfully sent applications to: {', '.join(successful_companies)}"
         else:
-            flash(f"Successfully sent applications to {len(successful_companies)} companies!", 'success')
+            base_message = f"Successfully sent applications to {len(successful_companies)} companies!"
+        
+        # Add Gmail tracking info
+        if gmail_tracked_count > 0:
+            base_message += f" ({gmail_tracked_count} tracked via Gmail for status updates)"
+        
+        flash(base_message, 'success')
     
     if timeout_companies:
         if len(timeout_companies) <= 3:
@@ -1270,12 +1612,15 @@ def apply_bulk_email():
         else:
             flash(f"You've already applied to {len(already_applied)} of the selected companies.", 'info')
     
-    # Add retry instructions if there were timeouts
+    # Enhanced retry instructions
     if timeout_companies:
         flash("Applications that failed due to network timeouts can be retried from your Applications page.", 'info')
     
+    # Gmail status update info
+    if gmail_tracked_count > 0:
+        flash(f"🔔 {gmail_tracked_count} applications are now being tracked for responses via Gmail!", 'info')
+    
     return redirect(url_for('my_applications'))
-
 
 # =============================================================================
 # EMAIL SENDING FUNCTIONS
@@ -2025,28 +2370,6 @@ def edit_learnership(learnership_id):
 # ADMIN APPLICATION MANAGEMENT ROUTES
 # =============================================================================
 
-@app.route('/admin/applications/<int:application_id>/status/<status>', methods=['POST'])
-@login_required
-@admin_required
-def update_application_status(application_id, status):
-    """Update application status"""
-    if status not in ['pending', 'approved', 'rejected']:
-        flash('Invalid status', 'error')
-        return redirect(url_for('admin_dashboard'))
-    
-    application = Application.query.get_or_404(application_id)
-    application.status = status
-    application.updated_at = datetime.utcnow()
-    
-    try:
-        db.session.commit()
-        flash(f'Application status updated to {status}', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash('Error updating application status', 'error')
-    
-    return redirect(url_for('admin_dashboard'))
-
 
 @app.route('/admin/applications/<int:application_id>/delete', methods=['POST'])
 @login_required
@@ -2109,264 +2432,28 @@ def init_db():
             print("Admin user created successfully!")
 
 
+from learnership_emails import learnership_email_data
+
 def init_learnership_emails():
     """Initialize the database with learnership email addresses"""
     with app.app_context():
-        # Check if emails already exist to avoid duplicates
         if LearnshipEmail.query.first() is not None:
             print("Learnership emails already exist in database. Skipping initialization.")
             return
         
-        # Comprehensive list of learnership email addresses
-        email_data = [
-            {"company_name": "TEST MAIL", "email": "sfisomabaso12242001@gmail.com"},
-            {"company_name": "Diversity Empowerment", "email": "Info@diversityempowerment.co.za"},
-            {"company_name": "Sparrow Portal", "email": "Enquiries@sparrowportal.co.za"},
-            {"company_name": "Impactful", "email": "Sihle.Nyanga@impactful.co.za"},
-            {"company_name": "CSG Skills", "email": "mseleke@csgskills.co.za"},
-            {"company_name": "AFREC", "email": "Consultant@afrec.co.za"},
-            {"company_name": "Vision Academy", "email": "recruit@visionacademy.co.za"},
-            {"company_name": "The Skills Hub", "email": "info@theskillshub.co.za"},
-            {"company_name": "Rivoningo Consultancy", "email": "careers@rivoningoconsultancy.co.za"},
-            {"company_name": "OKS", "email": "Recruitment@oks.co.za"},
-            {"company_name": "I-Fundi", "email": "Farina.bowen@i-fundi.com"},
-            {"company_name": "MSC", "email": "za031-cvapplications@msc.com"},
-            {"company_name": "Liberty College", "email": "Funda@liberty-college.co.za"},
-            {"company_name": "Sisekelo", "email": "ayandam@sisekelo.co.za"},
-            {"company_name": "AAAT", "email": "apply@aaat.co.za"},
-            {"company_name": "Learn SETA", "email": "hr@learnseta.online"},
-            {"company_name": "Amphisa", "email": "tigane@amphisa.co.za"},
-            {"company_name": "AfriSam", "email": "cm.gpnorthaggregate@za.afrisam.com"},
-            {"company_name": "iLearn", "email": "tinyikom@ilearn.co.za"},
-            {"company_name": "TechTISA", "email": "prabashini@techtisa.co.za"},
-            {"company_name": "Fitho", "email": "cv@fitho.co.za"},
-            {"company_name": "Training Force", "email": "Application@trainingforce.co.za"},
-            {"company_name": "Tidy Swip", "email": "Learnerships@tidyswip.co.za"},
-            {"company_name": "Nthuse Foundation", "email": "brandons@nthusefoundation.co.za"},
-            {"company_name": "Ample Recruitment", "email": "cv@amplerecruitment.co.za"},
-            {"company_name": "I-People", "email": "cv@i-people.co.za"},
-            {"company_name": "FACT SA", "email": "recruitment3@factsa.co.za"},
-            {"company_name": "IKWorx", "email": "recruitment@ikworx.co.za"},
-            {"company_name": "APD JHB", "email": "recruitment@apdjhb.co.za"},
-            {"company_name": "Skill Tech SA", "email": "query@skilltechsa.co.za"},
-            {"company_name": "Camblish", "email": "qualitycontrol@camblish.co.za"},
-            {"company_name": "BPC HR Solutions", "email": "Queen@bpchrsolutions.co.za"},
-            {"company_name": "CTU Training", "email": "walter.mngomezulu@ctutraining.co.za"},
-            {"company_name": "U-Belong", "email": "work@u-belong.co.za"},
-            {"company_name": "eStudy SA", "email": "recruitment@estudysa.co.za"},
-            {"company_name": "Zigna Training Online", "email": "ayo@zignatrainingonline.co.za"},
-            {"company_name": "CDPA", "email": "amelia@cdpa.co.za"},
-            {"company_name": "AFREC", "email": "Cv@afrec.co.za"},
-            {"company_name": "AFREC", "email": "recruit@afrec.co.za"},
-            {"company_name": "AFREC", "email": "recruitment@afrec.co.za"},
-            {"company_name": "AFREC", "email": "Cvs@afrec.co.za"},
-            {"company_name": "Bidvest Catering", "email": "Training2@bidvestcatering.co.za"},
-            {"company_name": "CDA Solutions", "email": "faith.khethani@cdasolutions.co.za"},
-            {"company_name": "Tiger Brands", "email": "Culinary.Recruitment@tigerbrands.com"},
-            {"company_name": "Telebest", "email": "learners@telebest.co.za"},
-            {"company_name": "Access4All SA", "email": "ginab@access4all-sa.co.za"},
-            {"company_name": "GLU", "email": "cv@glu.co.za"},
-            {"company_name": "GLU", "email": "ilze@glu.co.za"},
-            {"company_name": "CSS Solutions", "email": "csshr@csssolutions.co.za"},
-            {"company_name": "Advanced Assessments", "email": "genevieve@advancedassessments.co.za"},
-            {"company_name": "AAAT", "email": "Jonas@aaat.co.za"},
-            {"company_name": "Prime Serv", "email": "Infoct@primeserv.co.za"},
-            {"company_name": "TE Academy", "email": "recruitmentofficer@teacademy.co.za"},
-            {"company_name": "Retshepeng", "email": "training@retshepeng.co.za"},
-            {"company_name": "KDS Training", "email": "Recruitment@kdstraining.co.za"},
-            {"company_name": "Cowhirla Academy", "email": "learn@cowhirlacademy.co.za"},
-            {"company_name": "Roah Consulting", "email": "recruitment@roahconsulting.co.za"},
-            {"company_name": "Kboneng Consulting", "email": "admin@kbonengconsulting.co.za"},
-            {"company_name": "NZ Consultants", "email": "victory@nzconsultancts.co.za"},
-            {"company_name": "AAAT", "email": "Leratomoraba@aaat.co.za"},
-            {"company_name": "Stratism", "email": "learnership@stratism.co.za"},
-            {"company_name": "MPower Smart", "email": "recruitment@mpowersmart.co.za"},
-            {"company_name": "Afrika Tikkun", "email": "LucyC@afrikatikkun.org"},
-            {"company_name": "WeThinkCode", "email": "Info@wethinkcode.co.za"},
-            {"company_name": "B School", "email": "justice.seupe@bschool.edu.za"},
-            {"company_name": "TE Academy", "email": "sdf1@teacademy.co.za"},
-            {"company_name": "African Bank", "email": "NMakazi@afrikanbank.co.za"},
-            {"company_name": "Blind SA", "email": "trainingcentre.admin@blindsa.org.za"},
-            {"company_name": "Pro-Learn", "email": "data.admin@pro-learn.co.za"},
-            {"company_name": "Skills Junction", "email": "learnerships@skillsjunction.co.za"},
-            {"company_name": "Friends 4 Life", "email": "achievement@friends4life.co.za"},
-            {"company_name": "Dial A Dude", "email": "hr@dialadude.co.za"},
-            {"company_name": "IBM SkillsBuild", "email": "ibmskillsbuild.emea@skilluponline.com"},
-            {"company_name": "Snergy", "email": "info@snergy.co.za"},
-            {"company_name": "SA Entrepreneurship Empowerment", "email": "samukelo@saentrepreneurshipempowerment.org.za"},
-            {"company_name": "Signa", "email": "yes@signa.co.za"},
-            {"company_name": "Edu-Wize", "email": "info@edu-wize.co.za"},
-            {"company_name": "Edu-Wize", "email": "elsie@edu-wize.co.za"},
-            {"company_name": "4YS", "email": "recruit@4ys.co.za"},
-            {"company_name": "LeapCo", "email": "olwethu@leapco.co.za"},
-            {"company_name": "LeapCo", "email": "Offer@leapco.co.za"},
-            {"company_name": "Learnex", "email": "cv@learnex.co.za"},
-            {"company_name": "Innovation Advance", "email": "hello@innovationadvance.co.za"},
-            {"company_name": "Dynamic DNA", "email": "Talent@dynamicdna.co.za"},
-            {"company_name": "NCPD", "email": "nombulelo@ncpd.org.za"},
-            {"company_name": "Siyaya Skills", "email": "lebohang.matlala@siyayaskills.co.za"},
-            {"company_name": "Transcend", "email": "learnerships@transcend.co.za"},
-            {"company_name": "iLearn", "email": "Vusumuzig@ilearn.co.za"},
-            {"company_name": "Barnne", "email": "cv@barnne.com"},
-            {"company_name": "SASSETA", "email": "recruitment@sasseta.org"},
-            {"company_name": "WPX Solutions", "email": "hr@wpxsolutions.com"},
-            {"company_name": "Amphisa", "email": "Kruger@amphisa.co.za"},
-            {"company_name": "TIHSA", "email": "faneleg@tihsa.co.za"},
-            {"company_name": "Afrika Tikkun", "email": "pokellom@afrikatikkun.org"},
-            {"company_name": "Swift Skills Academy", "email": "recruitment@swiftskillsacademy.co.za"},
-            {"company_name": "Skills Panda", "email": "refiloe@skillspanda.co.za"},
-            {"company_name": "ICAN SA", "email": "Nalini.cuppusamy@ican-sa.co.za"},
-            {"company_name": "GCC-SD", "email": "placements@gcc-sd.com"},
-            {"company_name": "EH Hassim", "email": "trainingcenter@ehhassim.co.za"},
-            {"company_name": "Anova Health", "email": "Recruitment-parktown@anovahealth.co.za"},
-            {"company_name": "iLearn", "email": "tshepisom@ilearn.co.za"},
-            {"company_name": "Moonstone Info", "email": "faisexam@moonstoneinfo.co.za"},
-            {"company_name": "Phosaane", "email": "recruitment@phosaane.co.za"},
-            {"company_name": "Lethatsi PTY LTD", "email": "Luzuko@lethatsiptyltd.co.za"},
-            {"company_name": "CBM Training", "email": "info@cbm-training.co.za"},
-            {"company_name": "Bradshaw Leroux", "email": "Recruit@bradshawleroux.co.za"},
-            {"company_name": "HRC Training", "email": "Info@Hrctraining.co.za"},
-            {"company_name": "Bee Empowerment Services", "email": "Support@beeempowermentservices.co.za"},
-            {"company_name": "Shimrag", "email": "lesegos@shimrag.co.za"},
-            {"company_name": "TransUnion", "email": "Kgomotso.Modiba@transunion.com"},
-            {"company_name": "Gijima", "email": "lebo.makgale@gijima.com"},
-            {"company_name": "Eshy Brand", "email": "tumelo@eshybrand.co.za"},
-            {"company_name": "Kunaku", "email": "learners@kunaku.co.za"},
-            {"company_name": "Affinity Services", "email": "recruitment@affinityservices.co.za"},
-            {"company_name": "CBM Training", "email": "Gugulethu@cbm-traning.co.za"},
-            {"company_name": "TransUnion", "email": "GCCALearners@transunion.com"},
-            {"company_name": "Quest College", "email": "Maria@questcollege.org.za"},
-            {"company_name": "MI Centre", "email": "info@micentre.org.za"},
-            {"company_name": "CBM Training", "email": "palesa@cbm-training.co.za"},
-            {"company_name": "Consulting By Bongi", "email": "Info@consultingbybongi.com"},
-            {"company_name": "Training Portal", "email": "learn@trainingportal.co.za"},
-            {"company_name": "GCC-SD", "email": "info@gcc-sd.com"},
-            {"company_name": "Retshepeng", "email": "Sales@retshepeng.co.za"},
-            {"company_name": "Retshepeng", "email": "it@retshepeng.co.za"},
-            {"company_name": "Tych", "email": "Precious@tych.co.za"},
-            {"company_name": "Progression", "email": "farhana@progression.co.za"},
-            {"company_name": "QASA", "email": "recruitment@qasa.co.za"},
-            {"company_name": "TLO", "email": "Recruitment@tlo.co.za"},
-            {"company_name": "Dibanisa Learning", "email": "Slindile@dibanisaleaening.co.za"},
-            {"company_name": "Tric Talent", "email": "Anatte@trictalent.co.za"},
-            {"company_name": "Novia One", "email": "Tai@noviaone.com"},
-            {"company_name": "Edge Exec", "email": "kgotso@edgexec.co.za"},
-            {"company_name": "Related Ed", "email": "kagiso@related-ed.com"},
-            {"company_name": "RMA Education", "email": "Skills@rma.edu.co.za"},
-            {"company_name": "Signa", "email": "nkhensani@signa.co.za"},
-            {"company_name": "Learnex", "email": "joyce@learnex.co.za"},
-            {"company_name": "XBO", "email": "cornelia@xbo.co.za"},
-            {"company_name": "Nicasia Holdings", "email": "Primrose.mathe@nicasiaholdings.co.za"},
-            {"company_name": "STS Africa", "email": "Recruitment@sts-africa.co.za"},
-            {"company_name": "BSI Steel", "email": "Sifiso.ntamane@bsisteel.com"},
-            {"company_name": "Progression", "email": "Recruitment@progression.co.za"},
-            {"company_name": "Modern Centric", "email": "applications@moderncentric.co.za"},
-            {"company_name": "Dynamic DNA", "email": "Smacaulay@dynamicdna.co.za"},
-            {"company_name": "Dekra", "email": "reception@dekra.com"},
-            {"company_name": "Quest College", "email": "patience@questcollege.org.za"},
-            {"company_name": "Modern Centric", "email": "karenm@moderncentric.co.za"},
-            {"company_name": "Octopi Renewed", "email": "IvyS@octopi-renewed.co.za"},
-            {"company_name": "Eagle ESS", "email": "training2@eagle-ess.co.za"},
-            {"company_name": "IBUSA", "email": "Mpumi.m@ibusa.co.za"},
-            {"company_name": "RMV Solutions", "email": "Learnership@rmvsolutions.co.za"},
-            {"company_name": "Talent Development", "email": "info@talentdevelooment.co.za"},
-            {"company_name": "Transcend", "email": "unathi.mbiyoza@transcend.co.za"},
-            {"company_name": "SEESA", "email": "helga@seesa.co.za"},
-            {"company_name": "Skills Empire", "email": "admin@skillsempire.co.za"},
-            {"company_name": "Foster Melliar", "email": "kutlwano.mothibe@fostermelliar.co.za"},
-            {"company_name": "Alef Bet Learning", "email": "teddym@alefbetlearning.com"},
-            {"company_name": "Pendula", "email": "rika@pendula.co.za"},
-            {"company_name": "Siza Abantu", "email": "admin@sizaabantu.co.za"},
-            {"company_name": "CBM Training", "email": "lorenzo@cbm-training.co.za"},
-            {"company_name": "CBM Training", "email": "Winile@cbm-training.co.za"},
-            {"company_name": "SERR", "email": "Maria@serr.co.za"},
-            {"company_name": "CSG Skills", "email": "Sdube@csgskills.co.za"},
-            {"company_name": "Modern Centric", "email": "kagisom@moderncentric.co.za"},
-            {"company_name": "SITA", "email": "recruitment@sita.co.za"},
-            {"company_name": "Mudi Training", "email": "kelvi.c@muditraining.co.za"},
-            {"company_name": "Net Campus", "email": "Ntombi.Zondo@netcampus.com"},
-            {"company_name": "Net Campus", "email": "Mary.carelse@netcampus.com"},
-            {"company_name": "EduPower SA", "email": "divan@edupowersa.co.za"},
-            {"company_name": "TLO", "email": "info@tlo.co.za"},
-            {"company_name": "Liquor Barn", "email": "admin4@liquorbarn.co.za"},
-            {"company_name": "King Rec", "email": "Zena@KingRec.co.za"},
-            {"company_name": "Fennell", "email": "Hal@Fennell.co.za"},
-            {"company_name": "SP Forge", "email": "Info@SpForge.co.za"},
-            {"company_name": "Direct Axis", "email": "Careers@Directaxis.co.za"},
-            {"company_name": "Benteler", "email": "Yasmin.theron@benteler.com"},
-            {"company_name": "MASA", "email": "Pe@masa.co.za"},
-            {"company_name": "MASA", "email": "Feziwe@masa.co.za"},
-            {"company_name": "Adcorp Blu", "email": "Kasina.sithole@adcorpblu.com"},
-            {"company_name": "Formex", "email": "enquiries@formex.co.za"},
-            {"company_name": "Formex", "email": "byoyophali@formex.co.za"},
-            {"company_name": "Q-Plas", "email": "Zandile@q-plas.co.za"},
-            {"company_name": "Lumo Tech", "email": "contact@lumotech.co.za"},
-            {"company_name": "Bel Essex", "email": "belcorp@belessex.co.za"},
-            {"company_name": "Workforce", "email": "portelizabeth@workforce.co.za"},
-            {"company_name": "Quest", "email": "lucilleh@quest.co.za"},
-            {"company_name": "Top Personnel", "email": "reception@toppersonnel.co.za"},
-            {"company_name": "MPC", "email": "rosanne@mpc.co.za"},
-            {"company_name": "Online Personnel", "email": "claire@onlinepersonnel.co.za"},
-            {"company_name": "Kelly", "email": "nicola.monsma@kelly.co.za"},
-            {"company_name": "JR Recruitment", "email": "sandi@jrrecruitment.co.za"},
-            {"company_name": "Ikamva Recruitment", "email": "nomsa@ikamvarecruitment.co.za"},
-            {"company_name": "Abantu Staffing Solutions", "email": "tracy@abantustaffingsolutions.co.za"},
-            {"company_name": "Alpha Labour", "email": "wayne@alphalabour.co.za"},
-            {"company_name": "Thomas", "email": "jackiec@thomas.co.za"},
-            {"company_name": "Capacity", "email": "nakitap@capacity.co.za"},
-            {"company_name": "Colven", "email": "natalie@colven.co.za"},
-            {"company_name": "Head Hunt", "email": "admin@headhunt.co.za"},
-            {"company_name": "Icon", "email": "focus@icon.co.za"},
-            {"company_name": "QS Africa", "email": "ADMIN@QSAFRICA.CO.ZA"},
-            {"company_name": "CR Solutions", "email": "chantal@crsolutions.co.za"},
-            {"company_name": "Bell Mark", "email": "zukiswa.nogqala@bell-mark.co.za"},
-            {"company_name": "Pop Up", "email": "nokuthula.ndamase@popup.co.za"},
-            {"company_name": "Seonnyatseng", "email": "Tsholofelo@seonyatseng.co.za"},
-            {"company_name": "TN Electrical", "email": "info@tnelectrical.co.za"},
-            {"company_name": "AAAA", "email": "adminb@aaaa.co.za"},
-            {"company_name": "Ubuhle HR", "email": "reception@ubuhlehr.co.za"},
-            {"company_name": "SITA", "email": "vettinginternship@sita.co.za"},
-            {"company_name": "Careers IT", "email": "leanerships@careersit.co.za"},
-            {"company_name": "TJH Business", "email": "melvin@tjhbusiness.co.za"},
-            {"company_name": "Learner Sphere CD", "email": "recruitment@learnerspherecd.co.za"},
-            {"company_name": "Odin Fin", "email": "alex@odinfin.co.za"},
-            {"company_name": "Platinum Life", "email": "Manaka.Ramukuvhati@platinumlife.co.za"},
-            {"company_name": "Seonnyatseng", "email": "info@seonyatseng.co.za"},
-            {"company_name": "TLO", "email": "Application@tlo.co.za"},
-            {"company_name": "Metanoia Group", "email": "Loren@metanoiagroup.co.za"},
-            {"company_name": "Edu-Wize", "email": "r1@edu-wize.co.za"},
-            {"company_name": "Advanced Assessments", "email": "recruitment@advancedassessments.co.za"},
-            {"company_name": "Enpower", "email": "Angelique.haskins@enpower.co.za"},
-            {"company_name": "ICAN SA", "email": "Jhbsourcing@ican-sa.co.za"},
-            {"company_name": "Talent Development", "email": "Projects@talentdevelopment.co.za"},
-            {"company_name": "Providing Skills", "email": "training1@providingskills.co.za"},
-            {"company_name": "Providing Skills", "email": "thando@providingskills.co.za"},
-            {"company_name": "Camblish", "email": "Info@camblish.co.za"},
-            {"company_name": "Brightrock", "email": "Youniversity@brightrock.co.za"},
-            {"company_name": "Heart Solutions", "email": "admin@heartsolutions.co.za"},
-            {"company_name": "Star Schools", "email": "rnyoka@starschools.co.za"},
-            {"company_name": "Modern Centric", "email": "malvinn@moderncentric.co.za"},
-            {"company_name": "Skills Bureau", "email": "operations2@skillsbureau.co.za"},
-            {"company_name": "Xtensive ICT", "email": "sphiwe@xtensiveict.co.za"},
-            {"company_name": "Engen Oil", "email": "Learnerships@engenoil.com"},
-            {"company_name": "GLU", "email": "ouma@glu.co.za"},
-            {"company_name": "ICAN SA", "email": "Pretty.Dlamini@ican-sa.co.za"},
-            {"company_name": "Vistech", "email": "skills@vistech.co.za"},
-            {"company_name": "Gold Rush", "email": "mpho.moletsane@goldrurush.co.za"},
-            {"company_name": "HCI Skills", "email": "recruitment@hciskills.co.za"},
-            {"company_name": "PMI SA", "email": "boitumelo.makhubela@pmi-sa.co.za"},
-            {"company_name": "Skills Bureau", "email": "talent@skillsbureau.co.za"},
-            {"company_name": "Vital Online", "email": "training@vitalonline.co.za"},
-            {"company_name": "Compare A Quote", "email": "Admin@compareaquote.co.za"},
-            {"company_name": "Besec", "email": "cv@besec.co.za"},
-            {"company_name": "eStudy SA", "email": "trainme@estudysa.co.za"},
-            {"company_name": "Net Campus", "email": "info@netcampus.com"}
-        ]
-        
-        # Add email addresses to the database
-        for data in email_data:
+        # Deduplicate by email (case-insensitive)
+        seen_emails = set()
+        unique_email_data = []
+        for data in learnership_email_data:
+            email_lower = data["email"].lower()
+            if email_lower not in seen_emails:
+                seen_emails.add(email_lower)
+                unique_email_data.append(data)
+
+        # Add unique email addresses to the database
+        for data in unique_email_data:
             email = LearnshipEmail(
-                company_name=data["company_name"], 
+                company_name=data["company_name"],
                 email=data["email"],
                 is_active=True
             )
@@ -2374,7 +2461,7 @@ def init_learnership_emails():
         
         try:
             db.session.commit()
-            print(f"Added {len(email_data)} learnership emails to the database")
+            print(f"Added {len(unique_email_data)} learnership emails to the database")
         except Exception as e:
             db.session.rollback()
             print(f"Error adding learnership emails: {e}")
@@ -2441,6 +2528,7 @@ def internal_error(error):
     """Handle 500 errors"""
     db.session.rollback()
     return render_template('errors/500.html'), 500
+
 
 
 @app.errorhandler(Exception)

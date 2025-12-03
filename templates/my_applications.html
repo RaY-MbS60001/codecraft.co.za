@@ -1,2285 +1,541 @@
 {% extends "base.html" %}
 
-{% block title %}My Applications - CodeCraftCo{% endblock %}
+{% block title %}My Applications{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
-        <div class="nav-left">
-<h2 class="nav-logo">
-    <a href="{{ url_for('user_dashboard') }}" aria-label="CodeCraftCo Dashboard">
-        <div class="logo-container">
-            <div class="word">
-                <div class="letter-box red">
-                    <div class="letter">C</div>
-                </div>
-                <div class="word-text">ode</div>
-            </div>
-            
-            <div class="word">
-                <div class="letter-box blue">
-                    <div class="letter">C</div>
-                </div>
-                <div class="word-text">raft</div>
-            </div>
-            
-            <div class="word">
-                <div class="letter-box orange">
-                    <div class="letter">C</div>
-                </div>
-                <div class="word-text">o</div>
-            </div>
+<style>
+    @import url("{{ url_for('static', filename='css/my-applications.css') }}");
+</style>
+<div class="applications-container">
+    <!-- Header Section -->
+    <div class="applications-header">
+        <div class="header-content">
+            <h1 class="page-title">
+                <i class="icon-briefcase"></i>
+                My Applications
+            </h1>
+            <p class="page-subtitle">Track your learnership applications and email responses</p>
         </div>
-    </a>
-</h2>
 
+        <div class="header-actions">
+            <button onclick="refreshGmailStatuses()" class="btn btn-primary" id="refreshBtn">
+                <i class="icon-refresh"></i>
+                <span>Refresh Email Status</span>
+            </button>
+
+            <button onclick="checkAllResponses()" class="btn btn-outline">
+                <i class="icon-mail"></i>
+                <span>Check Responses</span>
+            </button>
         </div>
-        <div class="nav-right">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true">
-                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-            <a href="{{ url_for('user_dashboard') }}" class="nav-link">Dashboard</a>
-            <div class="user-menu">
-                <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
-                    <div class="user-avatar-small">
-                        {% if current_user.profile_picture %}
-                            <img src="{{ current_user.profile_picture }}" alt="">
-                        {% else %}
-                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+    </div>
+
+    <!-- Statistics Dashboard -->
+    <div class="stats-dashboard">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+                <div class="stat-number">{{ stats.total }}</div>
+                <div class="stat-label">Total Applications</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📤</div>
+            <div class="stat-info">
+                <div class="stat-number">{{ stats.sent_emails }}</div>
+                <div class="stat-label">Emails Sent</div>
+            </div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-icon">💬</div>
+            <div class="stat-info">
+                <div class="stat-number">{{ stats.responses_received }}</div>
+                <div class="stat-label">Responses Received</div>
+            </div>
+        </div>
+
+        <div class="stat-card warning">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-info">
+                <div class="stat-number">{{ stats.pending_responses }}</div>
+                <div class="stat-label">Awaiting Response</div>
+            </div>
+        </div>
+
+        <div class="stat-card info">
+            <div class="stat-icon">🔗</div>
+            <div class="stat-info">
+                <div class="stat-number">{{ stats.gmail_tracked }}</div>
+                <div class="stat-label">Gmail Tracked</div>
+            </div>
+        </div>
+
+        {% if stats.failed_emails > 0 %}
+        <div class="stat-card danger">
+            <div class="stat-icon">❌</div>
+            <div class="stat-info">
+                <div class="stat-number">{{ stats.failed_emails }}</div>
+                <div class="stat-label">Failed Emails</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Update Banner -->
+    {% if needs_update > 0 %}
+    <div class="update-banner">
+        <div class="banner-content">
+            <i class="icon-info"></i>
+            <span>{{ needs_update }} applications may have status updates available</span>
+        </div>
+        <button onclick="autoUpdateStatuses()" class="btn btn-sm btn-primary">
+            Update All
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <button class="tab-btn active" onclick="showTab('all')">
+            All Applications <span class="count">{{ stats.total }}</span>
+        </button>
+        <button class="tab-btn" onclick="showTab('sent')">
+            Email Sent <span class="count">{{ email_status_groups.sent|length + email_status_groups.delivered|length +
+                email_status_groups.read|length }}</span>
+        </button>
+        <button class="tab-btn" onclick="showTab('responded')">
+            Responses <span class="count">{{ email_status_groups.responded|length }}</span>
+        </button>
+        <button class="tab-btn" onclick="showTab('pending')">
+            Pending <span class="count">{{ grouped_applications.pending|length }}</span>
+        </button>
+        <button class="tab-btn" onclick="showTab('failed')">
+            Failed <span class="count">{{ email_status_groups.failed|length }}</span>
+        </button>
+    </div>
+
+    <!-- Applications List -->
+    <div class="applications-list" id="applicationsList">
+        {% if applications %}
+        {% for app in applications %}
+        <div class="application-card" data-app-id="{{ app.id }}" data-status="{{ app.status }}"
+            data-email-status="{{ app.email_status or 'draft' }}">
+            <!-- Application Header -->
+            <div class="app-header">
+                <div class="app-title-section">
+                    <h3 class="app-title">{{ app.learnership_name or 'Application' }}</h3>
+                    <p class="app-company">{{ app.company_name or 'Company not specified' }}</p>
+                </div>
+
+                <div class="app-status-section">
+                    <!-- Application Status Badge -->
+                    <span class="status-badge status-{{ app.status }}">
+                        <i class="status-icon"></i>
+                        {{ app.status.title() }}
+                    </span>
+
+                    <!-- Email Status Badge -->
+                    {% set email_status = app.email_status or 'draft' %}
+                    <span class="email-status-badge email-{{ email_status }}">
+                        <i class="email-status-icon"></i>
+                        {% if email_status == 'draft' %}📝 Draft
+                        {% elif email_status == 'sent' %}📤 Sent
+                        {% elif email_status == 'delivered' %}✅ Delivered
+                        {% elif email_status == 'read' %}👁️ Read
+                        {% elif email_status == 'responded' %}💬 Response
+                        {% elif email_status == 'failed' %}❌ Failed
+                        {% else %}📝 {{ email_status.title() }}
                         {% endif %}
-                    </div>
-                    <span class="user-name">{{ current_user.full_name or current_user.email }}</span>
-                    <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                </button>
-                <div class="user-menu-dropdown" role="menu">
-                    <a href="{{ url_for('edit_profile') }}" class="menu-item" role="menuitem">
-                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                            <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
-                        </svg>
-                        Profile Settings
-                    </a>
-                    <div class="menu-divider"></div>
-                    <a href="{{ url_for('logout') }}" class="menu-item logout" role="menuitem">
-                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
-                        </svg>
-                        Logout
-                    </a>
+                    </span>
                 </div>
             </div>
-        </div>
-    </nav>
 
-    <main class="dashboard-content">
-        <div class="page-header">
-            <h1>My Applications</h1>
-            <p>Track and manage your learnership applications</p>
-        </div>
-
-        <!-- Application Status Tabs -->
-        <div class="status-tabs-wrapper">
-            <div class="status-tabs" role="tablist">
-                <button class="tab-btn active" data-status="all" role="tab" aria-selected="true" id="tab-all">
-                    All <span class="tab-count">{{ applications|length }}</span>
-                </button>
-                <button class="tab-btn" data-status="submitted" role="tab" aria-selected="false" id="tab-submitted">
-                    Submitted <span class="tab-count">{{ grouped_applications.submitted|length }}</span>
-                </button>
-                <button class="tab-btn" data-status="reviewed" role="tab" aria-selected="false" id="tab-reviewed">
-                    Reviewed <span class="tab-count">{{ grouped_applications.reviewed|length }}</span>
-                </button>
-                <button class="tab-btn" data-status="accepted" role="tab" aria-selected="false" id="tab-accepted">
-                    Accepted <span class="tab-count">{{ grouped_applications.accepted|length }}</span>
-                </button>
-                <button class="tab-btn" data-status="rejected" role="tab" aria-selected="false" id="tab-rejected">
-                    Rejected <span class="tab-count">{{ grouped_applications.rejected|length }}</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Applications List -->
-        <div class="applications-wrapper glass-effect">
-            <div class="applications-container" role="tabpanel" aria-labelledby="tab-all">
-                {% if applications %}
-                    <div class="applications-list">
-                        {% for app in applications %}
-                        <div class="application-card detailed" data-status="{{ app.status }}">
-                            <div class="card-main">
-                                <div class="card-left">
-                                    <div class="app-company-logo">
-                                        <img src="{{ app.learnership.company_logo or '/static/images/company-placeholder.svg' }}" 
-                                             alt="{{ app.learnership.company }} logo">
-                                    </div>
-                                </div>
-                                
-                                <div class="card-content">
-                                    <div class="app-header">
-                                        <div class="app-info">
-                                            <h3 class="learnership-title">{{ app.learnership.title }}</h3>
-                                            <div class="company-info">
-                                                <span class="company-name">{{ app.learnership.company }}</span>
-                                                <span class="separator">•</span>
-                                                <span class="location">
-                                                    <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12">
-                                                        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                                    </svg>
-                                                    {{ app.learnership.location }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="app-status">
-                                            <span class="status-badge {{ app.status }}">
-                                                <span class="status-dot"></span>
-                                                {{ app.status|title }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="app-details">
-                                        <div class="detail-item">
-                                            <span class="detail-label">Learnership:</span>
-                                            <span class="detail-value">{{ app.learnership.program_name or app.learnership.title }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span class="detail-label">Duration:</span>
-                                            <span class="detail-value">{{ app.learnership.duration or '12 months' }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span class="detail-label">Applied:</span>
-                                            <span class="detail-value">{{ app.created_at.strftime('%d %b %Y at %H:%M') }}</span>
-                                        </div>
-                                        {% if app.submitted_at %}
-                                        <div class="detail-item">
-                                            <span class="detail-label">Sent:</span>
-                                            <span class="detail-value">{{ app.submitted_at.strftime('%d %b %Y at %H:%M') }}</span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                <div class="card-right">
-                                    <button class="btn-icon view-details" data-app-id="{{ app.id }}" aria-label="View details">
-                                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
-                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Progress timeline -->
-                            <div class="progress-timeline">
-                                <div class="timeline-track">
-                                    <div class="timeline-fill" style="width: {{ '25%' if app.status == 'created' else '50%' if app.status == 'submitted' else '75%' if app.status == 'reviewed' else '100%' if app.status in ['accepted', 'rejected'] else '0%' }}"></div>
-                                </div>
-                                <div class="timeline-steps">
-                                    <div class="timeline-step {{ 'completed' if app.created_at else '' }}">
-                                        <span class="step-marker"></span>
-                                        <span class="step-label">Created</span>
-                                    </div>
-                                    <div class="timeline-step {{ 'completed' if app.submitted_at else '' }}">
-                                        <span class="step-marker"></span>
-                                        <span class="step-label">Sent</span>
-                                    </div>
-                                    <div class="timeline-step {{ 'completed' if app.reviewed_at else '' }}">
-                                        <span class="step-marker"></span>
-                                        <span class="step-label">Reviewed</span>
-                                    </div>
-                                    <div class="timeline-step {{ 'completed' if app.status in ['accepted', 'rejected'] else '' }}">
-                                        <span class="step-marker"></span>
-                                        <span class="step-label">{{ 'Accepted' if app.status == 'accepted' else 'Rejected' if app.status == 'rejected' else 'Decision' }}</span>
-                                    </div>
-                                </div>
-                            </div>
+            <!-- Application Timeline -->
+            <div class="app-timeline">
+                <div class="timeline-item">
+                    <div class="timeline-icon">📝</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Application Created</div>
+                        <div class="timeline-date">
+                            {{ app.submitted_at.strftime('%b %d, %Y at %I:%M %p') if app.submitted_at else 'Unknown
+                            date' }}
                         </div>
-                        {% endfor %}
                     </div>
-                {% else %}
-                    <div class="empty-state">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48" class="empty-state-icon">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <h3>No applications yet</h3>
-                        <p>Start by browsing available learnerships to find opportunities that match your skills</p>
-                        <a href="{{ url_for('learnerships') }}" class="cta-button">Browse Learnerships</a>
+                </div>
+
+                {% if app.sent_at %}
+                <div class="timeline-item">
+                    <div class="timeline-icon">📤</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Email Sent</div>
+                        <div class="timeline-date">{{ app.sent_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
                     </div>
+                </div>
+                {% endif %}
+
+                {% if app.has_response and app.response_received_at %}
+                <div class="timeline-item highlight">
+                    <div class="timeline-icon">💬</div>
+                    <div class="timeline-content">
+                        <div class="timeline-title">Response Received</div>
+                        <div class="timeline-date">
+                            {{ app.response_received_at.strftime('%b %d, %Y at %I:%M %p') }}
+                            {% if app.response_thread_count %}
+                            <span class="response-count">({{ app.response_thread_count }} message{{ 's' if
+                                app.response_thread_count != 1 else '' }})</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
                 {% endif %}
             </div>
+
+            <!-- Application Details -->
+            <div class="app-details">
+                {% if app.sent_at %}
+                <div class="detail-item">
+                    <span class="detail-label">Days Since Sent:</span>
+                    <span class="detail-value">{{ app.sent_at | days_ago }}</span>
+                </div>
+                {% endif %}
+
+                {% if app.gmail_message_id %}
+                <div class="detail-item">
+                    <span class="detail-label">Gmail Tracking:</span>
+                    <span class="detail-value success">
+                        <i class="icon-check"></i> Enabled
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Application Actions -->
+            <div class="app-actions">
+                <button onclick="checkSingleStatus({{ app.id }})" class="action-btn btn-outline">
+                    <i class="icon-refresh"></i>
+                    Check Status
+                </button>
+
+                {% if app.gmail_thread_id %}
+                <a href="https://mail.google.com/mail/u/0/#inbox/{{ app.gmail_thread_id }}" target="_blank"
+                    class="action-btn btn-primary">
+                    <i class="icon-mail"></i>
+                    View in Gmail
+                </a>
+                {% endif %}
+
+                <button onclick="viewApplicationDetails({{ app.id }})" class="action-btn btn-secondary">
+                    <i class="icon-eye"></i>
+                    View Details
+                </button>
+
+                {% if app.email_status == 'failed' %}
+                <button onclick="retryApplication({{ app.id }})" class="action-btn btn-warning">
+                    <i class="icon-repeat"></i>
+                    Retry Send
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Response Highlight -->
+            {% if app.has_response %}
+            <div class="response-highlight">
+                <div class="response-icon">🎉</div>
+                <div class="response-text">
+                    <strong>Great news!</strong> You've received a response to this application.
+                    <a href="https://mail.google.com/mail/u/0/#inbox/{{ app.gmail_thread_id }}" target="_blank">
+                        View conversation →
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
-        
-    </main>
+        {% endfor %}
+        {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <div class="empty-icon">📄</div>
+            <h3>No Applications Yet</h3>
+            <p>You haven't submitted any applications yet. Start applying to learnerships to see them here!</p>
+            <a href="{{ url_for('learnerships') }}" class="btn btn-primary">
+                <i class="icon-plus"></i>
+                Browse Learnerships
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p>Updating email statuses...</p>
+    </div>
+</div>
+
+<!-- Application Details Modal -->
+<div id="appDetailsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Application Details</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Dynamic content will be loaded here -->
+        </div>
+    </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // User menu dropdown functionality
-    const menuTrigger = document.querySelector('.user-menu-trigger');
-    const menuDropdown = document.querySelector('.user-menu-dropdown');
-    
-    if (menuTrigger && menuDropdown) {
-        menuTrigger.addEventListener('click', function() {
-            const isExpanded = this.getAttribute('aria-expanded') === 'true';
-            this.setAttribute('aria-expanded', !isExpanded);
-            menuDropdown.classList.toggle('active');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
-                menuTrigger.setAttribute('aria-expanded', 'false');
-                menuDropdown.classList.remove('active');
+    // Tab Management
+    function showTab(tabName) {
+        const cards = document.querySelectorAll('.application-card');
+        const tabs = document.querySelectorAll('.tab-btn');
+
+        // Update active tab
+        tabs.forEach(tab => tab.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Filter cards
+        cards.forEach(card => {
+            const status = card.dataset.status;
+            const emailStatus = card.dataset.emailStatus;
+
+            let show = false;
+
+            switch (tabName) {
+                case 'all':
+                    show = true;
+                    break;
+                case 'sent':
+                    show = ['sent', 'delivered', 'read'].includes(emailStatus);
+                    break;
+                case 'responded':
+                    show = emailStatus === 'responded';
+                    break;
+                case 'pending':
+                    show = status === 'pending';
+                    break;
+                case 'failed':
+                    show = emailStatus === 'failed';
+                    break;
             }
+
+            card.style.display = show ? 'block' : 'none';
         });
     }
-    
-    // Tab functionality with improved accessibility
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const applications = document.querySelectorAll('.application-card');
-    
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Update active tab
-            tabBtns.forEach(b => {
-                b.classList.remove('active');
-                b.setAttribute('aria-selected', 'false');
-            });
-            
-            this.classList.add('active');
-            this.setAttribute('aria-selected', 'true');
-            
-            // Filter applications with animation
-            const status = this.dataset.status;
-            const container = document.querySelector('.applications-container');
-            container.setAttribute('aria-labelledby', `tab-${status}`);
-            
-            applications.forEach(app => {
-                if (status === 'all' || app.dataset.status === status) {
-                    app.classList.remove('hidden');
-                    setTimeout(() => {
-                        app.classList.remove('fade-out');
-                    }, 10);
+
+    // Gmail Status Functions
+    function refreshGmailStatuses() {
+        showLoading('Refreshing email statuses...');
+
+        fetch('/update_application_statuses', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showNotification(`Updated ${data.updated_count} applications!`, 'success');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    app.classList.add('fade-out');
-                    setTimeout(() => {
-                        app.classList.add('hidden');
-                    }, 300);
+                    showNotification('Error updating statuses: ' + (data.error || 'Unknown error'), 'error');
                 }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                showNotification('Network error while updating statuses', 'error');
             });
-        });
-    });
-    
-    // View details button functionality
-    const detailButtons = document.querySelectorAll('.view-details');
-    detailButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const appId = this.dataset.appId;
-            console.log(`Viewing details for application ${appId}`);
-            // Redirect to details page
-            // window.location.href = `/applications/${appId}`;
-        });
-    });
-});
+    }
+
+    function checkAllResponses() {
+        showLoading('Checking for new responses...');
+
+        fetch('/bulk-check-responses')
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    if (data.responses_found > 0) {
+                        showNotification(`Found ${data.responses_found} new responses! 🎉`, 'success');
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showNotification('No new responses found', 'info');
+                    }
+                } else {
+                    showNotification('Error checking responses: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                showNotification('Network error while checking responses', 'error');
+            });
+    }
+
+    function checkSingleStatus(appId) {
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="icon-loading"></i> Checking...';
+        button.disabled = true;
+
+        fetch(`/api/application_status/${appId}`)
+            .then(response => response.json())
+            .then(data => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+
+                console.log('Status data:', data);
+                showNotification('Status updated!', 'info');
+
+                // Update the card with new status if needed
+                // You can add DOM manipulation here to update the status badges
+            })
+            .catch(error => {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                console.error('Error:', error);
+                showNotification('Error checking status', 'error');
+            });
+    }
+
+    function autoUpdateStatuses() {
+        showLoading('Auto-updating recent applications...');
+
+        fetch('/auto-update-gmail-status')
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    if (data.updated_count > 0) {
+                        setTimeout(() => location.reload(), 1500);
+                    }
+                } else {
+                    showNotification('Error: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                console.error('Error:', error);
+                showNotification('Network error during auto-update', 'error');
+            });
+    }
+
+    // UI Helper Functions
+    function showLoading(message = 'Loading...') {
+        const overlay = document.getElementById('loadingOverlay');
+        const text = overlay.querySelector('p');
+        text.textContent = message;
+        overlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+        <div class="notification-content">
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+
+        // Add to page
+        document.body.appendChild(notification);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    function viewApplicationDetails(appId) {
+        // Show modal with application details
+        const modal = document.getElementById('appDetailsModal');
+        const modalBody = document.getElementById('modalBody');
+
+        modalBody.innerHTML = '<div class="loading-spinner"></div>';
+        modal.style.display = 'flex';
+
+        fetch(`/api/application_status/${appId}`)
+            .then(response => response.json())
+            .then(data => {
+                modalBody.innerHTML = `
+            <div class="detail-grid">
+                <div class="detail-row">
+                    <span class="label">Application ID:</span>
+                    <span class="value">${data.id}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Status:</span>
+                    <span class="value">${data.status}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Email Status:</span>
+                    <span class="value">${data.email_status}</span>
+                </div>
+                ${data.sent_at ? `
+                <div class="detail-row">
+                    <span class="label">Sent Date:</span>
+                    <span class="value">${new Date(data.sent_at).toLocaleString()}</span>
+                </div>` : ''}
+                ${data.gmail_message_id ? `
+                <div class="detail-row">
+                    <span class="label">Gmail Message ID:</span>
+                    <span class="value font-mono">${data.gmail_message_id}</span>
+                </div>` : ''}
+                ${data.has_response ? `
+                <div class="detail-row">
+                    <span class="label">Response Count:</span>
+                    <span class="value">${data.response_count} messages</span>
+                </div>` : ''}
+                ${data.days_since_sent ? `
+                <div class="detail-row">
+                    <span class="label">Days Since Sent:</span>
+                    <span class="value">${data.days_since_sent} days</span>
+                </div>` : ''}
+            </div>
+            <div class="modal-actions">
+                ${data.gmail_url ? `<a href="${data.gmail_url}" target="_blank" class="btn btn-primary">View in Gmail</a>` : ''}
+                <button onclick="closeModal()" class="btn btn-secondary">Close</button>
+            </div>
+        `;
+            })
+            .catch(error => {
+                modalBody.innerHTML = `<div class="error">Error loading details: ${error.message}</div>`;
+            });
+    }
+
+    function closeModal() {
+        document.getElementById('appDetailsModal').style.display = 'none';
+    }
+
+    function retryApplication(appId) {
+        if (confirm('Are you sure you want to retry sending this application?')) {
+            showNotification('Retry functionality coming soon!', 'info');
+        }
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('appDetailsModal');
+        if (event.target === modal) {
+            closeModal();
+        }
+    }
 </script>
-
-<style>
-/* Layout structure */
-.dashboard-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-}
-
-.dashboard-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 16px;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    overflow: hidden;
-}
-
-/* Fixed header elements */
-.page-header {
-    margin-bottom: 16px;
-    flex-shrink: 0;
-}
-
-.page-header h1 {
-    font-size: 20px;
-    font-weight: 700;
-    margin-bottom: 2px;
-    color: var(--text-primary);
-}
-
-.page-header p {
-    color: var(--text-secondary);
-    font-size: 13px;
-}
-
-/* Status tabs */
-.status-tabs-wrapper {
-    margin-bottom: 16px;
-    flex-shrink: 0;
-}
-
-.status-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--border-color);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-}
-
-.status-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.tab-btn {
-    padding: 6px 10px;
-    background: none;
-    border: none;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all var(--transition-normal);
-}
-
-.tab-btn:hover {
-    color: var(--text-primary);
-}
-
-.tab-btn.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
-}
-
-.tab-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    margin-left: 4px;
-    background: var(--background);
-    color: var(--text-secondary);
-    border-radius: 8px;
-    font-size: 10px;
-    font-weight: 600;
-}
-
-.tab-btn.active .tab-count {
-    background: var(--primary-light);
-    color: var(--primary-color);
-}
-
-/* Scrollable applications wrapper */
-.applications-wrapper {
-    flex: 1;
-    overflow: hidden;
-    border-radius: var(--radius-md);
-    display: flex;
-    flex-direction: column;
-}
-
-.applications-container {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 12px;
-}
-
-/* Custom scrollbar */
-.applications-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.applications-container::-webkit-scrollbar-track {
-    background: var(--surface-hover);
-    border-radius: 3px;
-}
-
-.applications-container::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-}
-
-.applications-container::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
-}
-
-/* Applications list */
-.applications-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* Detailed card design */
-.application-card.detailed {
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    transition: all var(--transition-fast);
-    overflow: hidden;
-}
-
-.application-card.detailed:hover {
-    border-color: var(--primary-light);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.card-main {
-    display: flex;
-    align-items: flex-start;
-    padding: 12px 16px;
-}
-
-.fade-out {
-    opacity: 0;
-    transform: scale(0.98);
-}
-
-.hidden {
-    display: none;
-}
-
-/* Card sections */
-.card-left {
-    flex-shrink: 0;
-    margin-right: 12px;
-}
-
-.app-company-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    background: var(--background);
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.app-company-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.card-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 10px;
-}
-
-.app-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.learnership-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-    line-height: 1.3;
-}
-
-.company-info {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--text-secondary);
-}
-
-.company-name {
-    font-weight: 500;
-}
-
-.location {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
-
-.location svg {
-    opacity: 0.7;
-}
-
-.separator {
-    color: var(--text-tertiary);
-    font-size: 10px;
-}
-
-.app-status {
-    flex-shrink: 0;
-}
-
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.status-badge.created {
-    background-color: var(--text-tertiary);
-    color: white;
-}
-
-.status-badge.submitted {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
-}
-
-.status-badge.reviewed {
-    background-color: var(--warning-light);
-    color: var(--warning-color);
-}
-
-.status-badge.accepted {
-    background-color: var(--success-light);
-    color: var(--success-color);
-}
-
-.status-badge.rejected {
-    background-color: var(--danger-light);
-    color: var(--danger-color);
-}
-
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: currentColor;
-}
-
-/* Application details */
-.app-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 8px;
-    font-size: 12px;
-}
-
-.detail-item {
-    display: flex;
-    gap: 4px;
-}
-
-.detail-label {
-    color: var(--text-tertiary);
-    font-weight: 500;
-}
-
-.detail-value {
-    color: var(--text-secondary);
-}
-
-.card-right {
-    flex-shrink: 0;
-    margin-left: 12px;
-}
-
-.btn-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-md);
-    border: none;
-    background: var(--surface-hover);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.btn-icon:hover {
-    background: var(--primary-light);
-    color: var(--primary-color);
-}
-
-/* Progress timeline */
-.progress-timeline {
-    padding: 12px 16px;
-    background: var(--background);
-    border-top: 1px solid var(--border-color);
-}
-
-.timeline-track {
-    height: 4px;
-    background: var(--border-color);
-    border-radius: 2px;
-    position: relative;
-    margin-bottom: 8px;
-}
-
-.timeline-fill {
-    height: 100%;
-    background: var(--primary-color);
-    border-radius: 2px;
-    transition: width var(--transition-normal);
-}
-
-.timeline-steps {
-    display: flex;
-    justify-content: space-between;
-}
-
-.timeline-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: var(--text-tertiary);
-}
-
-.timeline-step.completed {
-    color: var(--primary-color);
-}
-
-.step-marker {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--border-color);
-    position: relative;
-}
-
-.timeline-step.completed .step-marker {
-    background: var(--primary-color);
-}
-
-.step-label {
-    white-space: nowrap;
-}
-
-/* Empty state */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 40px 20px;
-    margin: auto;
-}
-
-.empty-state-icon {
-    color: var(--text-tertiary);
-    margin-bottom: 16px;
-}
-
-.empty-state h3 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: var(--text-primary);
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    max-width: 280px;
-    margin: 0 auto 20px;
-    font-size: 13px;
-}
-
-.cta-button {
-    display: inline-block;
-    padding: 7px 14px;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: var(--radius-sm);
-    font-weight: 500;
-    font-size: 13px;
-    text-decoration: none;
-    transition: background-color var(--transition-fast);
-}
-
-.cta-button:hover {
-    background-color: var(--primary-hover);
-    color: white;
-}
-
-/* Navigation styles */
-.dashboard-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 16px;
-    height: 52px;
-    background-color: var(--surface);
-    box-shadow: var(--shadow-sm);
-    flex-shrink: 0;
-}
-
-.nav-left {
-    display: flex;
-    align-items: center;
-}
-
-.nav-logo {
-    font-size: 17px;
-    font-weight: 700;
-    margin: 0;
-}
-
-.nav-logo a {
-    color: var(--text-primary);
-    text-decoration: none;
-}
-
-.nav-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.nav-link {
-    display: flex;
-    align-items: center;
-    padding: 5px 10px;
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 13px;
-    transition: background-color var(--transition-fast);
-}
-
-.nav-link:hover {
-    background-color: var(--surface-hover);
-}
-
-/* User menu */
-.user-menu {
-    position: relative;
-}
-
-.user-menu-trigger {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: none;
-    border: none;
-    padding: 5px 8px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
-}
-
-.user-menu-trigger:hover {
-    background-color: var(--surface-hover);
-}
-
-.user-avatar-small {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: var(--primary-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-color);
-    font-weight: 600;
-    font-size: 11px;
-    overflow: hidden;
-}
-
-.user-avatar-small img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.user-name {
-    font-weight: 500;
-    font-size: 13px;
-    max-width: 100px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.chevron-icon {
-    width: 14px;
-    height: 14px;
-    transition: transform var(--transition-fast);
-}
-
-.user-menu-trigger[aria-expanded="true"] .chevron-icon {
-    transform: rotate(180deg);
-}
-
-.user-menu-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    background: var(--surface);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-lg);
-    min-width: 150px;
-    overflow: hidden;
-    z-index: 100;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-8px);
-    transition: all var(--transition-normal);
-}
-
-.user-menu-dropdown.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    color: var(--text-primary);
-    text-decoration: none;
-    font-size: 13px;
-    transition: background-color var(--transition-fast);
-}
-
-.menu-item svg {
-    width: 14px;
-    height: 14px;
-}
-
-.menu-item:hover {
-    background-color: var(--surface-hover);
-}
-
-.menu-item.logout {
-    color: var(--danger-color);
-}
-
-.menu-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 2px 0;
-}
-
-/* Responsive design */
-/* Enhanced Mobile Styles */
-
-/* Mobile-first approach - Base styles for mobile */
-.dashboard-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-}
-
-/* Mobile Navigation Improvements */
-.dashboard-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 12px;
-    height: 56px; /* Increased for better touch targets */
-    background-color: var(--surface);
-    box-shadow: var(--shadow-sm);
-    flex-shrink: 0;
-    position: relative;
-}
-
-/* Mobile Logo Adjustments */
-.nav-logo {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.nav-logo a {
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    height: 100%;
-}
-
-.logo-container {
-    display: flex;
-    align-items: center;
-    gap: 4px; /* Reduced gap for mobile */
-    background: transparent;
-    transform: translateY(0); /* Reset transform for mobile */
-}
-
-.word {
-    display: flex;
-    align-items: center;
-    gap: 1px; /* Reduced gap */
-}
-
-.letter-box {
-    width: 24px; /* Smaller for mobile */
-    height: 24px;
-    background-color: rgba(51, 51, 51, 0.9);
-    border: 1px solid #fff; /* Thinner border */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    backdrop-filter: blur(10px);
-}
-
-.letter-box.red {
-    box-shadow: 0 0 8px #ff0000, 0 0 16px #ff0000;
-}
-
-.letter-box.blue {
-    box-shadow: 0 0 8px #0099ff, 0 0 16px #0099ff;
-}
-
-.letter-box.orange {
-    box-shadow: 0 0 8px #ff8800, 0 0 16px #ff8800;
-}
-
-.letter {
-    font-size: 14px; /* Smaller font */
-    font-weight: bold;
-    color: #fff;
-    text-align: center;
-    font-family: 'Arial', sans-serif;
-    line-height: 1;
-}
-
-.word-text {
-    font-size: 14px; /* Smaller font */
-    font-weight: normal;
-    color: #fff;
-    margin-left: 2px; /* Reduced margin */
-    font-family: 'Arial', sans-serif;
-    text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
-    line-height: 1;
-}
-
-/* Mobile Navigation Right Side */
-.nav-right {
-    display: flex;
-    align-items: center;
-    gap: 4px; /* Reduced gap */
-}
-
-.nav-link {
-    display: none; /* Hide dashboard link on mobile */
-}
-
-/* Mobile User Menu */
-.user-menu-trigger {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: none;
-    border: none;
-    padding: 6px 8px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
-    min-height: 44px; /* Better touch target */
-}
-
-.user-avatar-small {
-    width: 32px; /* Larger for mobile */
-    height: 32px;
-    border-radius: 50%;
-    background: var(--primary-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-color);
-    font-weight: 600;
-    font-size: 14px;
-    overflow: hidden;
-}
-
-.user-name {
-    font-weight: 500;
-    font-size: 14px;
-    max-width: 120px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Mobile Dashboard Content */
-.dashboard-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    max-width: 100%;
-    margin: 0;
-    width: 100%;
-    overflow: hidden;
-}
-
-/* Mobile Page Header */
-.page-header {
-    margin-bottom: 16px;
-    flex-shrink: 0;
-    padding: 0 4px;
-}
-
-.page-header h1 {
-    font-size: 24px; /* Larger for mobile */
-    font-weight: 700;
-    margin-bottom: 4px;
-    color: var(--text-primary);
-}
-
-.page-header p {
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-/* Mobile Status Tabs */
-.status-tabs-wrapper {
-    margin-bottom: 16px;
-    flex-shrink: 0;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.status-tabs {
-    display: flex;
-    border-bottom: 2px solid var(--border-color);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 0;
-    min-width: max-content;
-    padding: 0 4px;
-}
-
-.status-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.tab-btn {
-    padding: 12px 16px; /* Larger touch targets */
-    background: none;
-    border: none;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    border-bottom: 3px solid transparent;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all var(--transition-normal);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.tab-btn:hover {
-    color: var(--text-primary);
-    background-color: var(--surface-hover);
-}
-
-.tab-btn.active {
-    color: var(--primary-color);
-    border-bottom-color: var(--primary-color);
-    background-color: var(--primary-light);
-}
-
-.tab-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    background: var(--background);
-    color: var(--text-secondary);
-    border-radius: 10px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.tab-btn.active .tab-count {
-    background: var(--primary-color);
-    color: white;
-}
-
-/* Mobile Applications Wrapper */
-.applications-wrapper {
-    flex: 1;
-    overflow: hidden;
-    border-radius: var(--radius-lg);
-    display: flex;
-    flex-direction: column;
-    background: var(--surface);
-    border: 1px solid var(--border-color);
-}
-
-.applications-container {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 12px;
-    -webkit-overflow-scrolling: touch;
-}
-
-/* Mobile Applications List */
-.applications-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* Mobile Application Cards */
-.application-card.detailed {
-    background: var(--background);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    transition: all var(--transition-fast);
-    overflow: hidden;
-}
-
-.application-card.detailed:hover {
-    border-color: var(--primary-light);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.card-main {
-    display: flex;
-    align-items: flex-start;
-    padding: 16px;
-    gap: 12px;
-}
-
-.card-left {
-    flex-shrink: 0;
-}
-
-.app-company-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border-color);
-}
-
-.app-company-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.card-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.app-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.learnership-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 6px;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.company-info {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    font-size: 14px;
-    color: var(--text-secondary);
-}
-
-.company-name {
-    font-weight: 500;
-}
-
-.location {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.location svg {
-    opacity: 0.7;
-    width: 14px;
-    height: 14px;
-}
-
-.separator {
-    color: var(--text-tertiary);
-    font-size: 12px;
-}
-
-.app-status {
-    flex-shrink: 0;
-}
-
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: currentColor;
-}
-
-/* Mobile Application Details */
-.app-details {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 14px;
-}
-
-.detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.detail-item:last-child {
-    border-bottom: none;
-}
-
-.detail-label {
-    color: var(--text-tertiary);
-    font-weight: 500;
-    flex-shrink: 0;
-}
-
-.detail-value {
-    color: var(--text-secondary);
-    text-align: right;
-    font-weight: 400;
-}
-
-.card-right {
-    flex-shrink: 0;
-}
-
-.btn-icon {
-    width: 44px; /* Larger touch target */
-    height: 44px;
-    border-radius: var(--radius-lg);
-    border: none;
-    background: var(--surface-hover);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.btn-icon:hover {
-    background: var(--primary-light);
-    color: var(--primary-color);
-}
-
-.btn-icon svg {
-    width: 24px;
-    height: 24px;
-}
-
-/* Mobile Progress Timeline */
-.progress-timeline {
-    padding: 16px;
-    background: var(--surface);
-    border-top: 1px solid var(--border-color);
-}
-
-.timeline-track {
-    height: 6px;
-    background: var(--border-color);
-    border-radius: 3px;
-    position: relative;
-    margin-bottom: 12px;
-}
-
-.timeline-fill {
-    height: 100%;
-    background: var(--primary-color);
-    border-radius: 3px;
-    transition: width var(--transition-normal);
-}
-
-.timeline-steps {
-    display: flex;
-    justify-content: space-between;
-}
-
-.timeline-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-tertiary);
-    flex: 1;
-    text-align: center;
-}
-
-.timeline-step.completed {
-    color: var(--primary-color);
-}
-
-.step-marker {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--border-color);
-    position: relative;
-    border: 2px solid var(--surface);
-}
-
-.timeline-step.completed .step-marker {
-    background: var(--primary-color);
-}
-
-.step-label {
-    white-space: nowrap;
-    font-weight: 500;
-}
-
-/* Mobile Empty State */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 60px 20px;
-    margin: auto;
-}
-
-.empty-state-icon {
-    color: var(--text-tertiary);
-    margin-bottom: 20px;
-    width: 64px;
-    height: 64px;
-}
-
-.empty-state h3 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: var(--text-primary);
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    max-width: 280px;
-    margin: 0 auto 24px;
-    font-size: 16px;
-    line-height: 1.5;
-}
-
-.cta-button {
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: var(--radius-lg);
-    font-weight: 500;
-    font-size: 16px;
-    text-decoration: none;
-    transition: background-color var(--transition-fast);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.cta-button:hover {
-    background-color: var(--primary-hover);
-    color: white;
-}
-
-/* Mobile User Menu Dropdown */
-.user-menu-dropdown {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    min-width: 200px;
-    overflow: hidden;
-    z-index: 100;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-8px);
-    transition: all var(--transition-normal);
-    border: 1px solid var(--border-color);
-}
-
-.user-menu-dropdown.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    color: var(--text-primary);
-    text-decoration: none;
-    font-size: 16px;
-    transition: background-color var(--transition-fast);
-    min-height: 44px;
-}
-
-.menu-item svg {
-    width: 20px;
-    height: 20px;
-}
-
-.menu-item:hover {
-    background-color: var(--surface-hover);
-}
-
-.menu-item.logout {
-    color: var(--danger-color);
-}
-
-.menu-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 4px 0;
-}
-
-/* Tablet Adjustments */
-@media (min-width: 640px) {
-    .nav-link {
-        display: flex;
-    }
-    
-    .user-name {
-        display: block;
-    }
-    
-    .dashboard-content {
-        padding: 16px;
-    }
-    
-    .letter-box {
-        width: 28px;
-        height: 28px;
-    }
-    
-    .letter {
-        font-size: 16px;
-    }
-    
-    .word-text {
-        font-size: 16px;
-    }
-    
-    .app-details {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-    
-    .detail-item {
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-    }
-    
-    .detail-value {
-        text-align: left;
-    }
-}
-
-/* Desktop Adjustments */
-@media (min-width: 1024px) {
-    .dashboard-nav {
-        padding: 0 24px;
-        height: 64px;
-    }
-    
-    .nav-right {
-        gap: 12px;
-    }
-    
-    .logo-container {
-        gap: 8px;
-    }
-    
-    .letter-box {
-        width: 35px;
-        height: 35px;
-        border: 2px solid #fff;
-    }
-    
-    .letter {
-        font-size: 20px;
-    }
-    
-    .word-text {
-        font-size: 20px;
-        margin-left: 3px;
-    }
-    
-    .dashboard-content {
-        padding: 24px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    .page-header h1 {
-        font-size: 28px;
-    }
-    
-    .page-header p {
-        font-size: 16px;
-    }
-    
-    .status-tabs-wrapper {
-        margin-bottom: 24px;
-    }
-    
-    .tab-btn {
-        padding: 12px 20px;
-        font-size: 14px;
-    }
-    
-    .applications-list {
-        gap: 16px;
-    }
-    
-    .card-main {
-        padding: 20px;
-    }
-    
-    .app-company-logo {
-        width: 56px;
-        height: 56px;
-    }
-    
-    .learnership-title {
-        font-size: 18px;
-    }
-    
-    .app-details {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-    }
-    
-    .detail-item {
-        flex-direction: row;
-        justify-content: flex-start;
-        gap: 8px;
-        border-bottom: none;
-        padding: 0;
-    }
-    
-    .detail-value {
-        text-align: left;
-    }
-    
-    .btn-icon {
-        width: 36px;
-        height: 36px;
-    }
-    
-    .btn-icon svg {
-        width: 20px;
-        height: 20px;
-    }
-    
-    .progress-timeline {
-        padding: 20px;
-    }
-    
-    .timeline-steps {
-        margin-top: 16px;
-    }
-    
-    .timeline-step {
-        font-size: 13px;
-    }
-    
-    .user-menu-dropdown {
-        min-width: 180px;
-    }
-    
-    .menu-item {
-        padding: 12px 16px;
-        font-size: 14px;
-    }
-    
-    .menu-item svg {
-        width: 16px;
-        height: 16px;
-    }
-}
-
-/* Extra Large Screens */
-@media (min-width: 1440px) {
-    .dashboard-content {
-        max-width: 1400px;
-        padding: 32px;
-    }
-    
-    .applications-list {
-        gap: 20px;
-    }
-    
-    .card-main {
-        padding: 24px;
-    }
-    
-    .app-company-logo {
-        width: 64px;
-        height: 64px;
-    }
-    
-    .learnership-title {
-        font-size: 20px;
-    }
-    
-    .app-details {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-    }
-}
-
-/* Ultra Small Screens (< 360px) */
-@media (max-width: 359px) {
-    .dashboard-nav {
-        padding: 0 8px;
-        height: 52px;
-    }
-    
-    .logo-container {
-        gap: 2px;
-    }
-    
-    .letter-box {
-        width: 20px;
-        height: 20px;
-    }
-    
-    .letter {
-        font-size: 12px;
-    }
-    
-    .word-text {
-        font-size: 12px;
-        margin-left: 1px;
-    }
-    
-    .user-avatar-small {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-    }
-    
-    .user-name {
-        display: none;
-    }
-    
-    .dashboard-content {
-        padding: 8px;
-    }
-    
-    .page-header h1 {
-        font-size: 20px;
-    }
-    
-    .page-header p {
-        font-size: 13px;
-    }
-    
-    .tab-btn {
-        padding: 10px 12px;
-        font-size: 13px;
-    }
-    
-    .applications-list {
-        gap: 8px;
-    }
-    
-    .card-main {
-        padding: 12px;
-        gap: 8px;
-    }
-    
-    .app-company-logo {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .learnership-title {
-        font-size: 14px;
-    }
-    
-    .company-info {
-        font-size: 12px;
-    }
-    
-    .app-details {
-        font-size: 12px;
-    }
-    
-    .detail-item {
-        padding: 4px 0;
-    }
-    
-    .btn-icon {
-        width: 36px;
-        height: 36px;
-    }
-    
-    .btn-icon svg {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .progress-timeline {
-        padding: 12px;
-    }
-    
-    .timeline-step {
-        font-size: 10px;
-    }
-    
-    .step-marker {
-        width: 8px;
-        height: 8px;
-    }
-    
-    .empty-state {
-        padding: 40px 16px;
-    }
-    
-    .empty-state-icon {
-        width: 48px;
-        height: 48px;
-    }
-    
-    .empty-state h3 {
-        font-size: 18px;
-    }
-    
-    .empty-state p {
-        font-size: 14px;
-    }
-    
-    .cta-button {
-        padding: 10px 20px;
-        font-size: 14px;
-    }
-}
-
-/* Landscape Phone Orientation */
-@media (max-width: 767px) and (orientation: landscape) {
-    .dashboard-nav {
-        height: 48px;
-    }
-    
-    .page-header {
-        margin-bottom: 12px;
-    }
-    
-    .page-header h1 {
-        font-size: 20px;
-    }
-    
-    .status-tabs-wrapper {
-        margin-bottom: 12px;
-    }
-    
-    .applications-container {
-        padding: 8px;
-    }
-    
-    .card-main {
-        padding: 12px;
-    }
-    
-    .progress-timeline {
-        padding: 12px;
-    }
-    
-    .timeline-step {
-        font-size: 10px;
-    }
-    
-    .empty-state {
-        padding: 30px 20px;
-    }
-}
-
-/* Touch Device Optimizations */
-@media (hover: none) and (pointer: coarse) {
-    .tab-btn {
-        min-height: 48px;
-        padding: 12px 16px;
-    }
-    
-    .btn-icon {
-        min-width: 48px;
-        min-height: 48px;
-    }
-    
-    .user-menu-trigger {
-        min-height: 48px;
-        padding: 8px 12px;
-    }
-    
-    .menu-item {
-        min-height: 48px;
-        padding: 12px 16px;
-    }
-    
-    .cta-button {
-        min-height: 48px;
-        padding: 12px 24px;
-    }
-    
-    /* Increase touch targets */
-    .application-card.detailed {
-        margin-bottom: 4px;
-    }
-    
-    .application-card.detailed:hover {
-        /* Remove hover effects on touch devices */
-        border-color: var(--border-color);
-        box-shadow: none;
-    }
-}
-
-/* Safe Area Insets for notched devices */
-@supports (padding: max(0px)) {
-    .dashboard-nav {
-        padding-left: max(12px, env(safe-area-inset-left));
-        padding-right: max(12px, env(safe-area-inset-right));
-    }
-    
-    .dashboard-content {
-        padding-left: max(12px, env(safe-area-inset-left));
-        padding-right: max(12px, env(safe-area-inset-right));
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
-}
-
-/* Improved Scrollbar Styling */
-.applications-container {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
-}
-
-.applications-container::-webkit-scrollbar {
-    width: 8px;
-}
-
-.applications-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.applications-container::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 4px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-}
-
-.applications-container::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
-    background-clip: padding-box;
-}
-
-/* Status Tab Horizontal Scrolling Indicators */
-.status-tabs-wrapper {
-    position: relative;
-}
-
-.status-tabs-wrapper::before,
-.status-tabs-wrapper::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 20px;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.status-tabs-wrapper::before {
-    left: 0;
-    background: linear-gradient(to right, var(--surface), transparent);
-}
-
-.status-tabs-wrapper::after {
-    right: 0;
-    background: linear-gradient(to left, var(--surface), transparent);
-}
-
-/* Focus Improvements for Mobile */
-.tab-btn:focus,
-.btn-icon:focus,
-.user-menu-trigger:focus,
-.menu-item:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-/* Reduce Motion Preferences */
-@media (prefers-reduced-motion: reduce) {
-    .application-card,
-    .tab-btn,
-    .btn-icon,
-    .user-menu-trigger,
-    .menu-item,
-    .timeline-fill {
-        transition: none;
-    }
-    
-    .user-menu-dropdown {
-        transition: none;
-    }
-}
-
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-    .application-card.detailed {
-        border: 2px solid var(--text-primary);
-    }
-    
-    .status-badge {
-        border: 1px solid currentColor;
-    }
-    
-    .btn-icon {
-        border: 1px solid var(--text-secondary);
-    }
-    
-    .tab-btn.active {
-        background-color: var(--primary-color);
-        color: white;
-    }
-}
-
-/* Dark Mode Specific Mobile Adjustments */
-@media (prefers-color-scheme: dark) {
-    .application-card.detailed {
-        background: var(--surface);
-        border-color: var(--border-color);
-    }
-    
-    .progress-timeline {
-        background: var(--background);
-    }
-    
-    .tab-btn.active {
-        background-color: rgba(var(--primary-rgb), 0.2);
-    }
-    
-    .user-menu-dropdown {
-        background: var(--surface);
-        border-color: var(--border-color);
-    }
-}
-
-/* Loading States for Mobile */
-.application-card.loading {
-    opacity: 0.7;
-    pointer-events: none;
-    position: relative;
-    overflow: hidden;
-}
-
-.application-card.loading::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        transparent
-    );
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% {
-        left: -100%;
-    }
-    100% {
-        left: 100%;
-    }
-}
-
-/* Enhanced Typography Scale for Mobile */
-.mobile-text-xs { font-size: 12px; }
-.mobile-text-sm { font-size: 14px; }
-.mobile-text-base { font-size: 16px; }
-.mobile-text-lg { font-size: 18px; }
-.mobile-text-xl { font-size: 20px; }
-.mobile-text-2xl { font-size: 24px; }
-
-/* Utility Classes for Mobile Spacing */
-.mobile-p-2 { padding: 8px; }
-.mobile-p-3 { padding: 12px; }
-.mobile-p-4 { padding: 16px; }
-.mobile-p-6 { padding: 24px; }
-
-.mobile-m-2 { margin: 8px; }
-.mobile-m-3 { margin: 12px; }
-.mobile-m-4 { margin: 16px; }
-.mobile-m-6 { margin: 24px; }
-
-/* Mobile-specific Helper Classes */
-.mobile-only {
-    display: block;
-}
-
-.desktop-only {
-    display: none;
-}
-
-@media (min-width: 768px) {
-    .mobile-only {
-        display: none;
-    }
-    
-    .desktop-only {
-        display: block;
-    }
-}
-
-/* Improved Mobile Card Interactions */
-.application-card.detailed {
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-
-.application-card.detailed:active {
-    transform: scale(0.98);
-}
-
-/* Mobile Pull-to-Refresh Indicator */
-.applications-container {
-    overscroll-behavior: contain;
-}
-
-/* Enhanced Mobile Empty State */
-@media (max-width: 639px) {
-    .empty-state {
-        padding: 48px 16px;
-    }
-    
-    .empty-state-icon {
-        width: 56px;
-        height: 56px;
-        margin-bottom: 16px;
-    }
-    
-    .empty-state h3 {
-        font-size: 18px;
-        margin-bottom: 8px;
-    }
-    
-    .empty-state p {
-        font-size: 14px;
-        line-height: 1.5;
-        margin-bottom: 20px;
-    }
-    
-    .cta-button {
-        width: 100%;
-        max-width: 280px;
-        justify-content: center;
-    }
-}
-
-/* Mobile Status Badge Adjustments */
-@media (max-width: 639px) {
-    .status-badge {
-        font-size: 11px;
-        padding: 4px 8px;
-    }
-    
-    .status-dot {
-        width: 6px;
-        height: 6px;
-    }
-}
-
-/* Mobile Timeline Improvements */
-@media (max-width: 639px) {
-    .timeline-track {
-        height: 4px;
-        margin-bottom: 8px;
-    }
-    
-    .timeline-steps {
-        gap: 4px;
-    }
-    
-    .timeline-step {
-        font-size: 10px;
-        gap: 4px;
-    }
-    
-    .step-marker {
-        width: 8px;
-        height: 8px;
-    }
-    
-    .step-label {
-        font-size: 9px;
-        line-height: 1.2;
-    }
-}
-
-
- .nav-logo {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-    }
-
-    .nav-logo a {
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        height: 100%;
-    }
-
-    .logo-container {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: transparent;
-        transform: translateY(16px); /* Fine-tune vertical centering */
-    }
-
-    .word {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-    }
-
-    .letter-box {
-        width: 35px;
-        height: 35px;
-        background-color: rgba(51, 51, 51, 0.9);
-        border: 2px solid #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-        backdrop-filter: blur(10px);
-    }
-
-    .letter-box.red {
-        box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
-    }
-
-    .letter-box.blue {
-        box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
-    }
-
-    .letter-box.orange {
-        box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
-    }
-
-    .letter {
-        font-size: 20px;
-        font-weight: bold;
-        color: #fff;
-        text-align: center;
-        font-family: 'Arial', sans-serif;
-        line-height: 1;
-    }
-
-    .word-text {
-        font-size: 20px;
-        font-weight: normal;
-        color: #fff;
-        margin-left: 3px;
-        font-family: 'Arial', sans-serif;
-        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-        line-height: 1;
-    }
-    .user-name {
-    color: #fff;
-}
-</style>
 {% endblock %}

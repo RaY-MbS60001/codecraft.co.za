@@ -17,7 +17,11 @@
             </div>
             
             <div class="login-options">
-                <a href="{{ url_for('google_login') }}" class="login-btn client-btn">
+                <a href="{{ url_for('google_login') }}" 
+                   class="login-btn client-btn"
+                   data-loading
+                   data-loading-title="Connecting to Google"
+                   data-loading-description="Redirecting to Google Sign-In">
                     <svg class="btn-icon" viewBox="0 0 24 24">
                         <path fill="#ffffff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                         <path fill="#ffffff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -31,7 +35,11 @@
                     <span>OR</span>
                 </div>
                 
-                <a href="{{ url_for('admin_login') }}" class="login-btn admin-btn">
+                <a href="{{ url_for('admin_login') }}" 
+                   class="login-btn admin-btn"
+                   data-loading
+                   data-loading-title="Admin Portal"
+                   data-loading-description="Loading admin login interface">
                     <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -43,13 +51,13 @@
 
     <footer>
         <nav class="footer-nav">
-            <a href="#">Privacy Policy</a>
+            <a href="{{ url_for('privacy_policy') }}" data-loading data-loading-title="Loading Policy" data-loading-description="Loading privacy policy">Privacy Policy</a>
             <span>|</span>
-            <a href="#">Terms of Service</a>
+            <a href="{{ url_for('terms_of_service') }}" data-loading data-loading-title="Loading Terms" data-loading-description="Loading terms of service">Terms of Service</a>
             <span>|</span>
-            <a href="#">Help Center</a>
+            <a href="#" data-loading data-loading-title="Help Center" data-loading-description="Loading help resources">Help Center</a>
             <span>|</span>
-            <a href="#">Contact Us</a>
+            <a href="#" data-loading data-loading-title="Contact Us" data-loading-description="Loading contact information">Contact Us</a>
         </nav>
     </footer>
 </body>
@@ -58,16 +66,67 @@
 {% block additional_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Optional: Add any login page specific JavaScript
         const loginButtons = document.querySelectorAll('.login-btn');
         
         loginButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // Optional: Add loading state to buttons
-                this.classList.add('loading');
-                this.setAttribute('disabled', 'disabled');
+            button.addEventListener('click', function(e) {
+                // Don't prevent default since data-loading attribute handles it
+                // Add visual feedback to the clicked button
+                this.classList.add('loading-state');
+                this.style.pointerEvents = 'none';
+                
+                // Add a subtle loading effect to the button
+                const originalContent = this.innerHTML;
+                const buttonText = this.querySelector('h4');
+                if (buttonText) {
+                    const isGoogle = this.classList.contains('client-btn');
+                    buttonText.textContent = isGoogle ? 'Connecting...' : 'Loading...';
+                }
+                
+                // Reset if navigation fails (unlikely but good fallback)
+                setTimeout(() => {
+                    this.classList.remove('loading-state');
+                    this.style.pointerEvents = '';
+                    this.innerHTML = originalContent;
+                }, 10000);
             });
         });
+
+        // Add some entrance animations
+        const container = document.querySelector('.container');
+        if (container) {
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.6s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        }
     });
 </script>
+
+<style>
+/* Add loading state styles for login buttons */
+.login-btn.loading-state {
+    opacity: 0.7;
+    transform: scale(0.98);
+    transition: all 0.3s ease;
+}
+
+.login-btn.loading-state .btn-icon {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Smooth container entrance */
+.container {
+    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+</style>
 {% endblock %}

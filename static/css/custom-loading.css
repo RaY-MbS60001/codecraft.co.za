@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+/* === COLOR SYSTEM === */
+:root {
+  --primary: #4285f4;
+  --text-bright: #fff;
+  --dark-bg: #0d0d0d;
+  --red-glow: #ff0000;
+  --blue-glow: #0099ff;
+  --orange-glow: #ff8800;
+}
+
+/* === CUSTOM LOADING OVERLAY === */
+.custom-loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0d0d0d 0%, #141414 100%);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.custom-loading-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.custom-loading-overlay::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(66,133,244,0.15) 0%, transparent 60%);
+  animation: rotateBg 25s linear infinite;
+  z-index: 0;
+}
+
+@keyframes rotateBg {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* === LOGO === */
+.logo-loader {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  animation: logoFloat 4s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.word {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.letter-box {
+  width: clamp(48px, 6vw, 60px);
+  height: clamp(48px, 6vw, 60px);
+  border: 2px solid #fff;
+  background: rgba(60, 60, 60, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  backdrop-filter: blur(10px);
+}
+
+.letter {
+  color: #fff;
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 800;
+}
+
+.word-text {
+  color: #fff;
+  font-size: clamp(22px, 2.6vw, 28px);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* === CONSTANT GLOW ANIMATION === */
+@keyframes glowRed {
+  0%,100% { box-shadow: 0 0 18px var(--red-glow), 0 0 40px var(--red-glow); }
+  50% { box-shadow: 0 0 6px var(--red-glow), 0 0 16px var(--red-glow); }
+}
+@keyframes glowBlue {
+  0%,100% { box-shadow: 0 0 18px var(--blue-glow), 0 0 40px var(--blue-glow); }
+  50% { box-shadow: 0 0 6px var(--blue-glow), 0 0 16px var(--blue-glow); }
+}
+@keyframes glowOrange {
+  0%,100% { box-shadow: 0 0 18px var(--orange-glow), 0 0 40px var(--orange-glow); }
+  50% { box-shadow: 0 0 6px var(--orange-glow), 0 0 16px var(--orange-glow); }
+}
+
+/* assign staggered animation for depth */
+.logo-loader .letter-box.red { animation: glowRed 3s ease-in-out infinite; }
+.logo-loader .letter-box.blue { animation: glowBlue 3s ease-in-out infinite 0.5s; }
+.logo-loader .letter-box.orange { animation: glowOrange 3s ease-in-out infinite 1s; }
+
+/* === OPTIONAL: subtle scaling pulse for entire logo === */
+@keyframes pulseLogo {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.logo-loader {
+  animation: pulseLogo 4s ease-in-out infinite;
+}
+
+/* === LOADING MESSAGE === */
+.loading-message {
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 2;
+}
+
+.loading-message h3 {
+  color: var(--text-bright);
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 600;
+  margin-bottom: 8px;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+.loading-message p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: clamp(14px, 1.5vw, 16px);
+  font-weight: 400;
+  margin: 0;
+  animation: fadeInOut 2s ease-in-out infinite 0.5s;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* === PROGRESS INDICATOR === */
+.loading-progress {
+  position: absolute;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.loading-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--red-glow), var(--blue-glow), var(--orange-glow));
+  width: 0%;
+  animation: progressFlow 3s ease-in-out infinite;
+  border-radius: 1px;
+}
+
+@keyframes progressFlow {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
+}
+
+/* === FLASH MESSAGES COMPATIBILITY === */
+.flash-messages {
+  z-index: 10000; /* Higher than loading overlay */
+}

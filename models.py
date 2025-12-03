@@ -132,18 +132,33 @@ class LearnshipEmail(db.Model):
 
 class Application(db.Model):
     __table_args__ = {'extend_existing': True}
+    
+    # Your existing fields
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     learnership_id = db.Column(db.Integer, db.ForeignKey('learnership.id'), nullable=True)
     company_name = db.Column(db.String(255), nullable=True)
-    _learnership_name = db.Column("learnership_name", db.String(255), nullable=True)  # Note the underscore in the variable name
+    _learnership_name = db.Column("learnership_name", db.String(255), nullable=True)
     status = db.Column(db.String(50), default='pending')
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    # Gmail tracking fields (added by migration)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    gmail_message_id = db.Column(db.String(255), nullable=True)
+    gmail_thread_id = db.Column(db.String(255), nullable=True)
+    email_status = db.Column(db.String(50), default='draft')
+    delivered_at = db.Column(db.DateTime, nullable=True)
+    read_at = db.Column(db.DateTime, nullable=True)
+    response_received_at = db.Column(db.DateTime, nullable=True)
+    has_response = db.Column(db.Boolean, default=False)
+    response_thread_count = db.Column(db.Integer, default=0)
+
+    # Your existing relationships
     created_at = synonym('submitted_at')
     user = db.relationship('User', back_populates='applications')
     
+    # Your existing property methods
     @property
     def learnership_name(self):
         """Return the stored learnership name or calculate it if not available"""
@@ -155,6 +170,68 @@ class Application(db.Model):
     def learnership_name(self, value):
         """Set the stored learnership name"""
         self._learnership_name = value
+
+    # Gmail status methods
+    def get_email_status_display(self):
+        """Return user-friendly email status display"""
+        status_map = {
+            'draft': {'text': 'Draft', 'class': 'status-draft', 'icon': '📝'},
+            'sent': {'text': 'Sent', 'class': 'status-sent', 'icon': '📤'},
+            'delivered': {'text': 'Delivered', 'class': 'status-delivered', 'icon': '✅'},
+            'read': {'text': 'Read', 'class': 'status-read', 'icon': '👁️'},
+            'responded': {'text': 'Response Received', 'class': 'status-responded', 'icon': '💬'},
+            'failed': {'text': 'Failed', 'class': 'status-failed', 'icon': '❌'}
+        }
+        return status_map.get(self.email_status, status_map['draft'])
+    
+    def get_overall_status(self):
+        """Get combined status (application status + email status)"""
+        if self.has_response:
+            return 'responded'
+        elif self.email_status in ['sent', 'delivered', 'read']:
+            return self.email_status
+        else:
+            return self.status
+    
+    def update_from_gmail_status(self, status_info):
+        """Update application based on Gmail API response"""
+        if not status_info:
+            return
+            
+        # Update sent status
+        if status_info.get('timestamp') and not self.sent_at:
+            self.sent_at = status_info['timestamp']
+            self.email_status = 'sent'
+        
+        # Update thread activity
+        thread_info = status_info.get('thread_info', {})
+        if thread_info.get('has_responses'):
+            self.email_status = 'responded'
+            self.has_response = True
+            self.response_thread_count = max(0, thread_info.get('message_count', 1) - 1)
+            
+            if thread_info.get('latest_response_time'):
+                self.response_received_at = thread_info['latest_response_time']
+        
+        self.updated_at = datetime.utcnow()
+    
+    def get_gmail_url(self):
+        """Get direct Gmail URL for this application"""
+        if self.gmail_thread_id:
+            return f"https://mail.google.com/mail/u/0/#inbox/{self.gmail_thread_id}"
+        return None
+    
+    def days_since_sent(self):
+        """Get number of days since email was sent"""
+        if self.sent_at:
+            return (datetime.utcnow() - self.sent_at).days
+        return None
+    
+    def is_recent(self, days=7):
+        """Check if application was sent recently"""
+        if self.sent_at:
+            return (datetime.utcnow() - self.sent_at).days <= days
+        return False
 
 class EmailApplication(db.Model):
     __table_args__ = {'extend_existing': True}

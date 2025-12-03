@@ -4,12 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CodeCraftCo{% endblock %}</title>
+    
+    <!-- Existing CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/feed.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Loading CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-loading.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logos/icon.png') }}">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    {% block additional_css %}{% endblock %}
 </head>
 <body>
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-messages">
@@ -23,8 +34,42 @@
         {% endif %}
     {% endwith %}
 
+    <!-- Main Content -->
     {% block content %}{% endblock %}
 
+    <!-- Custom Loading Overlay -->
+    <div id="custom-loading-overlay" class="custom-loading-overlay">
+        <div class="logo-loader">
+            <div class="word">
+                <div class="letter-box red"><div class="letter">C</div></div>
+                <div class="word-text">ode</div>
+            </div>
+            <div class="word">
+                <div class="letter-box blue"><div class="letter">C</div></div>
+                <div class="word-text">raft</div>
+            </div>
+            <div class="word">
+                <div class="letter-box orange"><div class="letter">C</div></div>
+                <div class="word-text">o</div>
+            </div>
+        </div>
+        
+        <!-- Loading Message -->
+        <div class="loading-message">
+            <h3 id="loading-title">Loading...</h3>
+            <p id="loading-description">Please wait while we process your request</p>
+        </div>
+        
+        <!-- Optional Progress Bar -->
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom-loading.js') }}"></script>
+    
+    {% block additional_scripts %}{% endblock %}
 </body>
 </html>

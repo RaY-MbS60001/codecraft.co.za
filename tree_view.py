@@ -28,7 +28,7 @@ def print_project_structure(path, indent="", level=0, max_depth=3):
                 print(indent + connector + item)
 
 # Replace with your actual path
-project_root = r"c:\Users\Sbongakonke Sfiso\OneDrive - University of KwaZulu-Natal\Desktop\codecraftco"
+project_root = r"C:\Users\Mabasos\Desktop\MBS\codecraft.co.za"
 
 print(f"\n📁 Project Structure: {project_root}")
 print_project_structure(project_root)
