@@ -1609,7 +1609,7 @@
                                         </a>
                                         
                                         {% if application.status == 'pending' %}
-                                        <form method="POST" action="{{ url_for('update_application_status', application_id=application.id, status='approved') }}" style="display: inline;">
+                                        <form method="POST" action="{{ url_for('update_application_statuses', application_id=application.id, status='approved') }}" style="display: inline;">
                                             <button type="submit" class="btn-action btn-approve" title="Approve Application">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -1617,7 +1617,7 @@
                                             </button>
                                         </form>
                                         
-                                        <form method="POST" action="{{ url_for('update_application_status', application_id=application.id, status='rejected') }}" style="display: inline;">
+                                        <form method="POST" action="{{ url_for('update_application_statuses', application_id=application.id, status='rejected') }}" style="display: inline;">
                                             <button type="submit" class="btn-action btn-reject" title="Reject Application">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
