@@ -101,28 +101,23 @@ import socket
 import os
 import socket
 from pathlib import Path
-
-# Define instance_path globally or pass it as an argument
-instance_path = Path(__file__).parent / 'instance'
-
 def get_database_url_and_options():
-    # Force SQLite in development environment
+    database_url = os.environ.get('DATABASE_URL')
+
     if os.environ.get('FLASK_ENV') == 'development':
-        print("✓ Development mode: Using SQLite database")
+        # Use SQLite for local dev
         db_url = f"sqlite:///{instance_path / 'codecraft.db'}"
+        print("✓ Development mode: Using SQLite database")
         return db_url, {}
     
-    # Production logic (your existing PostgreSQL code)
-    database_url = os.environ.get('DATABASE_URL')
-    
+    # Production: PostgreSQL required
     if not database_url:
         raise ValueError("DATABASE_URL must be set in production environment")
     
-    # Handle PostgreSQL URLs for production
+    # Fix older URLs
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql://', 1)
 
-    # PostgreSQL engine options
     engine_options = {
         'pool_size': 10,
         'pool_recycle': 3600,
@@ -133,7 +128,9 @@ def get_database_url_and_options():
         }
     }
     
+    print("✓ Production mode: Using PostgreSQL database")
     return database_url, engine_options
+
 
 # =============================================================================
 # GMAIL TRACKING STATUS ROUTES
