@@ -2670,7 +2670,7 @@ def init_db():
             print("Admin user created successfully!")
 
 
-from learnership_emails import learnership_email_data
+from db_data_update_prod.learnership_emails import learnership_email_data
 
 def init_learnership_emails():
     """Initialize the database with learnership email addresses"""

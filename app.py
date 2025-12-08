@@ -2506,39 +2506,45 @@ def before_request():
 # DATABASE INITIALIZATION FUNCTIONS
 # =============================================================================
 
-from learnership_emails import learnership_email_data
+from db_data_update_prod.learnership_emails import learnership_email_data
 
 def init_learnership_emails():
     """Initialize the database with unique learnership email entries."""
     with app.app_context():
-        if LearnshipEmail.query.first():
-            print("Learnership emails already exist. Skipping initialization.")
-            return
-
-        seen = set()
-        unique_entries = []
-
+        # Get existing emails (case-insensitive)
+        existing_emails = {
+            e.email.lower() for e in LearnshipEmail.query.all()
+        }
+        
+        added = 0
+        skipped = 0
+        
         for entry in learnership_email_data:
             email_lower = entry["email"].lower()
-            if email_lower not in seen:
-                seen.add(email_lower)
-                unique_entries.append(entry)
-
-        for data in unique_entries:
+            
+            if email_lower in existing_emails:
+                skipped += 1
+                continue  # Skip duplicates
+            
+            # Add new entry
             email_entry = LearnshipEmail(
-                company_name=data["company_name"],
-                email=data["email"],
+                company_name=entry["company_name"],
+                email=entry["email"],
                 is_active=True
             )
             db.session.add(email_entry)
-
+            existing_emails.add(email_lower)  # Track it
+            added += 1
+        
         try:
             db.session.commit()
-            print(f"Added {len(unique_entries)} learnership emails.")
+            if added > 0:
+                print(f"✅ Added {added} new learnership emails. Skipped {skipped} duplicates.")
+            else:
+                print(f"No new emails to add. {skipped} already exist.")
         except Exception as e:
             print("Error adding learnership emails:", e)
             db.session.rollback()
-
 
 def safe_db_init():
     """Safely initialize database tables and default admin."""
