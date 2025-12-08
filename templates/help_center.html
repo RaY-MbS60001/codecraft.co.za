@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help Center - CodeCraftCo</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logos/icon.png') }}">
+
+    <!-- Custom Loading Screen CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-loading.css') }}">
+
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #3b82f6;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --surface-card: #2d3748;
+            --text-primary: #ffffff;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --border-color: #475569;
+            --github-blue: #58a6ff;
+            --github-green: #238636;
+            --github-orange: #ff6b35;
+            --github-cyan: #06b6d4;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+        }
+
+        .word {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .letter-box {
+            width: 28px;
+            height: 28px;
+            background-color: rgba(51, 51, 51, 0.9);
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .letter-box.red {
+            box-shadow: 0 0 12px #ff0000, 0 0 24px rgba(255, 0, 0, 0.3);
+        }
+
+        .letter-box.blue {
+            box-shadow: 0 0 12px #0099ff, 0 0 24px rgba(0, 153, 255, 0.3);
+        }
+
+        .letter-box.orange {
+            box-shadow: 0 0 12px #ff8800, 0 0 24px rgba(255, 136, 0, 0.3);
+        }
+
+        .letter {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+            line-height: 1;
+        }
+
+        .word-text {
+            font-size: 16px;
+            font-weight: normal;
+            color: #fff;
+            margin-left: 3px;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+            line-height: 1;
+        }
+
+        .back-home {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            background: rgba(71, 85, 105, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .back-home:hover {
+            color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .back-home svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .back-home:hover svg {
+            transform: translateX(-3px);
+        }
+
+        main {
+            flex: 1;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 48px 24px;
+            width: 100%;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--github-cyan), var(--github-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Search Bar */
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(45, 55, 72, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--github-cyan);
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+        }
+
+        .search-box svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-tertiary);
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .search-box input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Quick Links Grid */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 48px;
+        }
+
+        .quick-link {
+            background: rgba(45, 55, 72, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quick-link:hover {
+            border-color: var(--github-cyan);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.15);
+        }
+
+        .quick-link svg {
+            width: 36px;
+            height: 36px;
+            color: var(--github-cyan);
+        }
+
+        .quick-link span {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 15px;
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            margin-bottom: 32px;
+        }
+
+        .faq-section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .faq-section-title svg {
+            width: 24px;
+            height: 24px;
+            color: var(--github-cyan);
+        }
+
+        /* Accordion */
+        .accordion {
+            background: rgba(45, 55, 72, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .accordion:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+        }
+
+        .accordion-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 24px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            color: var(--text-primary);
+            transition: background 0.2s ease;
+        }
+
+        .accordion-header:hover {
+            background: rgba(71, 85, 105, 0.3);
+        }
+
+        .accordion-header h3 {
+            font-size: 15px;
+            font-weight: 500;
+            margin: 0;
+            padding-right: 16px;
+            flex: 1;
+        }
+
+        .accordion-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--text-tertiary);
+            transition: transform 0.3s ease, color 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .accordion.active .accordion-icon {
+            transform: rotate(180deg);
+            color: var(--github-cyan);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .accordion.active .accordion-content {
+            max-height: 500px;
+        }
+
+        .accordion-body {
+            padding: 0 24px 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .accordion-body p {
+            margin-bottom: 12px;
+        }
+
+        .accordion-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .accordion-body ul {
+            margin: 12px 0;
+            padding-left: 20px;
+        }
+
+        .accordion-body li {
+            margin-bottom: 8px;
+        }
+
+        .accordion-body a {
+            color: var(--github-cyan);
+            text-decoration: none;
+        }
+
+        .accordion-body a:hover {
+            text-decoration: underline;
+        }
+
+        /* Contact Banner */
+        .contact-banner {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(35, 134, 54, 0.15));
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 48px;
+        }
+
+        .contact-banner h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .contact-banner p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+
+        .contact-banner .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--github-cyan), var(--github-green));
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .contact-banner .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.3);
+        }
+
+        .contact-banner .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(71, 85, 105, 0.3);
+            padding: 24px;
+            text-align: center;
+        }
+
+        .footer-nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .footer-nav span {
+            color: var(--border-color);
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        footer a:hover {
+            color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .copyright {
+            color: var(--text-tertiary);
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 10px 16px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            main {
+                padding: 32px 16px;
+            }
+
+            .letter-box {
+                width: 24px;
+                height: 24px;
+            }
+
+            .letter {
+                font-size: 14px;
+            }
+
+            .word-text {
+                font-size: 14px;
+            }
+
+            .footer-nav {
+                gap: 12px;
+            }
+
+            .quick-links {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .contact-banner {
+                padding: 30px 20px;
+            }
+
+            .accordion-header {
+                padding: 16px 18px;
+            }
+
+            .accordion-header h3 {
+                font-size: 14px;
+            }
+
+            .accordion-body {
+                padding: 0 18px 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .letter-box {
+                width: 22px;
+                height: 22px;
+            }
+
+            .letter {
+                font-size: 13px;
+            }
+
+            .word-text {
+                font-size: 13px;
+            }
+
+            .page-header h1 {
+                font-size: 24px;
+            }
+
+            .back-home {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            .quick-links {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-link {
+                padding: 20px;
+            }
+
+            .search-box {
+                padding: 12px 16px;
+            }
+
+            .search-box input {
+                font-size: 14px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .quick-link,
+        .faq-section,
+        .contact-banner {
+            animation: fadeIn 0.5s ease-out forwards;
+            opacity: 0;
+        }
+
+        .quick-link:nth-child(1) {
+            animation-delay: 0.1s;
+        }
+
+        .quick-link:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .quick-link:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .quick-link:nth-child(4) {
+            animation-delay: 0.25s;
+        }
+
+        .faq-section:nth-of-type(1) {
+            animation-delay: 0.3s;
+        }
+
+        .faq-section:nth-of-type(2) {
+            animation-delay: 0.4s;
+        }
+
+        .faq-section:nth-of-type(3) {
+            animation-delay: 0.5s;
+        }
+
+        .faq-section:nth-of-type(4) {
+            animation-delay: 0.6s;
+        }
+
+        .contact-banner {
+            animation-delay: 0.7s;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+
+            .quick-link,
+            .faq-section,
+            .contact-banner {
+                opacity: 1;
+            }
+        }
+
+        a:focus,
+        button:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(71, 85, 105, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-tertiary);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="{{ url_for('home') }}" class="logo-link" data-loading data-loading-title="CodeCraftCo"
+                data-loading-description="Going to homepage">
+                <div class="logo-container">
+                    <div class="word">
+                        <div class="letter-box red">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">ode</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box blue">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">raft</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box orange">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">o</div>
+                    </div>
+                </div>
+            </a>
+            <a href="{{ url_for('home') }}" class="back-home" data-loading data-loading-title="Home"
+                data-loading-description="Returning to homepage">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5m7-7l-7 7 7 7" />
+                </svg>
+                Back to Home
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="page-header">
+            <h1>Help Center</h1>
+            <p>Find answers to common questions and learn how to make the most of CodeCraft Co's Learnership Platform.
+            </p>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input type="text" id="searchInput" placeholder="Search for help articles..." autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="quick-links">
+            <a href="#getting-started" class="quick-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <span>Getting Started</span>
+            </a>
+            <a href="#applications" class="quick-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <span>Applications</span>
+            </a>
+            <a href="#account" class="quick-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span>Account Settings</span>
+            </a>
+            <a href="#technical" class="quick-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Technical Support</span>
+            </a>
+        </div>
+
+        <!-- FAQ Section 1: Getting Started -->
+        <div class="faq-section" id="getting-started">
+            <h2 class="faq-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                Getting Started
+            </h2>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>How do I create an account?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Creating an account is simple! You have two options:</p>
+                        <ul>
+                            <li><strong>Google Sign-In:</strong> Click "Sign in with Google" on the homepage and
+                                authorize access using your Google account.</li>
+                            <li><strong>Email Registration:</strong> Click "Register" and fill in your details including
+                                name, email, and password.</li>
+                        </ul>
+                        <p>After registration, you'll receive a confirmation email. Click the link to verify your
+                            account and start applying for learnerships!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>What is a learnership?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>A learnership is a structured learning program that combines theoretical education with
+                            practical workplace experience. It's a great way to:</p>
+                        <ul>
+                            <li>Gain industry-recognized qualifications</li>
+                            <li>Get hands-on work experience</li>
+                            <li>Earn a stipend while learning</li>
+                            <li>Improve your employment prospects</li>
+                        </ul>
+                        <p>Learnerships typically last 12-24 months and are registered with the relevant SETA (Sector
+                            Education and Training Authority).</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>Who is eligible to apply?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Eligibility requirements vary by learnership, but general requirements include:</p>
+                        <ul>
+                            <li>South African citizen or permanent resident</li>
+                            <li>Age between 18-35 years (varies by program)</li>
+                            <li>Minimum of Grade 12 / Matric certificate</li>
+                            <li>Currently unemployed or seeking to change careers</li>
+                        </ul>
+                        <p>Each learnership listing will specify its exact requirements. Make sure to read them
+                            carefully before applying.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section 2: Applications -->
+        <div class="faq-section" id="applications">
+            <h2 class="faq-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                Applications
+            </h2>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>How do I apply for a learnership?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>To apply for a learnership:</p>
+                        <ul>
+                            <li>Log in to your CodeCraft Co account</li>
+                            <li>Browse available learnerships on the dashboard</li>
+                            <li>Click on a learnership to view details and requirements</li>
+                            <li>Click "Apply Now" and complete the application form</li>
+                            <li>Upload your CV and any required documents</li>
+                            <li>Submit your application</li>
+                        </ul>
+                        <p>You'll receive a confirmation email once your application is submitted successfully.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>What documents do I need to apply?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Common documents required for applications include:</p>
+                        <ul>
+                            <li>Updated CV/Resume (PDF format preferred)</li>
+                            <li>Certified copy of ID document</li>
+                            <li>Certified copy of Matric certificate</li>
+                            <li>Proof of residence (not older than 3 months)</li>
+                            <li>Any additional certificates or qualifications</li>
+                        </ul>
+                        <p>Some learnerships may require additional documents. Always check the specific requirements
+                            before applying.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>How can I track my application status?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>You can track your applications through your dashboard:</p>
+                        <ul>
+                            <li>Log in to your account</li>
+                            <li>Go to "My Applications" section</li>
+                            <li>View the status of each application (Pending, Under Review, Shortlisted, Accepted, or
+                                Rejected)</li>
+                        </ul>
+                        <p>You'll also receive email notifications when your application status changes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>Can I withdraw my application?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Yes, you can withdraw your application at any time before it's processed:</p>
+                        <ul>
+                            <li>Go to "My Applications" in your dashboard</li>
+                            <li>Find the application you want to withdraw</li>
+                            <li>Click "Withdraw Application"</li>
+                            <li>Confirm your decision</li>
+                        </ul>
+                        <p>Note: Once withdrawn, you may need to wait before reapplying to the same learnership.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section 3: Account Settings -->
+        <div class="faq-section" id="account">
+            <h2 class="faq-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+                Account Settings
+            </h2>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>How do I update my profile information?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>To update your profile:</p>
+                        <ul>
+                            <li>Log in to your account</li>
+                            <li>Click on your profile icon in the top right</li>
+                            <li>Select "Profile Settings"</li>
+                            <li>Update your information as needed</li>
+                            <li>Click "Save Changes"</li>
+                        </ul>
+                        <p>Keep your profile updated to improve your chances of being selected for learnerships!</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>How do I reset my password?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>To reset your password:</p>
+                        <ul>
+                            <li>Go to the login page</li>
+                            <li>Click "Forgot Password?"</li>
+                            <li>Enter your registered email address</li>
+                            <li>Check your email for the reset link</li>
+                            <li>Click the link and create a new password</li>
+                        </ul>
+                        <p>If you signed up with Google, you'll need to reset your password through Google's account
+                            settings.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>How do I delete my account?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>If you wish to delete your account:</p>
+                        <ul>
+                            <li>Go to "Profile Settings"</li>
+                            <li>Scroll to "Account Management"</li>
+                            <li>Click "Delete Account"</li>
+                            <li>Confirm your decision</li>
+                        </ul>
+                        <p><strong>Warning:</strong> This action is permanent. All your data, applications, and history
+                            will be permanently deleted and cannot be recovered.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section 4: Technical Support -->
+        <div class="faq-section" id="technical">
+            <h2 class="faq-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                Technical Support
+            </h2>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>The website is not loading properly. What should I do?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>If you're experiencing loading issues, try these steps:</p>
+                        <ul>
+                            <li>Clear your browser cache and cookies</li>
+                            <li>Try using a different browser (Chrome, Firefox, Safari, Edge)</li>
+                            <li>Check your internet connection</li>
+                            <li>Disable browser extensions temporarily</li>
+                            <li>Try accessing from a different device</li>
+                        </ul>
+                        <p>If the problem persists, please <a href="{{ url_for('contact_us') }}">contact our support
+                                team</a>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>I can't upload my documents. What's wrong?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>Document upload issues are usually caused by:</p>
+                        <ul>
+                            <li><strong>File size:</strong> Maximum file size is 5MB per document</li>
+                            <li><strong>File format:</strong> Only PDF, DOC, DOCX, JPG, and PNG files are accepted</li>
+                            <li><strong>File name:</strong> Avoid special characters in file names</li>
+                            <li><strong>Connection:</strong> Ensure you have a stable internet connection</li>
+                        </ul>
+                        <p>Try compressing your files or converting them to PDF format before uploading.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion">
+                <button class="accordion-header">
+                    <h3>I'm not receiving email notifications. How can I fix this?</h3>
+                    <svg class="accordion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="accordion-body">
+                        <p>If you're not receiving our emails:</p>
+                        <ul>
+                            <li>Check your spam/junk folder</li>
+                            <li>Add noreply@codecraftco.com to your contacts</li>
+                            <li>Verify your email address is correct in your profile</li>
+                            <li>Check your email notification settings in your account</li>
+                            <li>Whitelist our domain in your email provider</li>
+                        </ul>
+                        <p>Still not receiving emails? Contact us at <strong>support@codecraftco.com</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Banner -->
+        <div class="contact-banner">
+            <h2>Still Need Help?</h2>
+            <p>Can't find what you're looking for? Our support team is here to assist you.</p>
+            <a href="{{ url_for('contact_us') }}" class="btn" data-loading data-loading-title="Contact Us"
+                data-loading-description="Loading contact page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                </svg>
+                Contact Support
+            </a>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <nav class="footer-nav">
+            <a href="{{ url_for('privacy_policy') }}" data-loading data-loading-title="Privacy Policy"
+                data-loading-description="Loading privacy policy">Privacy Policy</a>
+            <span>|</span>
+            <a href="{{ url_for('terms_of_service') }}" data-loading data-loading-title="Terms of Service"
+                data-loading-description="Loading terms of service">Terms of Service</a>
+            <span>|</span>
+            <a href="{{ url_for('help_center') }}" data-loading data-loading-title="Help Center"
+                data-loading-description="Loading help center">Help Center</a>
+            <span>|</span>
+            <a href="{{ url_for('contact_us') }}" data-loading data-loading-title="Contact Us"
+                data-loading-description="Loading contact page">Contact Us</a>
+        </nav>
+        <p class="copyright">© 2025 CodeCraft Co. All rights reserved.</p>
+    </footer>
+
+    <!-- Custom Loading Screen JS -->
+    <script src="{{ url_for('static', filename='js/custom-loading.js') }}"></script>
+
+    <script>
+        // Page entrance animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const pageHeader = document.querySelector('.page-header');
+            if (pageHeader) {
+                pageHeader.style.opacity = '0';
+                pageHeader.style.transform = 'translateY(-20px)';
+
+                setTimeout(() => {
+                    pageHeader.style.transition = 'all 0.6s ease';
+                    pageHeader.style.opacity = '1';
+                    pageHeader.style.transform = 'translateY(0)';
+                }, 100);
+            }
+        });
+
+        // Accordion functionality
+        document.querySelectorAll('.accordion-header').forEach(button => {
+            button.addEventListener('click', () => {
+                const accordion = button.parentElement;
+                const isActive = accordion.classList.contains('active');
+
+                // Close all accordions in the same section
+                const section = accordion.closest('.faq-section');
+                section.querySelectorAll('.accordion').forEach(acc => {
+                    acc.classList.remove('active');
+                });
+
+                // Open clicked accordion if it wasn't active
+                if (!isActive) {
+                    accordion.classList.add('active');
+                }
+            });
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const accordions = document.querySelectorAll('.accordion');
+            const sections = document.querySelectorAll('.faq-section');
+
+            if (searchTerm === '') {
+                // Show all accordions and sections
+                accordions.forEach(acc => {
+                    acc.style.display = 'block';
+                    acc.classList.remove('active');
+                });
+                sections.forEach(section => {
+                    section.style.display = 'block';
+                });
+                return;
+            }
+
+            sections.forEach(section => {
+                let hasVisibleAccordion = false;
+
+                section.querySelectorAll('.accordion').forEach(accordion => {
+                    const headerText = accordion.querySelector('h3').textContent.toLowerCase();
+                    const bodyText = accordion.querySelector('.accordion-body').textContent.toLowerCase();
+
+                    if (headerText.includes(searchTerm) || bodyText.includes(searchTerm)) {
+                        accordion.style.display = 'block';
+                        accordion.classList.add('active');
+                        hasVisibleAccordion = true;
+                    } else {
+                        accordion.style.display = 'none';
+                        accordion.classList.remove('active');
+                    }
+                });
+
+                // Hide section if no accordions match
+                section.style.display = hasVisibleAccordion ? 'block' : 'none';
+            });
+        });
+
+        // Smooth scroll for quick links
+        document.querySelectorAll('.quick-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = link.getAttribute('href');
+                const targetSection = document.querySelector(targetId);
+
+                if (targetSection) {
+                    targetSection.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    // Open first accordion in the section
+                    const firstAccordion = targetSection.querySelector('.accordion');
+                    if (firstAccordion && !firstAccordion.classList.contains('active')) {
+                        firstAccordion.classList.add('active');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

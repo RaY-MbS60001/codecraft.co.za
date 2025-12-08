@@ -1,417 +1,731 @@
-{% extends "base.html" %}
-{% block title %}Terms of Service - CodeCraft{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - CodeCraftCo</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logos/icon.png') }}">
+    
+    <!-- Custom Loading Screen CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-loading.css') }}">
+    
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-{% block content %}
-<style>
-    /* Terms of Service Styling */
-    .terms-of-service {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 3rem 2rem;
-        background: linear-gradient(135deg, #151922 0%, #1e2434 100%);
-        color: #e4e6eb;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        line-height: 1.7;
-    }
-    
-    .terms-header {
-        text-align: center;
-        margin-bottom: 3rem;
-        padding: 2rem;
-        background: linear-gradient(135deg, #5d72e4 0%, #784bd1 100%);
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(93, 114, 228, 0.3);
-    }
-    
-    .terms-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin: 0;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-    
-    .terms-header .subtitle {
-        font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.9);
-        margin-top: 1rem;
-        font-weight: 300;
-    }
-    
-    .terms-content {
-        background: #1e2434;
-        border-radius: 15px;
-        padding: 2.5rem;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        border: 1px solid #2d3446;
-    }
-    
-    .terms-section {
-        margin-bottom: 3rem;
-        padding: 2rem;
-        background: #252c3e;
-        border-radius: 12px;
-        border-left: 4px solid #5d72e4;
-        transition: all 0.3s ease;
-    }
-    
-    .terms-section:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(93, 114, 228, 0.15);
-    }
-    
-    .terms-section h2 {
-        font-size: 1.8rem;
-        font-weight: 600;
-        color: #5d72e4;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .terms-section h2::before {
-        content: counter(section-counter);
-        counter-increment: section-counter;
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #5d72e4, #784bd1);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.2rem;
-        box-shadow: 0 4px 12px rgba(93, 114, 228, 0.3);
-    }
-    
-    .terms-content {
-        counter-reset: section-counter;
-    }
-    
-    .terms-section p {
-        font-size: 1.1rem;
-        color: #e4e6eb;
-        margin-bottom: 1.5rem;
-        text-align: justify;
-    }
-    
-    .terms-section ul {
-        list-style: none;
-        padding: 0;
-        margin: 1.5rem 0;
-    }
-    
-    .terms-section li {
-        padding: 0.75rem 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        font-size: 1.1rem;
-        color: #e4e6eb;
-    }
-    
-    .terms-section li:last-child {
-        border-bottom: none;
-    }
-    
-    .terms-section li::before {
-        content: '✓';
-        width: 24px;
-        height: 24px;
-        background: linear-gradient(135deg, #4bc070, #32a852);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-    }
-    
-    .highlight-box {
-        background: linear-gradient(135deg, rgba(255, 171, 0, 0.1), rgba(255, 171, 0, 0.05));
-        border: 1px solid rgba(255, 171, 0, 0.3);
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin: 2rem 0;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .highlight-box::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #ffab00, #ff8800);
-    }
-    
-    .highlight-box .warning-icon {
-        float: left;
-        margin-right: 1rem;
-        font-size: 1.5rem;
-        color: #ffab00;
-    }
-    
-    .important-note {
-        background: linear-gradient(135deg, rgba(240, 62, 62, 0.1), rgba(240, 62, 62, 0.05));
-        border: 1px solid rgba(240, 62, 62, 0.3);
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin: 2rem 0;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .important-note::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #f03e3e, #d73a49);
-    }
-    
-    .contact-info {
-        background: linear-gradient(135deg, rgba(93, 114, 228, 0.1), rgba(120, 75, 209, 0.1));
-        border: 1px solid rgba(93, 114, 228, 0.3);
-        border-radius: 15px;
-        padding: 2rem;
-        margin-top: 3rem;
-        text-align: center;
-    }
-    
-    .contact-info h3 {
-        color: #5d72e4;
-        margin-bottom: 1rem;
-        font-size: 1.4rem;
-    }
-    
-    .contact-info p {
-        color: #e4e6eb;
-        margin-bottom: 0.5rem;
-    }
-    
-    .contact-info a {
-        color: #5d72e4;
-        text-decoration: none;
-        font-weight: 500;
-        transition: color 0.3s ease;
-    }
-    
-    .contact-info a:hover {
-        color: #4a60d3;
-        text-decoration: underline;
-    }
-    
-    .last-updated {
-        text-align: center;
-        margin-top: 2rem;
-        padding-top: 2rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        color: #a0a6b3;
-        font-size: 0.9rem;
-    }
-    
-    .back-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        background: linear-gradient(135deg, #5d72e4, #784bd1);
-        color: white;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 12px rgba(93, 114, 228, 0.3);
-    }
-    
-    .back-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(93, 114, 228, 0.4);
-        color: white;
-        text-decoration: none;
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .terms-of-service {
-            padding: 2rem 1rem;
+        :root {
+            --primary-color: #3b82f6;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --surface-card: #2d3748;
+            --text-primary: #ffffff;
+            --text-secondary: #cbd5e1;
+            --text-tertiary: #94a3b8;
+            --border-color: #475569;
+            --github-blue: #58a6ff;
+            --github-green: #238636;
+            --github-orange: #ff6b35;
+            --github-purple: #a855f7;
         }
-        
-        .terms-header h1 {
-            font-size: 2rem;
+
+        body {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.6;
         }
-        
-        .terms-content {
-            padding: 1.5rem;
+
+        header {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        
-        .terms-section {
-            padding: 1.5rem;
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        
-        .terms-section h2 {
-            font-size: 1.5rem;
+
+        .logo-link {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
         }
-        
-        .terms-section h2::before {
-            width: 35px;
-            height: 35px;
-            font-size: 1rem;
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
         }
-        
-        .terms-section p,
-        .terms-section li {
-            font-size: 1rem;
+
+        .word {
+            display: flex;
+            align-items: center;
+            gap: 2px;
         }
-    }
-    
-    /* Smooth scrolling for anchor links */
-    html {
-        scroll-behavior: smooth;
-    }
-    
-    /* Animation for sections */
-    .terms-section {
-        animation: fadeInUp 0.6s ease-out;
-        animation-fill-mode: both;
-    }
-    
-    .terms-section:nth-child(1) { animation-delay: 0.1s; }
-    .terms-section:nth-child(2) { animation-delay: 0.2s; }
-    .terms-section:nth-child(3) { animation-delay: 0.3s; }
-    .terms-section:nth-child(4) { animation-delay: 0.4s; }
-    .terms-section:nth-child(5) { animation-delay: 0.5s; }
-    .terms-section:nth-child(6) { animation-delay: 0.6s; }
-    
-    @keyframes fadeInUp {
-        from {
+
+        .letter-box {
+            width: 28px;
+            height: 28px;
+            background-color: rgba(51, 51, 51, 0.9);
+            border: 2px solid #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        .letter-box.red { box-shadow: 0 0 12px #ff0000, 0 0 24px rgba(255, 0, 0, 0.3); }
+        .letter-box.blue { box-shadow: 0 0 12px #0099ff, 0 0 24px rgba(0, 153, 255, 0.3); }
+        .letter-box.orange { box-shadow: 0 0 12px #ff8800, 0 0 24px rgba(255, 136, 0, 0.3); }
+
+        .letter {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+            line-height: 1;
+        }
+
+        .word-text {
+            font-size: 16px;
+            font-weight: normal;
+            color: #fff;
+            margin-left: 3px;
+            font-family: 'Arial', sans-serif;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+            line-height: 1;
+        }
+
+        .back-home {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            background: rgba(71, 85, 105, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .back-home:hover {
+            color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .back-home svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .back-home:hover svg { transform: translateX(-3px); }
+
+        main {
+            flex: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 48px 24px;
+            width: 100%;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .page-header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--github-purple), var(--github-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .last-updated {
+            display: inline-block;
+            background: rgba(71, 85, 105, 0.5);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .content-section {
+            background: rgba(45, 55, 72, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .content-section:hover {
+            border-color: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.1);
+        }
+
+        .content-section h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .content-section h2 svg {
+            width: 24px;
+            height: 24px;
+            color: var(--github-purple);
+            flex-shrink: 0;
+        }
+
+        .content-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0 10px;
+            color: var(--text-primary);
+        }
+
+        .content-section p {
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            line-height: 1.7;
+        }
+
+        .content-section ul, .content-section ol {
+            padding-left: 0;
+            margin: 12px 0;
+            list-style: none;
+        }
+
+        .content-section ul li, .content-section ol li {
+            color: var(--text-secondary);
+            padding: 10px 0 10px 28px;
+            position: relative;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+        }
+
+        .content-section ul li:last-child, 
+        .content-section ol li:last-child { 
+            border-bottom: none; 
+        }
+
+        .content-section ul li::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(135deg, var(--github-purple), var(--github-blue));
+            border-radius: 50%;
+        }
+
+        .content-section ol { counter-reset: item; }
+        .content-section ol li { counter-increment: item; }
+
+        .content-section ol li::before {
+            content: counter(item);
+            position: absolute;
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--github-purple), var(--github-blue));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .content-section strong { color: var(--github-purple); }
+
+        .content-section a {
+            color: var(--github-blue);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .content-section a:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        .notice-box {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .notice-box.warning {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: rgba(234, 179, 8, 0.3);
+        }
+
+        .notice-box p { margin: 0; font-size: 14px; }
+              /* Footer Styles */
+        footer {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(71, 85, 105, 0.3);
+            padding: 24px;
+            text-align: center;
+        }
+
+        .footer-nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .footer-nav span { color: var(--border-color); }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        footer a:hover {
+            color: var(--primary-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .copyright {
+            color: var(--text-tertiary);
+            font-size: 12px;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            header { padding: 10px 16px; }
+            .header-content { flex-direction: column; gap: 12px; }
+            .page-header h1 { font-size: 28px; }
+            .content-section { padding: 24px 20px; }
+            main { padding: 32px 16px; }
+            .letter-box { width: 24px; height: 24px; }
+            .letter { font-size: 14px; }
+            .word-text { font-size: 14px; }
+            .footer-nav { gap: 12px; }
+            .content-section h2 { font-size: 18px; }
+            .content-section h2 svg { width: 20px; height: 20px; }
+        }
+
+        @media (max-width: 480px) {
+            .letter-box { width: 22px; height: 22px; }
+            .letter { font-size: 13px; }
+            .word-text { font-size: 13px; }
+            .page-header h1 { font-size: 24px; }
+            .content-section h2 { font-size: 16px; flex-wrap: wrap; }
+            .back-home { padding: 6px 12px; font-size: 13px; }
+            .content-section { padding: 20px 16px; }
+            .content-section ul li, 
+            .content-section ol li { 
+                padding: 8px 0 8px 28px; 
+                font-size: 14px; 
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .content-section {
+            animation: fadeIn 0.5s ease-out forwards;
             opacity: 0;
-            transform: translateY(30px);
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-</style>
 
-<div class="terms-of-service">
-    <a href="{{ url_for('user_dashboard') }}" class="back-button">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m7-7l-7 7 7 7"/>
-        </svg>
-        Back to Dashboard
-    </a>
-    
-    <div class="terms-header">
-        <h1>Terms of Service</h1>
-        <p class="subtitle">CodeCraft Learnership Platform</p>
-    </div>
-    
-    <div class="terms-content">
-        <div class="terms-section">
-            <h2>Acceptance of Terms</h2>
-            <p>By accessing and using the CodeCraft Learnership Platform ("Platform"), you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree to these terms, please do not use our Platform.</p>
-            
-            <div class="highlight-box">
-                <span class="warning-icon">⚠️</span>
-                <strong>Important:</strong> These terms constitute a legally binding agreement between you and CodeCraft. Please read them carefully before proceeding.
+        .content-section:nth-child(1) { animation-delay: 0.1s; }
+        .content-section:nth-child(2) { animation-delay: 0.2s; }
+        .content-section:nth-child(3) { animation-delay: 0.3s; }
+        .content-section:nth-child(4) { animation-delay: 0.4s; }
+        .content-section:nth-child(5) { animation-delay: 0.5s; }
+        .content-section:nth-child(6) { animation-delay: 0.6s; }
+        .content-section:nth-child(7) { animation-delay: 0.7s; }
+        .content-section:nth-child(8) { animation-delay: 0.8s; }
+        .content-section:nth-child(9) { animation-delay: 0.9s; }
+        .content-section:nth-child(10) { animation-delay: 1.0s; }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { 
+                animation: none !important; 
+                transition: none !important; 
+            }
+            .content-section { opacity: 1; }
+        }
+
+        a:focus, button:focus { 
+            outline: 2px solid var(--primary-color); 
+            outline-offset: 2px; 
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(71, 85, 105, 0.3); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="{{ url_for('home') }}" class="logo-link" data-loading data-loading-title="CodeCraftCo" data-loading-description="Going to homepage">
+                <div class="logo-container">
+                    <div class="word">
+                        <div class="letter-box red"><div class="letter">C</div></div>
+                        <div class="word-text">ode</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box blue"><div class="letter">C</div></div>
+                        <div class="word-text">raft</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box orange"><div class="letter">C</div></div>
+                        <div class="word-text">o</div>
+                    </div>
+                </div>
+            </a>
+            <a href="{{ url_for('home') }}" class="back-home" data-loading data-loading-title="Home" data-loading-description="Returning to homepage">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5m7-7l-7 7 7 7"/>
+                </svg>
+                Back to Home
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="page-header">
+            <h1>Terms of Service</h1>
+            <p>Please read these terms carefully before using our platform.</p>
+            <span class="last-updated">Last updated: December 2025</span>
+        </div>
+
+        <!-- Section 1: Agreement to Terms -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                Agreement to Terms
+            </h2>
+            <p>By accessing or using CodeCraft Co's Learnership Management Platform ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.</p>
+            <div class="notice-box">
+                <p><strong>Important:</strong> These Terms constitute a legally binding agreement between you and CodeCraft Co regarding your use of our platform.</p>
             </div>
         </div>
-        
-        <div class="terms-section">
-            <h2>User Responsibilities</h2>
-            <p>As a user of the CodeCraft Platform, you agree to:</p>
-            <ul>
-                <li>Provide accurate, current, and complete information during registration</li>
+
+        <!-- Section 2: User Accounts -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+                User Accounts
+            </h2>
+            <h3>Account Creation</h3>
+            <p>To use certain features of our Service, you must:</p>
+            <ol>
+                <li>Create an account using Google Sign-In or email registration</li>
+                <li>Provide accurate, current, and complete information</li>
+                <li>Maintain and promptly update your account information</li>
                 <li>Maintain the security of your account credentials</li>
-                <li>Use the platform ethically and in compliance with applicable laws</li>
-                <li>Respect the intellectual property rights of others</li>
-                <li>Not engage in any fraudulent or misleading activities</li>
-                <li>Report any security vulnerabilities or suspicious activities</li>
+                <li>Accept responsibility for all activities under your account</li>
+            </ol>
+            <h3>Account Restrictions</h3>
+            <ul>
+                <li>You must be at least 16 years old to create an account</li>
+                <li>One account per person is permitted</li>
+                <li>You may not share your account credentials with others</li>
+                <li>You may not use another person's account without permission</li>
             </ul>
         </div>
-        
-        <div class="terms-section">
-            <h2>Learnership Applications</h2>
-            <p>CodeCraft serves as a platform for learnership discovery and application submission. We facilitate connections between learners and employers but do not guarantee:</p>
+
+        <!-- Section 3: Acceptable Use -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Acceptable Use
+            </h2>
+            <p>You agree to use our Service only for lawful purposes. You may <strong>not</strong>:</p>
             <ul>
-                <li>Placement in any specific learnership program</li>
-                <li>Employment outcomes or job opportunities</li>
-                <li>The accuracy of all third-party learnership listings</li>
-                <li>Success in application processes</li>
+                <li>Submit false, misleading, or fraudulent information</li>
+                <li>Impersonate another person or entity</li>
+                <li>Upload malicious code, viruses, or harmful content</li>
+                <li>Attempt to gain unauthorized access to our systems</li>
+                <li>Interfere with or disrupt the Service's operation</li>
+                <li>Use automated systems to access the Service without permission</li>
+                <li>Collect user information without consent</li>
+                <li>Use the Service for any illegal activities</li>
             </ul>
-            
-            <div class="important-note">
-                <strong>Disclaimer:</strong> CodeCraft is an information platform. Final selection decisions rest with the respective employers and training providers.
+        </div>        <!-- Section 4: Learnership Applications -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+                Learnership Applications
+            </h2>
+            <p>When applying for learnerships through our platform:</p>
+            <ul>
+                <li>All information provided must be accurate and truthful</li>
+                <li>You are responsible for the content of your CV and documents</li>
+                <li>We reserve the right to verify your information with third parties</li>
+                <li>Acceptance is at the discretion of learnership providers</li>
+                <li>We do not guarantee placement in any learnership program</li>
+                <li>You must meet all eligibility requirements specified by providers</li>
+            </ul>
+            <div class="notice-box warning">
+                <p><strong>Warning:</strong> Providing false information in your application may result in immediate disqualification and account termination.</p>
             </div>
         </div>
-        
-        <div class="terms-section">
-            <h2>Intellectual Property</h2>
-            <p>The Platform's content, features, and functionality are owned by CodeCraft and are protected by international copyright, trademark, and other intellectual property laws.</p>
+
+        <!-- Section 5: Intellectual Property -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                Intellectual Property
+            </h2>
+            <p>The Service and its original content, features, and functionality are owned by CodeCraft Co and are protected by international copyright, trademark, and other intellectual property laws.</p>
+            <h3>Your Content</h3>
             <ul>
-                <li>Platform content remains the exclusive property of CodeCraft</li>
-                <li>User-generated content remains the property of the respective users</li>
-                <li>Users grant CodeCraft a license to use their content for platform operations</li>
-                <li>Unauthorized reproduction or distribution is strictly prohibited</li>
+                <li>You retain ownership of content you submit (CVs, documents, etc.)</li>
+                <li>You grant us a license to use, display, and share your content as needed to provide the Service</li>
+                <li>You represent that you have the right to submit all content</li>
+            </ul>
+            <h3>Our Content</h3>
+            <ul>
+                <li>Our logo, brand name, and visual design are protected trademarks</li>
+                <li>You may not copy, modify, or distribute our proprietary content</li>
+                <li>All platform code and technology remain our exclusive property</li>
             </ul>
         </div>
-        
-        <div class="terms-section">
-            <h2>Limitation of Liability</h2>
-            <p>CodeCraft operates as an information and connection platform. We are not responsible for:</p>
+
+        <!-- Section 6: Privacy & Data Protection -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Privacy & Data Protection
+            </h2>
+            <p>Your privacy is important to us. Our use of your personal information is governed by our <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>, which is incorporated into these Terms by reference.</p>
+            <p>By using the Service, you consent to:</p>
             <ul>
-                <li>Direct employment outcomes or career results</li>
-                <li>Actions or decisions made by employers or training providers</li>
-                <li>Technical issues beyond our reasonable control</li>
-                <li>Third-party content accuracy or completeness</li>
-                <li>Any indirect, incidental, or consequential damages</li>
+                <li>Collection and processing of your personal data as described in our Privacy Policy</li>
+                <li>Sharing of your application data with relevant learnership providers</li>
+                <li>Receiving communications related to your account and applications</li>
+                <li>Use of cookies and similar technologies</li>
             </ul>
         </div>
-        
-        <div class="terms-section">
-            <h2>Privacy & Data Protection</h2>
-            <p>Your privacy is important to us. We collect and process personal information in accordance with our Privacy Policy and applicable data protection laws.</p>
+
+        <!-- Section 7: Termination -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                </svg>
+                Termination
+            </h2>
+            <p>We may terminate or suspend your account and access to the Service immediately, without prior notice or liability, for any reason, including:</p>
             <ul>
-                <li>We use industry-standard security measures to protect your data</li>
-                <li>Personal information is only shared with your explicit consent</li>
-                <li>You have the right to access, modify, or delete your personal data</li>
-                <li>We comply with POPIA and other applicable privacy regulations</li>
+                <li>Breach of these Terms of Service</li>
+                <li>Providing false or misleading information</li>
+                <li>Engaging in fraudulent activities</li>
+                <li>Violating applicable laws or regulations</li>
+                <li>At our sole discretion for any other reason</li>
+            </ul>
+            <h3>Effect of Termination</h3>
+            <p>Upon termination:</p>
+            <ul>
+                <li>Your right to use the Service will immediately cease</li>
+                <li>We may delete your account and associated data</li>
+                <li>Pending applications may be cancelled</li>
+                <li>You may request a copy of your data before deletion (where legally required)</li>
             </ul>
         </div>
-        
-        <div class="terms-section">
-            <h2>Termination</h2>
-            <p>Either party may terminate this agreement at any time. CodeCraft reserves the right to suspend or terminate accounts that violate these terms or engage in prohibited activities.</p>
+
+        <!-- Section 8: Disclaimers & Limitations -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Disclaimers & Limitations
+            </h2>
+            <h3>Service "As Is"</h3>
+            <p>The Service is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind, either express or implied, including but not limited to:</p>
+            <ul>
+                <li>Merchantability or fitness for a particular purpose</li>
+                <li>Non-infringement of third-party rights</li>
+                <li>Accuracy, reliability, or completeness of content</li>
+                <li>Uninterrupted or error-free operation</li>
+            </ul>
+            <h3>Limitation of Liability</h3>
+            <p>To the maximum extent permitted by law, CodeCraft Co shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:</p>
+            <ul>
+                <li>Loss of profits, data, or business opportunities</li>
+                <li>Failure to secure a learnership placement</li>
+                <li>Unauthorized access to your account</li>
+                <li>Errors or omissions in content</li>
+            </ul>
         </div>
-        
-        <div class="terms-section">
-            <h2>Changes to Terms</h2>
-            <p>We reserve the right to modify these terms at any time. Users will be notified of significant changes, and continued use of the platform constitutes acceptance of the updated terms.</p>
+
+        <!-- Section 9: Governing Law -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                Governing Law
+            </h2>
+            <p>These Terms shall be governed by and construed in accordance with the laws of the Republic of South Africa, without regard to its conflict of law provisions.</p>
+            <p>Any disputes arising from these Terms or your use of the Service shall be subject to the exclusive jurisdiction of the courts of South Africa.</p>
         </div>
-    </div>
-    
-    <div class="contact-info">
-        <h3>Questions or Concerns?</h3>
-        <p>If you have any questions about these Terms of Service, please contact us:</p>
-        <p>Email: <a href="mailto:support@codecraft.co.za">support@codecraft.co.za</a></p>
-        <p>Phone: <a href="tel:+27123456789">+27 12 345 6789</a></p>
-    </div>
-    
-    <div class="last-updated">
-        <p>Last updated: {{ moment().format('MMMM Do, YYYY') }}</p>
-    </div>
-</div>
-{% endblock %}
+
+        <!-- Section 10: Changes to Terms -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Changes to Terms
+            </h2>
+            <p>We reserve the right to modify or replace these Terms at any time. We will provide notice of significant changes by:</p>
+            <ul>
+                <li>Posting the updated Terms on this page</li>
+                <li>Updating the "Last updated" date</li>
+                <li>Sending email notification for material changes</li>
+                <li>Displaying a notice on the platform</li>
+            </ul>
+            <p>Your continued use of the Service after any changes constitutes acceptance of the new Terms.</p>
+        </div>
+
+        <!-- Section 11: Contact Us -->
+        <div class="content-section">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Contact Us
+            </h2>
+            <p>If you have any questions about these Terms of Service, please contact us:</p>
+            <ul>
+                <li><strong>Email:</strong> legal@codecraftco.com</li>
+                <li><strong>Website:</strong> www.codecraftco.com</li>
+                <li><strong>Support:</strong> support@codecraftco.com</li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <nav class="footer-nav">
+            <a href="{{ url_for('privacy_policy') }}" data-loading data-loading-title="Privacy Policy" data-loading-description="Loading privacy policy">Privacy Policy</a>
+            <span>|</span>
+            <a href="{{ url_for('terms_of_service') }}" data-loading data-loading-title="Terms of Service" data-loading-description="Loading terms of service">Terms of Service</a>
+            <span>|</span>
+            <a href="{{ url_for('help_center') }}" data-loading data-loading-title="Help Center" data-loading-description="Loading help center">Help Center</a>
+            <span>|</span>
+            <a href="{{ url_for('contact_us') }}" data-loading data-loading-title="Contact Us" data-loading-description="Loading contact page">Contact Us</a>
+        </nav>
+        <p class="copyright">© 2025 CodeCraft Co. All rights reserved.</p>
+    </footer>
+
+    <!-- Custom Loading Screen JS -->
+    <script src="{{ url_for('static', filename='js/custom-loading.js') }}"></script>
+
+    <script>
+        // Page entrance animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const pageHeader = document.querySelector('.page-header');
+            if (pageHeader) {
+                pageHeader.style.opacity = '0';
+                pageHeader.style.transform = 'translateY(-20px)';
+                
+                setTimeout(() => {
+                    pageHeader.style.transition = 'all 0.6s ease';
+                    pageHeader.style.opacity = '1';
+                    pageHeader.style.transform = 'translateY(0)';
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
