@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - CodeCraftCo</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='images/logos/codecraft_icon_image.jpg') }}">
-    
+
     <!-- Custom Loading Screen CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-loading.css') }}">
-    
+
     <style>
         /* ============================================
            RESET
            ============================================ */
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -66,7 +69,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: 
+            background-image:
                 radial-gradient(2px 2px at 20% 30%, rgba(88, 166, 255, 0.3), transparent),
                 radial-gradient(2px 2px at 40% 70%, rgba(63, 185, 80, 0.3), transparent),
                 radial-gradient(1px 1px at 60% 15%, rgba(255, 107, 53, 0.3), transparent),
@@ -78,9 +81,19 @@
         }
 
         @keyframes float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            33% { transform: translate(-30px, -30px) rotate(120deg); }
-            66% { transform: translate(30px, -30px) rotate(240deg); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            33% {
+                transform: translate(-30px, -30px) rotate(120deg);
+            }
+
+            66% {
+                transform: translate(30px, -30px) rotate(240deg);
+            }
         }
 
         /* ============================================
@@ -120,14 +133,12 @@
             left: -1px;
             right: -1px;
             bottom: -1px;
-            background: linear-gradient(
-                45deg, 
-                var(--github-green),
-                #06b6d4,
-                var(--github-blue), 
-                var(--github-orange),
-                var(--github-green)
-            );
+            background: linear-gradient(45deg,
+                    var(--github-green),
+                    #06b6d4,
+                    var(--github-blue),
+                    var(--github-orange),
+                    var(--github-green));
             border-radius: 14px;
             z-index: -2;
             background-size: 400% 400%;
@@ -147,14 +158,29 @@
         }
 
         @keyframes gradientBorder {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ============================================
@@ -467,7 +493,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         /* ============================================
@@ -501,7 +529,10 @@
            ACCESSIBILITY
            ============================================ */
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+
+            *,
+            *::before,
+            *::after {
                 animation: none !important;
                 transition: none !important;
             }
@@ -521,88 +552,89 @@
     <div class="main-wrapper">
         <div class="container">
             <!-- Back Button -->
-            <a href="{{ url_for('login') }}" 
-               class="back-button"
-               data-loading
-               data-loading-title="Going Back"
-               data-loading-description="Returning to login page">
+            <a href="{{ url_for('login') }}" class="back-button" data-loading data-loading-title="Going Back"
+                data-loading-description="Returning to login page">
                 <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M19 12H5m7-7l-7 7 7 7"/>
+                    <path d="M19 12H5m7-7l-7 7 7 7" />
                 </svg>
                 Back
             </a>
 
             <!-- Logo Section -->
             <div class="logo-container">
-                <img src="{{ url_for('static', filename='images/logos/icon.png') }}" alt="CodeCraftCo Logo" class="company-logo">
+                <img src="{{ url_for('static', filename='images/logos/icon.png') }}" alt="CodeCraftCo Logo"
+                    class="company-logo">
                 <h2>CodeCraftCo</h2>
                 <p class="admin-subtitle">Admin Dashboard</p>
             </div>
 
             <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for category, message in messages %}
-                            <div class="flash-message {{ category }}">
-                                {% if category == 'error' %}
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="15" y1="9" x2="9" y2="15"/>
-                                        <line x1="9" y1="9" x2="15" y2="15"/>
-                                    </svg>
-                                {% else %}
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                        <polyline points="22 4 12 14.01 9 11.01"/>
-                                    </svg>
-                                {% endif %}
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash-message {{ category }}">
+                    {% if category == 'error' %}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="15" y1="9" x2="9" y2="15" />
+                        <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                    {% else %}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                    {% endif %}
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% endwith %}
 
             <!-- Login Form -->
             <form method="POST" class="admin-form" id="adminLoginForm">
                 {{ form.hidden_tag() }}
-                
+
                 <div class="form-group">
                     {{ form.username.label(class="form-label") }}
-                    {{ form.username(class="form-control", placeholder="Enter your username", autocomplete="username") }}
+                    {{ form.username(class="form-control", placeholder="Enter your username", autocomplete="username")
+                    }}
                     {% if form.username.errors %}
-                        <span class="error-message">
-                            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="15" y1="9" x2="9" y2="15"/>
-                                <line x1="9" y1="9" x2="15" y2="15"/>
-                            </svg>
-                            {{ form.username.errors[0] }}
-                        </span>
+                    <span class="error-message">
+                        <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                        {{ form.username.errors[0] }}
+                    </span>
                     {% endif %}
                 </div>
 
                 <div class="form-group">
                     {{ form.password.label(class="form-label") }}
                     <div class="password-input-wrapper">
-                        {{ form.password(class="form-control", placeholder="Enter your password", autocomplete="current-password") }}
-                        <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="Toggle password visibility">
+                        {{ form.password(class="form-control", placeholder="Enter your password",
+                        autocomplete="current-password") }}
+                        <button type="button" class="password-toggle" onclick="togglePassword()"
+                            aria-label="Toggle password visibility">
                             <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <circle cx="12" cy="12" r="3" />
                             </svg>
                         </button>
                     </div>
                     {% if form.password.errors %}
-                        <span class="error-message">
-                            <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="15" y1="9" x2="9" y2="15"/>
-                                <line x1="9" y1="9" x2="15" y2="15"/>
-                            </svg>
-                            {{ form.password.errors[0] }}
-                        </span>
+                    <span class="error-message">
+                        <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="15" y1="9" x2="9" y2="15" />
+                            <line x1="9" y1="9" x2="15" y2="15" />
+                        </svg>
+                        {{ form.password.errors[0] }}
+                    </span>
                     {% endif %}
                 </div>
 
@@ -613,23 +645,19 @@
         </div>
     </div>
 
-    <!-- Footer -->
     <footer>
         <nav class="footer-nav">
-            <a href="{{ url_for('privacy_policy') }}"
-               data-loading
-               data-loading-title="Loading Policy"
-               data-loading-description="Loading privacy policy">Privacy Policy</a>
-            <span>•</span>
-            <a href="{{ url_for('terms_of_service') }}"
-               data-loading
-               data-loading-title="Loading Terms"
-               data-loading-description="Loading terms of service">Terms of Service</a>
-            <span>•</span>
-            <a href="#"
-               data-loading
-               data-loading-title="Support"
-               data-loading-description="Loading support page">Support</a>
+            <a href="{{ url_for('privacy_policy') }}" data-loading data-loading-title="Loading Policy"
+                data-loading-description="Loading privacy policy">Privacy Policy</a>
+            <span>|</span>
+            <a href="{{ url_for('terms_of_service') }}" data-loading data-loading-title="Loading Terms"
+                data-loading-description="Loading terms of service">Terms of Service</a>
+            <span>|</span>
+            <a href="{{ url_for('help_center') }}" data-loading data-loading-title="Help Center"
+                data-loading-description="Loading help resources">Help Center</a>
+            <span>|</span>
+            <a href="{{ url_for('contact_us') }}" data-loading data-loading-title="Contact Us"
+                data-loading-description="Loading contact information">Contact Us</a>
         </nav>
     </footer>
 
@@ -641,7 +669,7 @@
         function togglePassword() {
             const passwordField = document.querySelector('input[name="password"]');
             const eyeIcon = document.querySelector('.eye-icon');
-            
+
             if (passwordField.type === 'password') {
                 passwordField.type = 'text';
                 eyeIcon.innerHTML = `
@@ -658,10 +686,10 @@
         }
 
         // Form Submit Loading State
-        document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+        document.getElementById('adminLoginForm').addEventListener('submit', function (e) {
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.textContent;
-            
+
             submitBtn.classList.add('loading');
             submitBtn.textContent = 'Signing In...';
             submitBtn.disabled = true;
@@ -680,7 +708,7 @@
             if (container) {
                 container.style.opacity = '0';
                 container.style.transform = 'translateY(20px)';
-                
+
                 setTimeout(() => {
                     container.style.transition = 'all 0.6s ease';
                     container.style.opacity = '1';
@@ -697,7 +725,7 @@
 
         // Add input validation styling
         document.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('blur', function() {
+            input.addEventListener('blur', function () {
                 if (this.value.trim() === '') {
                     this.style.borderColor = 'var(--github-red)';
                 } else {
@@ -705,11 +733,11 @@
                 }
             });
 
-            input.addEventListener('focus', function() {
+            input.addEventListener('focus', function () {
                 this.style.borderColor = 'var(--github-blue)';
             });
 
-            input.addEventListener('input', function() {
+            input.addEventListener('input', function () {
                 if (this.value.trim() !== '') {
                     this.style.borderColor = 'var(--github-blue)';
                 }
@@ -718,7 +746,7 @@
 
         // Enter key to submit form
         document.querySelectorAll('.form-control').forEach(input => {
-            input.addEventListener('keypress', function(e) {
+            input.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     document.getElementById('adminLoginForm').submit();
                 }
@@ -726,4 +754,5 @@
         });
     </script>
 </body>
+
 </html>

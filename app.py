@@ -21,7 +21,7 @@ from urllib.parse import quote_plus
 # Flask imports
 from flask import (
     Flask, render_template, redirect, url_for, flash, request,
-    jsonify, session, send_file, g
+    jsonify, session, send_file, g, jsonify
 )
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user
@@ -235,11 +235,23 @@ def load_user(user_id):
 def validate_session():
     """Validate user session on each request."""
 
+    # ✅ FIXED: Use correct function names that match your routes
     excluded = {
-        "static", "index", "feed", "home", "login",
-        "register", "forgot_password", "reset_password",
-        "google_login", "google_callback",
-        "privacy", "terms", "contact",
+        "static", 
+        "index", 
+        "feed", 
+        "home", 
+        "login",
+        "register", 
+        "forgot_password", 
+        "reset_password",
+        "google_login", 
+        "google_callback",
+        "privacy_policy",      # ✅ Changed from "privacy"
+        "terms_of_service",    # ✅ Changed from "terms"
+        "help_center",         # ✅ Added
+        "contact_us",          # ✅ Changed from "contact"
+        "submit_contact",      # ✅ Added for form submission
         "admin_login"
     }
 
@@ -247,10 +259,15 @@ def validate_session():
     if request.endpoint in excluded:
         return
 
+    # Skip if no endpoint (shouldn't happen, but safety check)
+    if request.endpoint is None:
+        return
+
     # Skip AJAX/JSON
     if request.is_json:
         return
 
+    # ✅ FIXED: Only validate session if user IS authenticated
     if current_user.is_authenticated:
         client_ip = request.environ.get("HTTP_X_REAL_IP", request.remote_addr)
         session_token = session.get("session_token")
@@ -286,10 +303,31 @@ def validate_session():
         g.current_user = current_user
 
     else:
-        if request.endpoint and not request.endpoint.startswith("auth"):
+        # ✅ FIXED: Only redirect for protected routes, not public ones
+        # The excluded check above should handle this, but this is a fallback
+        # for routes that require authentication (like dashboard, profile, etc.)
+        
+        # List of route prefixes that REQUIRE authentication
+        protected_prefixes = [
+            '/dashboard',
+            '/profile',
+            '/admin',
+            '/apply',
+            '/applications',
+            '/my-applications',
+            '/document',
+            '/edit',
+            '/add',
+            '/delete',
+            '/user',
+        ]
+        
+        # Check if current path requires authentication
+        requires_auth = any(request.path.startswith(prefix) for prefix in protected_prefixes)
+        
+        if requires_auth:
             flash("Please log in to access this page.", "info")
-            return redirect(url_for("login"))
-
+            return redirect(url_for("login", next=request.url))
 
 # =============================================================================
 # BASIC ROUTES
@@ -2580,13 +2618,40 @@ def safe_db_init():
 # PRIVACY POLICY & TERMS OF SERVICE
 # =============================================================================
 
-@app.route("/privacy")
+@app.route('/privacy-policy')
 def privacy_policy():
-    return render_template("privacy_policy.html")
+    return render_template('privacy_policy.html')
 
-@app.route("/terms")
+
+@app.route('/terms-of-service')
 def terms_of_service():
-    return render_template("terms_of_service.html")
+    return render_template('terms_of_service.html')
+
+
+@app.route('/help-center')
+def help_center():
+    return render_template('help_center.html')
+
+
+@app.route('/contact-us')
+def contact_us():
+    return render_template('contact_us.html')
+
+
+@app.route('/submit-contact', methods=['POST'])
+def submit_contact():
+    # Handle form submission
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    subject = request.form.get('subject')
+    message = request.form.get('message')
+
+    # Process the contact form (save to database, send email, etc.)
+    print(f"📧 Contact Form: {first_name} {last_name} - {email} - {subject}")
+
+    return jsonify({'status': 'success'}), 200
 
 # =============================================================================
 # CUSTOM TIME FILTERS (RESTORED)
