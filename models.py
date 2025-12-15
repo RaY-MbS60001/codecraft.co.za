@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import synonym
 import uuid
@@ -24,15 +24,34 @@ class User(UserMixin, db.Model):
     last_login = db.Column(db.DateTime)
     is_active = db.Column(db.Boolean, default=True)
     
-    # Session tracking fields - ADD THESE
+    # Session tracking fields
     session_token = db.Column(db.String(255), unique=True, nullable=True)
     session_expires = db.Column(db.DateTime, nullable=True)
-    session_ip = db.Column(db.String(45), nullable=True)  # For IP tracking
-    session_user_agent = db.Column(db.String(500), nullable=True)  # For browser tracking
+    session_ip = db.Column(db.String(45), nullable=True)
+    session_user_agent = db.Column(db.String(500), nullable=True)
 
+    # Premium Account Fields
+    is_premium = db.Column(db.Boolean, default=False, nullable=False)
+    premium_expires = db.Column(db.DateTime, nullable=True)
+    daily_applications_used = db.Column(db.Integer, default=0, nullable=False)
+    last_application_date = db.Column(db.Date, default=date.today)
+    premium_activated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    premium_activated_at = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
     applications = db.relationship('Application', back_populates='user', lazy=True)
     documents = db.relationship('Document', backref='owner', lazy=True)
     email_applications = db.relationship('EmailApplication', backref='user', lazy=True)
+    learnership_applications = db.relationship('LearnershipApplication', backref='user', lazy=True)
+
+    # Daily limits constants
+    FREE_DAILY_LIMIT = 24
+    PREMIUM_DAILY_LIMIT = None  # Unlimited
+
+    # Add @property for is_admin
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -42,7 +61,6 @@ class User(UserMixin, db.Model):
             return check_password_hash(self.password_hash, password)
         return False
 
-    # ADD THESE SESSION METHODS
     def generate_session_token(self, ip_address=None, user_agent=None):
         """Generate a new session token for the user"""
         self.session_token = str(uuid.uuid4())
@@ -64,7 +82,6 @@ class User(UserMixin, db.Model):
             self.clear_session()
             return False
         
-        # Optional: Check IP address for additional security
         if ip_address and self.session_ip and ip_address != self.session_ip:
             return False
             
@@ -84,6 +101,64 @@ class User(UserMixin, db.Model):
             self.session_expires = datetime.utcnow() + timedelta(hours=2)
             db.session.commit()
 
+    # Premium Account Methods
+    def can_apply_today(self):
+        """Check if user can make more applications today"""
+        today = date.today()
+        
+        # Reset counter if it's a new day
+        if self.last_application_date != today:
+            self.daily_applications_used = 0
+            self.last_application_date = today
+            db.session.commit()
+        
+        # Premium users have unlimited applications
+        if self.is_premium and (not self.premium_expires or self.premium_expires > datetime.now()):
+            return True
+        
+        # Free users are limited to 24 per day
+        return self.daily_applications_used < self.FREE_DAILY_LIMIT
+    
+    def get_remaining_applications(self):
+        """Get remaining applications for today"""
+        if self.is_premium and (not self.premium_expires or self.premium_expires > datetime.now()):
+            return "Unlimited"
+        
+        today = date.today()
+        if self.last_application_date != today:
+            return self.FREE_DAILY_LIMIT
+        
+        return max(0, self.FREE_DAILY_LIMIT - self.daily_applications_used)
+    
+    def use_application(self):
+        """Record an application usage"""
+        today = date.today()
+        
+        if self.last_application_date != today:
+            self.daily_applications_used = 0
+            self.last_application_date = today
+        
+        self.daily_applications_used += 1
+        db.session.commit()
+
+    def is_premium_active(self):
+        """Check if premium is currently active"""
+        return self.is_premium and (not self.premium_expires or self.premium_expires > datetime.now())
+
+    def get_premium_status(self):
+        """Get premium status with details"""
+        if not self.is_premium:
+            return {'status': 'free', 'message': 'Free Account'}
+        
+        if self.premium_expires and self.premium_expires <= datetime.now():
+            return {'status': 'expired', 'message': 'Premium Expired'}
+        
+        if self.premium_expires:
+            days_left = (self.premium_expires - datetime.now()).days
+            return {'status': 'active', 'message': f'Premium Active ({days_left} days left)'}
+        
+        return {'status': 'active', 'message': 'Premium Active (Lifetime)'}
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -95,10 +170,30 @@ class User(UserMixin, db.Model):
             'auth_method': self.auth_method,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M'),
             'last_login': self.last_login.strftime('%Y-%m-%d %H:%M') if self.last_login else 'Never',
-            'is_active': self.is_active
+            'is_active': self.is_active,
+            'is_premium': self.is_premium,
+            'premium_status': self.get_premium_status(),
+            'remaining_applications': self.get_remaining_applications()
         }
 
-# Keep all your other models unchanged...
+class PremiumTransaction(db.Model):
+    __tablename__ = 'premium_transactions'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    transaction_type = db.Column(db.String(50), nullable=False)  # 'admin_grant', 'admin_revoke', 'admin_extend', 'payment'
+    amount = db.Column(db.Float, nullable=True)
+    duration_days = db.Column(db.Integer, nullable=False)
+    activated_by_admin = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notes = db.Column(db.Text, nullable=True)
+    
+    user = db.relationship('User', foreign_keys=[user_id], backref='premium_transactions')
+    admin = db.relationship('User', foreign_keys=[activated_by_admin])
+
+    def __repr__(self):
+        return f'<PremiumTransaction {self.id}: {self.transaction_type} for User {self.user_id}>'
 
 class Learnership(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -117,24 +212,82 @@ class Learnership(db.Model):
 
     applications = db.relationship('Application', backref='learnership', lazy=True)
 
-class LearnshipEmail(db.Model):
-    __tablename__ = 'learnership_email'
+# UNIFIED EMAIL MODEL - Use this one only
+class LearnershipEmail(db.Model):
+    __tablename__ = 'learnership_emails'
     __table_args__ = {'extend_existing': True}
+    
     id = db.Column(db.Integer, primary_key=True)
-    company_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), nullable=False, unique=True)
+    company_name = db.Column(db.String(255), nullable=False)
+    email_address = db.Column(db.String(255), nullable=False)
+    
+    # Email status tracking fields
+    is_reachable = db.Column(db.Boolean, default=None)
+    response_time = db.Column(db.Float, default=None)
+    last_checked = db.Column(db.DateTime, default=None)
+    check_count = db.Column(db.Integer, default=0)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
 
-    email_applications = db.relationship('EmailApplication', backref='learnership_email', lazy=True)
+    # Relationships
+    applications = db.relationship('LearnershipApplication', backref='learnership_email', lazy=True)
 
     def __repr__(self):
-        return f'<LearnshipEmail {self.company_name}: {self.email}>'
+        return f'<LearnershipEmail {self.company_name}: {self.email_address}>'
+    
+    @property
+    def email(self):
+        """Backward compatibility property"""
+        return self.email_address
+    
+    @email.setter
+    def email(self, value):
+        """Backward compatibility setter"""
+        self.email_address = value
+    
+    @property
+    def status(self):
+        """Convert is_reachable boolean to status string for API compatibility"""
+        if self.is_reachable is None:
+            return 'unknown'
+        elif self.is_reachable:
+            return 'reachable'
+        else:
+            return 'unreachable'
+    
+    @status.setter
+    def status(self, value):
+        """Convert status string back to is_reachable boolean"""
+        if value == 'reachable':
+            self.is_reachable = True
+        elif value == 'unreachable':
+            self.is_reachable = False
+        else: 
+            self.is_reachable = None
+
+# FIXED: Corrected foreign key reference
+class LearnershipApplication(db.Model):
+    __tablename__ = 'learnership_applications'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    learnership_email_id = db.Column(db.Integer, db.ForeignKey('learnership_emails.id'), nullable=False)
+    
+    company_name = db.Column(db.String(255), nullable=False)
+    email_address = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(50), default='sent')
+    
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    response_received_at = db.Column(db.DateTime)
+    
+    # Note: Relationships are defined via backref in other models
 
 class Application(db.Model):
     __table_args__ = {'extend_existing': True}
     
-    # Your existing fields
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     learnership_id = db.Column(db.Integer, db.ForeignKey('learnership.id'), nullable=True)
@@ -144,7 +297,7 @@ class Application(db.Model):
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Gmail tracking fields (added by migration)
+    # Gmail tracking fields
     sent_at = db.Column(db.DateTime, nullable=True)
     gmail_message_id = db.Column(db.String(255), nullable=True)
     gmail_thread_id = db.Column(db.String(255), nullable=True)
@@ -155,15 +308,13 @@ class Application(db.Model):
     has_response = db.Column(db.Boolean, default=False)
     response_thread_count = db.Column(db.Integer, default=0)
 
-    # Your existing relationships
     created_at = synonym('submitted_at')
     user = db.relationship('User', back_populates='applications')
     
-    # Your existing property methods
     @property
-    def learnership_name(self):
+    def learnership_name(self): 
         """Return the stored learnership name or calculate it if not available"""
-        if self._learnership_name:
+        if self._learnership_name: 
             return self._learnership_name
         return self.learnership.title if self.learnership else self.company_name
     
@@ -172,7 +323,6 @@ class Application(db.Model):
         """Set the stored learnership name"""
         self._learnership_name = value
 
-    # Gmail status methods
     def get_email_status_display(self):
         """Return user-friendly email status display"""
         status_map = {
@@ -199,12 +349,10 @@ class Application(db.Model):
         if not status_info:
             return
             
-        # Update sent status
         if status_info.get('timestamp') and not self.sent_at:
             self.sent_at = status_info['timestamp']
             self.email_status = 'sent'
         
-        # Update thread activity
         thread_info = status_info.get('thread_info', {})
         if thread_info.get('has_responses'):
             self.email_status = 'responded'
@@ -238,7 +386,7 @@ class EmailApplication(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    learnership_email_id = db.Column(db.Integer, db.ForeignKey('learnership_email.id'), nullable=False)
+    learnership_email_id = db.Column(db.Integer, db.ForeignKey('learnership_emails.id'), nullable=False)
     status = db.Column(db.String(50), default='sent')
     sent_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -2357,8 +2357,53 @@ if ('IntersectionObserver' in window) {
             </div>
         </div>
     </aside>
+    
 </div>
+<!-- ======= FOOTER ======= -->
+<footer class="main-footer">
+  <div class="footer-inner">
+    <!-- Brand -->
+    <div class="footer-brand">
+      <div class="logo-container">
+        <div class="word">
+          <div class="letter-box red"><div class="letter">C</div></div>
+          <div class="word-text">ode</div>
+        </div>
+        <div class="word">
+          <div class="letter-box blue"><div class="letter">C</div></div>
+          <div class="word-text">raft</div>
+        </div>
+        <div class="word">
+          <div class="letter-box orange"><div class="letter">C</div></div>
+          <div class="word-text">o</div>
+        </div>
+      </div>
+      <p class="footer-tagline">Empowering developers with smart tools.</p>
+    </div>
 
+    <!-- Links -->
+    <div class="footer-links">
+      <a href="{{ url_for('user_dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('edit_profile') }}">Profile</a>
+      <a href="#">Contact</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+
+    <!-- Social -->
+    <div class="footer-social">
+      <a href="#" aria-label="LinkedIn" class="social-btn linkedin"><i class="fa-brands fa-linkedin-in"></i></a>
+      <a href="#" aria-label="GitHub" class="social-btn github"><i class="fa-brands fa-github"></i></a>
+      <a href="#" aria-label="Instagram" class="social-btn instagram"><i class="fa-brands fa-instagram"></i></a>
+      <a href="#" aria-label="Facebook" class="social-btn facebook"><i class="fa-brands fa-facebook-f"></i></a>
+      <a href="#" aria-label="WhatsApp" class="social-btn whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <p>© {{ current_year or 2024 }} <strong>CodeCraftCo</strong>. All rights reserved.</p>
+  </div>
+</footer>
 <!-- Application Details Modal -->
 <div id="application-modal" class="modal-overlay">
     <div class="modal-container">
@@ -2387,6 +2432,7 @@ if ('IntersectionObserver' in window) {
             </button>
         </div>
     </div>
+    
 </div>
 
 {% endblock %}

@@ -59,3 +59,50 @@ class LearnershipSearchForm(FlaskForm):
                            choices=[('all', 'All Categories')], 
                            validators=[Optional()])
     submit = SubmitField('Search')
+
+class LearnershipSearchForm(FlaskForm):
+    search = StringField('Search', render_kw={"placeholder": "Search learnerships..."})
+    category = SelectField('Category', choices=[('all', 'All Categories')])
+    submit = SubmitField('Search')
+
+
+# Add these imports to your existing forms.py
+from wtforms import SelectField, IntegerField, TextAreaField, BooleanField
+from wtforms.validators import DataRequired, NumberRange
+
+# Add these form classes to your forms.py
+
+class PremiumManagementForm(FlaskForm):
+    """Form for managing premium accounts"""
+    action = SelectField('Action', choices=[
+        ('grant', 'Grant Premium'),
+        ('extend', 'Extend Premium'),
+        ('revoke', 'Revoke Premium')
+    ], validators=[DataRequired()])
+    
+    duration_days = IntegerField('Duration (Days)', 
+                                validators=[NumberRange(min=1, max=365)], 
+                                default=30)
+    notes = TextAreaField('Notes')
+
+class BulkPremiumForm(FlaskForm):
+    """Form for bulk premium management"""
+    user_ids = TextAreaField('User IDs (comma separated)', 
+                           validators=[DataRequired()],
+                           render_kw={'placeholder': '1, 2, 3, 4, 5'})
+    duration_days = IntegerField('Duration (Days)', 
+                               validators=[DataRequired(), NumberRange(min=1, max=365)], 
+                               default=30)
+    notes = TextAreaField('Notes')
+
+class PaymentForm(FlaskForm):
+    """Form for premium payment (for future Ozow integration)"""
+    plan_type = SelectField('Plan Type', choices=[
+        ('monthly', 'Monthly (R99)'),
+        ('yearly', 'Yearly (R999)')
+    ], validators=[DataRequired()])
+    
+    payment_method = SelectField('Payment Method', choices=[
+        ('ozow', 'Ozow'),
+        ('card', 'Credit Card')
+    ], validators=[DataRequired()])

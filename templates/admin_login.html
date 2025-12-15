@@ -9,542 +9,806 @@
     <!-- Favicon -->
     <link rel="icon" type="image/jpg" href="{{ url_for('static', filename='images/logos/codecraft_icon_image.jpg') }}">
 
+    <!-- Font Awesome for social icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <!-- Custom Loading Screen CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-loading.css') }}">
 
     <style>
-        /* ============================================
-           RESET
-           ============================================ */
-        *,
-        *::before,
-        *::after {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+/* ============================================
+   RESET
+   ============================================ */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        /* ============================================
-           CSS VARIABLES
-           ============================================ */
-        :root {
-            --github-dark: #0d1117;
-            --github-dark-secondary: #161b22;
-            --github-dark-tertiary: #21262d;
-            --github-border: #30363d;
-            --github-text: #f0f6fc;
-            --github-text-secondary: #8b949e;
-            --github-blue: #0969da;
-            --github-blue-hover: #0550ae;
-            --github-green: #238636;
-            --github-green-hover: #1f7a2e;
-            --github-orange: #ff6b35;
-            --github-red: #da3633;
-            --github-shadow: rgba(1, 4, 9, 0.85);
-        }
+/* ============================================
+   CSS VARIABLES - Dashboard Theme
+   ============================================ */
+:root {
+    --background: #1e293b;
+    --surface: #334155;
+    --surface-hover: #475569;
+    --surface-alt: #64748b;
+    --border-color: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --primary-color: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-light: rgba(59, 130, 246, 0.15);
+    --success-color: #10b981;
+    --success-hover: #059669;
+    --success-light: rgba(16, 185, 129, 0.15);
+    --warning-color: #f59e0b;
+    --warning-hover: #d97706;
+    --warning-light: rgba(245, 158, 11, 0.15);
+    --danger-color: #ef4444;
+    --danger-hover: #dc2626;
+    --danger-light: rgba(239, 68, 68, 0.15);
+    --info-color: #06b6d4;
+    --info-light: rgba(6, 182, 212, 0.15);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 50%;
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
 
-        /* ============================================
-           BODY
-           ============================================ */
-        body {
-            background: var(--github-dark);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-            color: var(--github-text);
-            margin: 0;
-            padding: 20px;
-            overflow-x: hidden;
-            position: relative;
-        }
+/* ============================================
+   BODY - Dashboard Theme
+   ============================================ */
+body {
+    background: var(--background);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    color: var(--text-primary);
+    margin: 0;
+    padding: 20px;
+    overflow-x: hidden;
+    position: relative;
+}
 
-        /* Animated background particles */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                radial-gradient(2px 2px at 20% 30%, rgba(88, 166, 255, 0.3), transparent),
-                radial-gradient(2px 2px at 40% 70%, rgba(63, 185, 80, 0.3), transparent),
-                radial-gradient(1px 1px at 60% 15%, rgba(255, 107, 53, 0.3), transparent),
-                radial-gradient(1px 1px at 80% 85%, rgba(88, 166, 255, 0.2), transparent);
-            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
-            animation: float 20s ease-in-out infinite;
-            pointer-events: none;
-            z-index: -1;
-        }
+/* Animated background particles - Dashboard colors */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 20% 30%, rgba(59, 130, 246, 0.3), transparent),
+        radial-gradient(2px 2px at 40% 70%, rgba(16, 185, 129, 0.3), transparent),
+        radial-gradient(1px 1px at 60% 15%, rgba(245, 158, 11, 0.3), transparent),
+        radial-gradient(1px 1px at 80% 85%, rgba(6, 182, 212, 0.2), transparent);
+    background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+    animation: float 20s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
 
-        @keyframes float {
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    33% {
+        transform: translate(-30px, -30px) rotate(120deg);
+    }
+    66% {
+        transform: translate(30px, -30px) rotate(240deg);
+    }
+}
 
-            0%,
-            100% {
-                transform: translate(0, 0) rotate(0deg);
-            }
+/* ============================================
+   MAIN WRAPPER
+   ============================================ */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 100%;
+    position: relative;
+    z-index: 1;
+}
 
-            33% {
-                transform: translate(-30px, -30px) rotate(120deg);
-            }
+/* ============================================
+   CONTAINER WITH GRADIENT BORDER
+   ============================================ */
+.container {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-xl);
+    animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
 
-            66% {
-                transform: translate(30px, -30px) rotate(240deg);
-            }
-        }
+/* GRADIENT BORDER - Dashboard colors */
+.container::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(45deg,
+        var(--success-color),
+        var(--info-color),
+        var(--primary-color),
+        var(--warning-color),
+        var(--success-color));
+    border-radius: calc(var(--radius-lg) + 2px);
+    z-index: -2;
+    background-size: 400% 400%;
+    animation: gradientBorder 4s ease infinite;
+}
 
-        /* ============================================
-           MAIN WRAPPER
-           ============================================ */
-        .main-wrapper {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            max-width: 100%;
-            position: relative;
-            z-index: 1;
-        }
+.container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    z-index: -1;
+}
 
-        /* ============================================
-           CONTAINER WITH GRADIENT BORDER
-           ============================================ */
-        .container {
-            width: 100%;
-            max-width: 380px;
-            background: var(--github-dark-secondary);
-            border-radius: 12px;
-            padding: 32px;
-            box-shadow: 0 16px 32px var(--github-shadow);
-            animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            position: relative;
-            z-index: 1;
-        }
+@keyframes gradientBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 
-        /* GRADIENT BORDER */
-        .container::before {
-            content: '';
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            right: -1px;
-            bottom: -1px;
-            background: linear-gradient(45deg,
-                    var(--github-green),
-                    #06b6d4,
-                    var(--github-blue),
-                    var(--github-orange),
-                    var(--github-green));
-            border-radius: 14px;
-            z-index: -2;
-            background-size: 400% 400%;
-            animation: gradientBorder 4s ease infinite;
-        }
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
-        .container::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--github-dark-secondary);
-            border-radius: 12px;
-            z-index: -1;
-        }
+/* ============================================
+   BACK BUTTON - Dashboard style
+   ============================================ */
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
 
-        @keyframes gradientBorder {
-            0% {
-                background-position: 0% 50%;
-            }
+.back-button:hover {
+    color: var(--primary-color);
+    background: var(--primary-light);
+}
 
-            50% {
-                background-position: 100% 50%;
-            }
+.back-icon {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    transition: transform var(--transition-fast);
+}
 
-            100% {
-                background-position: 0% 50%;
-            }
-        }
+.back-button:hover .back-icon {
+    transform: translateX(-3px);
+}
 
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
+/* ============================================
+   LOGO CONTAINER - CENTERED (for main login area)
+   ============================================ */
+.main-wrapper .logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-bottom: 28px;
+}
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+.company-logo {
+    width: 70px;
+    height: 70px;
+    border-radius: var(--radius-full);
+    background: var(--background);
+    border: 2px solid var(--border-color);
+    padding: 10px;
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-normal);
+    display: block;
+    margin-bottom: 14px;
+    object-fit: cover;
+}
 
-        /* ============================================
-           BACK BUTTON
-           ============================================ */
-        .back-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--github-text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 24px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
+.company-logo:hover {
+    transform: scale(1.05) rotate(5deg);
+    box-shadow: var(--shadow-lg);
+}
 
-        .back-button:hover {
-            color: var(--github-blue);
-            background: rgba(9, 105, 218, 0.1);
-        }
+.main-wrapper .logo-container h2 {
+    color: var(--text-primary);
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.5px;
+}
 
-        .back-icon {
-            width: 18px;
-            height: 18px;
-            stroke-width: 2;
-            transition: transform 0.2s ease;
-        }
+.admin-subtitle {
+    color: var(--success-color);
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+    padding: 4px 12px;
+    background: var(--success-light);
+    border-radius: 20px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
 
-        .back-button:hover .back-icon {
-            transform: translateX(-3px);
-        }
+/* ============================================
+   FORM STYLES - Dashboard theme
+   ============================================ */
+.admin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
-        /* ============================================
-           LOGO CONTAINER - CENTERED
-           ============================================ */
-        .logo-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            margin-bottom: 28px;
-        }
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 
-        .company-logo {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: var(--github-dark-tertiary);
-            border: 2px solid var(--github-border);
-            padding: 10px;
-            box-shadow: 0 8px 16px rgba(1, 4, 9, 0.4);
-            transition: transform 0.3s ease;
-            display: block;
-            margin-bottom: 14px;
-            object-fit: cover;
-        }
+.form-label {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+}
 
-        .company-logo:hover {
-            transform: scale(1.05) rotate(5deg);
-        }
+.form-control {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+}
 
-        .logo-container h2 {
-            color: var(--github-text);
-            font-size: 22px;
-            font-weight: 600;
-            margin: 0 0 6px 0;
-            letter-spacing: -0.5px;
-        }
+.form-control::placeholder {
+    color: var(--text-tertiary);
+}
 
-        .admin-subtitle {
-            color: var(--github-green);
-            font-size: 13px;
-            font-weight: 500;
-            margin: 0;
-            padding: 4px 12px;
-            background: rgba(35, 134, 54, 0.15);
-            border-radius: 20px;
-            border: 1px solid rgba(35, 134, 54, 0.3);
-        }
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
 
-        /* ============================================
-           FORM STYLES
-           ============================================ */
-        .admin-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+.form-control:hover {
+    border-color: var(--text-secondary);
+}
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+/* Password Input Wrapper */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
 
-        .form-label {
-            color: var(--github-text);
-            font-size: 14px;
-            font-weight: 500;
-        }
+.password-input-wrapper .form-control {
+    padding-right: 45px;
+}
 
-        .form-control {
-            width: 100%;
-            padding: 12px 14px;
-            background: var(--github-dark);
-            border: 1px solid var(--github-border);
-            border-radius: 6px;
-            color: var(--github-text);
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s ease;
-        }
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    transition: color var(--transition-fast);
+    border-radius: var(--radius-sm);
+}
 
-        .form-control::placeholder {
-            color: var(--github-text-secondary);
-        }
+.password-toggle:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+}
 
-        .form-control:focus {
-            outline: none;
-            border-color: var(--github-blue);
-            box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.2);
-        }
+.eye-icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+}
 
-        .form-control:hover {
-            border-color: var(--github-text-secondary);
-        }
+/* Error Messages - Dashboard style */
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--danger-color);
+    font-size: 12px;
+    margin-top: 4px;
+}
 
-        /* Password Input Wrapper */
-        .password-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
+.error-icon {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+    flex-shrink: 0;
+}
 
-        .password-input-wrapper .form-control {
-            padding-right: 45px;
-        }
+/* ============================================
+   SUBMIT BUTTON - Dashboard style
+   ============================================ */
+.submit-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    background: var(--success-color);
+    color: white;
+    border: 1px solid var(--success-color);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-top: 8px;
+    box-shadow: var(--shadow);
+}
 
-        .password-toggle {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--github-text-secondary);
-            transition: color 0.2s ease;
-        }
+.submit-button:hover {
+    background: var(--success-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
 
-        .password-toggle:hover {
-            color: var(--github-text);
-        }
+.submit-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-md);
+}
 
-        .eye-icon {
-            width: 20px;
-            height: 20px;
-            stroke-width: 2;
-        }
+.submit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: var(--shadow);
+}
 
-        /* Error Messages */
-        .error-message {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--github-red);
-            font-size: 12px;
-            margin-top: 4px;
-        }
+/* ============================================
+   FLASH MESSAGES - Dashboard style
+   ============================================ */
+.flash-messages {
+    margin-bottom: 20px;
+}
 
-        .error-icon {
-            width: 14px;
-            height: 14px;
-            stroke-width: 2;
-            flex-shrink: 0;
-        }
+.flash-message {
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: var(--shadow);
+}
 
-        /* ============================================
-           SUBMIT BUTTON
-           ============================================ */
-        .submit-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 20px;
-            background: var(--github-green);
-            color: white;
-            border: 1px solid var(--github-green);
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 8px;
-        }
+.flash-message.error {
+    background: var(--danger-light);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger-color);
+}
 
-        .submit-button:hover {
-            background: var(--github-green-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
-        }
+.flash-message.success {
+    background: var(--success-light);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--success-color);
+}
 
-        .submit-button:active {
-            transform: translateY(0);
-        }
+/* ============================================
+   LOADING STATE - Dashboard style
+   ============================================ */
+.submit-button.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
 
-        .submit-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+.submit-button.loading::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    margin-left: 10px;
+    border: 2px solid transparent;
+    border-top-color: white;
+    border-radius: var(--radius-full);
+    animation: spin 0.8s linear infinite;
+}
 
-        /* ============================================
-           FLASH MESSAGES
-           ============================================ */
-        .flash-messages {
-            margin-bottom: 20px;
-        }
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 
-        .flash-message {
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+/* ============================================
+   GLASS EFFECT - Dashboard consistency
+   ============================================ */
+.glass-effect {
+    background: rgba(51, 65, 85, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
 
-        .flash-message.error {
-            background: rgba(218, 54, 51, 0.1);
-            border: 1px solid rgba(218, 54, 51, 0.3);
-            color: #f85149;
-        }
+/* ============================================
+   RESPONSIVE - Enhanced for dashboard consistency
+   ============================================ */
+@media (max-width: 480px) {
+    body {
+        padding: 15px;
+    }
 
-        .flash-message.success {
-            background: rgba(35, 134, 54, 0.1);
-            border: 1px solid rgba(35, 134, 54, 0.3);
-            color: #3fb950;
-        }
+    .container {
+        max-width: calc(100% - 16px);
+        padding: 24px;
+    }
 
-        /* ============================================
-           FOOTER
-           ============================================ */
-        footer {
-            width: 100%;
-            background: rgba(13, 17, 23, 0.8);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid var(--github-border);
-            padding: 16px;
-            text-align: center;
-            margin-top: auto;
-            position: relative;
-            z-index: 1;
-        }
+    .company-logo {
+        width: 60px;
+        height: 60px;
+    }
 
-        .footer-nav {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 16px;
-            align-items: center;
-        }
+    .main-wrapper .logo-container h2 {
+        font-size: 20px;
+    }
+    
+    .form-control {
+        padding: 10px 12px;
+    }
+    
+    .submit-button {
+        padding: 10px 16px;
+    }
+}
 
-        .footer-nav span {
-            color: var(--github-border);
-            font-size: 12px;
-        }
+@media (max-width: 768px) {
+    .container {
+        max-width: calc(100% - 32px);
+    }
+    
+    .admin-form {
+        gap: 16px;
+    }
+}
 
-        footer a {
-            color: var(--github-text-secondary);
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 400;
-            transition: all 0.2s ease;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
+/* ============================================
+   ACCESSIBILITY - Dashboard standards
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
 
-        footer a:hover {
-            color: var(--github-blue);
-            background: rgba(88, 166, 255, 0.08);
-        }
+.form-control:focus,
+.submit-button:focus,
+.back-button:focus,
+.password-toggle:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
 
-        /* ============================================
-           LOADING STATE
-           ============================================ */
-        .submit-button.loading {
-            opacity: 0.7;
-            pointer-events: none;
-        }
+/* ============================================
+   ADDITIONAL DASHBOARD UTILITIES
+   ============================================ */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
-        .submit-button.loading::after {
-            content: '';
-            width: 16px;
-            height: 16px;
-            margin-left: 10px;
-            border: 2px solid transparent;
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+/* Animation utilities */
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
 
-        /* ============================================
-           RESPONSIVE
-           ============================================ */
-        @media (max-width: 480px) {
-            body {
-                padding: 15px;
-            }
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
-            .container {
-                max-width: 100%;
-                padding: 24px;
-            }
+/* Print styles */
+@media print {
+    body::before {
+        display: none !important;
+    }
+    
+    .container {
+        box-shadow: none;
+        border: 2px solid var(--border-color);
+    }
+    
+    .flash-messages,
+    .main-footer {
+        display: none !important;
+    }
+}
 
-            .company-logo {
-                width: 60px;
-                height: 60px;
-            }
+/* ============================================
+   FOOTER LOGO STYLES - SPECIFIC TO FOOTER
+   ============================================ */
+.footer-brand .logo-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transform: scale(0.9);
+  margin-bottom: 0 !important;
+}
 
-            .logo-container h2 {
-                font-size: 20px;
-            }
+.footer-brand .word {
+  display: flex;
+  align-items: center;
+}
 
-            .footer-nav {
-                gap: 10px;
-            }
-        }
+.footer-brand .letter-box {
+    width: 30px;
+    height: 30px;
+    background-color: rgba(51, 51, 51, 0.9);
+    border: 2px solid #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
 
-        /* ============================================
-           ACCESSIBILITY
-           ============================================ */
-        @media (prefers-reduced-motion: reduce) {
+.footer-brand .letter-box.red {
+    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+}
 
-            *,
-            *::before,
-            *::after {
-                animation: none !important;
-                transition: none !important;
-            }
-        }
+.footer-brand .letter-box.blue {
+    box-shadow: 0 0 10px #0099ff, 0 0 20px #0099ff;
+}
 
-        .form-control:focus,
-        .submit-button:focus,
-        .back-button:focus,
-        footer a:focus {
-            outline: 2px solid var(--github-blue);
-            outline-offset: 2px;
-        }
+.footer-brand .letter-box.orange {
+    box-shadow: 0 0 10px #ff8800, 0 0 20px #ff8800;
+}
+
+.footer-brand .letter {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+    font-family: 'Arial', sans-serif;
+    line-height: 1;
+}
+
+.footer-brand .word-text {
+    font-size: 16px;
+    font-weight: normal;
+    color: #fff;
+    margin-left: 2px;
+    font-family: 'Arial', sans-serif;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    line-height: 1;
+}
+
+/* ============================================
+   FOOTER STYLES
+   ============================================ */
+.main-footer {
+  background:#1e293b;
+  border-top:1px solid var(--border-color);
+  color:var(--text-secondary);
+  padding:20px 12px 12px;
+  margin-top:36px;
+  width: 100%;
+  z-index: 1;
+}
+
+.footer-inner {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  max-width:1100px;
+  margin:0 auto;
+  gap:8px;
+}
+
+/* Brand */
+.footer-brand {
+  flex:1 1 180px;
+  text-align:center;
+}
+
+.footer-tagline {
+  font-size:0.78rem;
+  color:var(--text-tertiary);
+  margin-top:3px;
+}
+
+/* Links */
+.footer-links {
+  flex:1 1 260px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px 10px;
+}
+.footer-links a {
+  color:var(--text-secondary);
+  font-size:0.8rem;
+  text-decoration:none;
+  transition:color 0.3s;
+}
+.footer-links a:hover { color:var(--text-primary); }
+
+/* Socials */
+.footer-social {
+  flex:1 1 140px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  margin-top:2px;
+}
+.social-btn {
+  width:22px;
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:var(--surface-hover);
+  color:white;
+  font-size:11px;
+  transition:transform .25s ease, background .25s ease;
+  text-decoration: none;
+}
+.social-btn:hover { transform:translateY(-2px); }
+.social-btn.linkedin:hover { background:#0077b5; }
+.social-btn.github:hover { background:#181717; }
+.social-btn.instagram:hover { 
+  background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);
+}
+.social-btn.facebook:hover { background:#1877f2; }
+.social-btn.whatsapp:hover { background:#25D366; }
+
+/* Bottom */
+.footer-bottom {
+  border-top:1px solid var(--border-color);
+  text-align:center;
+  padding-top:6px;
+  margin-top:6px;
+  font-size:0.72rem;
+  color:var(--text-tertiary);
+}
+
+/* Footer focus styles */
+.footer-links a:focus,
+.social-btn:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Responsive Footer */
+@media (max-width:768px){
+  .main-footer {
+    padding:8px 6px 8px !important;
+  }
+
+  .footer-inner {
+    flex-direction:column;
+    align-items:center;
+    gap:2px !important;
+  }
+
+  .footer-brand { margin-bottom:0 !important; }
+  .footer-tagline {
+    margin-top:2px;
+    font-size:0.74rem;
+  }
+
+  .footer-links {
+    order:3;
+    margin-top:2px !important;
+    gap:3px 6px !important;
+  }
+
+  .footer-social {
+    order:2;
+    margin-top:0 !important;
+    gap:4px !important;
+  }
+
+  .social-btn {
+    width:20px;
+    height:20px;
+    font-size:10px;
+  }
+}
+
+@media (max-width:420px){
+  .footer-tagline { display:none; }
+
+  .footer-inner { gap:1px !important; }
+
+  .footer-links a { font-size:0.75rem; }
+
+  .social-btn {
+    width:18px;
+    height:18px;
+    font-size:9.5px;
+  }
+
+  .main-footer {
+    padding:6px 4px 4px !important;
+  }
+}
     </style>
 </head>
 
@@ -645,20 +909,50 @@
         </div>
     </div>
 
-    <footer>
-        <nav class="footer-nav">
-            <a href="{{ url_for('privacy_policy') }}" data-loading data-loading-title="Loading Policy"
-                data-loading-description="Loading privacy policy">Privacy Policy</a>
-            <span>|</span>
-            <a href="{{ url_for('terms_of_service') }}" data-loading data-loading-title="Loading Terms"
-                data-loading-description="Loading terms of service">Terms of Service</a>
-            <span>|</span>
-            <a href="{{ url_for('help_center') }}" data-loading data-loading-title="Help Center"
-                data-loading-description="Loading help resources">Help Center</a>
-            <span>|</span>
-            <a href="{{ url_for('contact_us') }}" data-loading data-loading-title="Contact Us"
-                data-loading-description="Loading contact information">Contact Us</a>
-        </nav>
+    <!-- ======= FOOTER ======= -->
+    <footer class="main-footer">
+      <div class="footer-inner">
+        <!-- Brand -->
+        <div class="footer-brand">
+          <div class="logo-container">
+            <div class="word">
+              <div class="letter-box red"><div class="letter">C</div></div>
+              <div class="word-text">ode</div>
+            </div>
+            <div class="word">
+              <div class="letter-box blue"><div class="letter">C</div></div>
+              <div class="word-text">raft</div>
+            </div>
+            <div class="word">
+              <div class="letter-box orange"><div class="letter">C</div></div>
+              <div class="word-text">o</div>
+            </div>
+          </div>
+          <p class="footer-tagline">Empowering developers with smart tools.</p>
+        </div>
+
+        <!-- Links -->
+        <div class="footer-links">
+          <a href="#">Dashboard</a>
+          <a href="#">Profile</a>
+          <a href="#">Contact</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+        </div>
+
+        <!-- Social -->
+        <div class="footer-social">
+          <a href="#" aria-label="LinkedIn" class="social-btn linkedin"><i class="fa-brands fa-linkedin-in"></i></a>
+          <a href="#" aria-label="GitHub" class="social-btn github"><i class="fa-brands fa-github"></i></a>
+          <a href="#" aria-label="Instagram" class="social-btn instagram"><i class="fa-brands fa-instagram"></i></a>
+          <a href="#" aria-label="Facebook" class="social-btn facebook"><i class="fa-brands fa-facebook-f"></i></a>
+          <a href="#" aria-label="WhatsApp" class="social-btn whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© {{ current_year or 2024 }} <strong>CodeCraftCo</strong>. All rights reserved.</p>
+      </div>
     </footer>
 
     <!-- Custom Loading Screen JS -->
@@ -727,19 +1021,19 @@
         document.querySelectorAll('.form-control').forEach(input => {
             input.addEventListener('blur', function () {
                 if (this.value.trim() === '') {
-                    this.style.borderColor = 'var(--github-red)';
+                    this.style.borderColor = 'var(--danger-color)';
                 } else {
-                    this.style.borderColor = 'var(--github-border)';
+                    this.style.borderColor = 'var(--border-color)';
                 }
             });
 
             input.addEventListener('focus', function () {
-                this.style.borderColor = 'var(--github-blue)';
+                this.style.borderColor = 'var(--primary-color)';
             });
 
             input.addEventListener('input', function () {
                 if (this.value.trim() !== '') {
-                    this.style.borderColor = 'var(--github-blue)';
+                    this.style.borderColor = 'var(--primary-color)';
                 }
             });
         });

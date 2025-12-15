@@ -27,6 +27,16 @@ class Config:
     GOOGLE_DISCOVERY_URL = (
         "https://accounts.google.com/.well-known/openid-configuration"
     )
+    
+    # 🔥 ADD THESE GMAIL SCOPES
+    GOOGLE_OAUTH_SCOPES = [
+        'https://www.googleapis.com/auth/gmail.send',           # Send emails
+        'https://www.googleapis.com/auth/gmail.readonly',       # Read emails (for status tracking)
+        'https://www.googleapis.com/auth/gmail.modify',         # Modify emails (for advanced tracking)
+        'openid',                                               # OpenID Connect
+        'https://www.googleapis.com/auth/userinfo.profile',     # User profile
+        'https://www.googleapis.com/auth/userinfo.email'        # User email
+    ]
 
     APPLICATION_EMAIL = os.environ.get("APPLICATION_EMAIL")
     APPLICATION_EMAIL_PASSWORD = os.environ.get("APPLICATION_EMAIL_PASSWORD")
@@ -44,7 +54,7 @@ class DevelopmentConfig(Config):
     TESTING = False
     SESSION_COOKIE_SECURE = False
     REMEMBER_COOKIE_SECURE = False
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{INSTANCE_PATH / 'dev.db'}"
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{INSTANCE_PATH / 'codecraft.db'}"  # Changed to match your actual DB
 
 
 class ProductionConfig(Config):

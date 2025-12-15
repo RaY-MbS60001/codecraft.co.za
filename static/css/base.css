@@ -1,111 +1,146 @@
-/* CSS styles for base.html */
-/* Reset and Base Styles */
+/* ===============================
+   🌙 BASE THEME — CodeCraftCo
+   =============================== */
+
+/* Reset */
 *, *::before, *::after {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
+/* Root Variables */
 :root {
-    /* Dark Mode as Default */
-    --background: #111827;         /* dark background */
-    --text-primary: #f9fafb;       /* light text */
-    --text-secondary: #e5e7eb;     /* lighter secondary text */
-    --primary-color: #4f46e5;
-    --border-color: #374151;       /* darker border for dark bg */
-    
-    /* Typography */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    
-    /* Spacing */
-    --space-xs: 0.25rem;
-    --space-sm: 0.5rem;
-    --space-md: 1rem;
-    --space-lg: 1.5rem;
-    
-    /* Transitions */
-    --transition-speed: 0.2s;
+  /* Brand Colors */
+  --primary: #4285f4;        /* Blue glow */
+  --secondary: #34a853;      /* Green accent */
+  --accent-orange: #ff8800;
+
+  /* Core Palette */
+  --background: #0d0d0d;     /* Page background */
+  --surface: #141414;        /* Section background */
+  --surface-hover: #1e293b;  /* Slightly lighter for hover */
+  --border-color: #374151;   /* Border tone */
+
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-tertiary: #9ca3af;
+
+  /* Effects */
+  --glass-bg: rgba(255,255,255,0.05);
+  --border-glow: rgba(66,133,244,0.45);
+  --shadow: 0 0 12px rgba(66,133,244,0.1);
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+
+  /* Transition Timing */
+  --transition-speed: 0.25s;
 }
 
-/* Global Base Styles */
+/* ===============================
+   🌍 GLOBAL BASE STYLES
+   =============================== */
 html {
-    font-size: 16px;
-    scroll-behavior: smooth;
-    height: 100%;
+  font-size: 16px;
+  scroll-behavior: smooth;
+  height: 100%;
 }
 
 body {
-    font-family: var(--font-family);
-    line-height: 1.6;
-    color: var(--text-primary);
-    background-color: var(--background);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+  font-family: var(--font-family);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Accessibility Improvements */
-.skip-link {
-    position: absolute;
-    top: -40px;
-    left: 0;
-    background: #000;
-    color: white;
-    padding: 8px;
-    z-index: 100;
+/* Smooth Gradients for top-level sections */
+section,
+main {
+  background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
 }
 
-.skip-link:focus {
-    top: 0;
+/* Anchors */
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition-speed);
+}
+a:hover {
+  color: var(--accent-orange);
 }
 
-/* Flash Messages */
-.flash-messages {
-    position: fixed;
-    top: var(--space-md);
-    right: var(--space-md);
-    z-index: 1000;
-    max-width: 400px;
+/* ===============================
+   ✨ Shared UI Elements
+   =============================== */
+.glass-effect {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glow);
+  box-shadow: var(--shadow);
 }
 
-.flash-message {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-sm) var(--space-md);
-    margin-bottom: var(--space-sm);
-    border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transition: opacity var(--transition-speed);
+.logo-container .letter-box.red { box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000; }
+.logo-container .letter-box.blue { box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff; }
+.logo-container .letter-box.orange { box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800; }
+
+button, .btn, .cta-btn {
+  cursor: pointer;
+  transition: all var(--transition-speed);
+  font-family: var(--font-family);
 }
 
-.flash-message button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-    margin-left: var(--space-sm);
+/* ===============================
+   📱 RESPONSIVE TYPOGRAPHY
+   =============================== */
+@media (max-width:768px) {
+  html { font-size: 15px; }
+}
+@media (max-width:480px) {
+  html { font-size: 14px; }
 }
 
-/* Responsive Typography */
-@media (max-width: 768px) {
-    html {
-        font-size: 14px;
-    }
-}
-
-/* Light Mode Support */
+/* ===============================
+   ☀️ LIGHT MODE SUPPORT
+   =============================== */
 @media (prefers-color-scheme: light) {
-    :root {
-        --background: #f9fafb;
-        --text-primary: #1f2937;
-        --text-secondary: #4b5563;
-        --border-color: #e5e7eb;
-    }
+  :root {
+    --background: #f9fafb;
+    --surface: #ffffff;
+    --surface-hover: #f3f4f6;
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --border-color: #e5e7eb;
+    --glass-bg: rgba(0,0,0,0.05);
+    --border-glow: rgba(66,133,244,0.25);
+  }
 }
 
-/* Reduced Motion */
+/* ===============================
+   ⚡ ACCESSIBILITY & UTILITIES
+   =============================== */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  z-index: 100;
+}
+.skip-link:focus { top: 0; }
+
 .reduced-motion * {
-    transition: none !important;
-    animation: none !important;
+  transition: none !important;
+  animation: none !important;
 }

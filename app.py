@@ -35,6 +35,10 @@ from wtforms.validators import Optional
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 
+# Add these imports at the top of your app.py file (around line 10-20)
+from decorators import admin_required, premium_required, check_application_limit, track_application_usage
+from models import PremiumTransaction
+
 # Load .env
 load_dotenv()
 
@@ -44,8 +48,8 @@ print(f"DEBUG: DATABASE_URL is '{DATABASE_URL}'")
 
 # Local imports
 from models import (
-    db, User, Learnership, Application, Document,
-    ApplicationDocument, GoogleToken, LearnshipEmail, EmailApplication
+    db, User, Learnership, Application, Document, LearnershipApplication,
+    ApplicationDocument, GoogleToken, LearnershipEmail, EmailApplication
 )
 from forms import (
     AdminLoginForm, EditProfileForm, ChangePasswordForm,
@@ -195,21 +199,29 @@ def setup_oauth():
         secret = app.config.get("GOOGLE_CLIENT_SECRET")
 
         if cid and secret:
+            # Get scopes from config, with fallback to basic scopes
+            oauth_scopes = app.config.get('GOOGLE_OAUTH_SCOPES', [
+                'openid',
+                'email', 
+                'profile',
+                'https://www.googleapis.com/auth/gmail.send',
+                'https://www.googleapis.com/auth/gmail.readonly',
+                'https://www.googleapis.com/auth/gmail.modify'
+            ])
+            
             google = oauth.register(
                 name="google",
                 client_id=cid,
                 client_secret=secret,
                 server_metadata_url=app.config["GOOGLE_DISCOVERY_URL"],
                 client_kwargs={
-                    "scope": (
-                        "openid email profile "
-                        "https://www.googleapis.com/auth/gmail.send"
-                    ),
+                    "scope": " ".join(oauth_scopes),  # 🔥 USE CONFIG SCOPES
                     "access_type": "offline",
                     "prompt": "consent"
                 }
             )
             print("✓ Google OAuth configured")
+            print(f"📊 OAuth scopes: {oauth_scopes}")  # 🔥 DEBUG INFO
         else:
             print("⚠️ Google OAuth credentials missing")
 
@@ -442,6 +454,336 @@ def admin_login():
     return render_template("admin_login.html", form=form)
 
 
+# =============================================================================
+# DOMAIN CHECKER SERVICE INSTANCE
+# =============================================================================
+import os
+import smtplib
+import socket
+import time
+from datetime import datetime, timedelta
+import threading
+import json
+
+# Add this after your existing imports
+try:
+    import dns.resolver
+except ImportError:
+    print("⚠️  dnspython not installed. Install with: pip install dnspython")
+    dns = None
+
+# Email checking functions
+def check_email_reachability(email_address):
+    """Check if an email address is reachable via SMTP"""
+    if not dns:
+        return False, None
+        
+    try:
+        start_time = time.time()
+        
+        # Extract domain
+        if '@' not in email_address:
+            return False, None
+            
+        domain = email_address.split('@')[1].lower()
+        
+        # Check MX records
+        try:
+            mx_records = dns.resolver.resolve(domain, 'MX')
+            if not mx_records:
+                return False, None
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, Exception):
+            return False, None
+        
+        # Get the first MX record
+        mx_record = str(mx_records[0].exchange).rstrip('.')
+        
+        # Try SMTP connection
+        try:
+            # Connect to mail server
+            server = smtplib.SMTP(timeout=15)
+            server.connect(mx_record, 25)
+            server.helo('codecraft.co.za')
+            
+            # Test the email
+            server.mail('noreply@codecraft.co.za')
+            code, message = server.rcpt(email_address)
+            server.quit()
+            
+            response_time = time.time() - start_time
+            
+            # Check if email is accepted (codes 250, 251, 252 are usually OK)
+            is_valid = code in [250, 251, 252]
+            
+            return is_valid, response_time
+            
+        except (smtplib.SMTPException, socket.error, ConnectionRefusedError):
+            return False, None
+            
+    except Exception as e:
+        print(f"Error checking {email_address}: {e}")
+        return False, None
+
+def check_email_batch(limit=50):
+    """Check a batch of emails for reachability"""
+    with app.app_context():
+        try:
+            # Get unchecked emails or emails that haven't been checked in 24 hours
+            emails_to_check = LearnershipEmail.query.filter(
+                db.or_(
+                    LearnershipEmail.is_reachable.is_(None),
+                    db.and_(
+                        LearnershipEmail.last_checked.isnot(None),
+                        LearnershipEmail.last_checked < datetime.utcnow() - timedelta(hours=24)
+                    )
+                )
+            ).limit(limit).all()
+            
+            print(f"Checking {len(emails_to_check)} emails...")
+            
+            for i, email in enumerate(emails_to_check):
+                try:
+                    print(f"Checking {i+1}/{len(emails_to_check)}: {email.email_address}")
+                    
+                    is_reachable, response_time = check_email_reachability(email.email_address)
+                    
+                    # Update email record
+                    email.is_reachable = is_reachable
+                    email.response_time = response_time
+                    email.last_checked = datetime.utcnow()
+                    email.check_count = (email.check_count or 0) + 1
+                    
+                    # Commit each update
+                    db.session.commit()
+                    
+                    result = "✓" if is_reachable else "✗"
+                    time_str = f" ({response_time:.2f}s)" if response_time else ""
+                    print(f"  Result: {result}{time_str}")
+                    
+                    # Small delay to avoid being blocked
+                    time.sleep(2)
+                    
+                except Exception as e:
+                    print(f"Error checking {email.email_address}: {e}")
+                    db.session.rollback()
+                    continue
+            
+            print("Email check batch completed!")
+            
+        except Exception as e:
+            print(f"Error in check_email_batch: {e}")
+
+# API Routes
+@app.route('/api/email-status')
+@login_required
+def get_email_status():
+    """API endpoint to get email reachability status"""
+    try:
+        # Get all emails from database
+        emails = LearnershipEmail.query.all()
+        
+        # If no emails have been checked yet, start a background check
+        unchecked_count = LearnershipEmail.query.filter_by(is_reachable=None).count()
+        
+        if unchecked_count > 0:
+            # Start background check for unchecked emails (limit to first 50)
+            threading.Thread(target=check_email_batch, args=(50,), daemon=True).start()
+        
+        # Get reachable emails
+        reachable_emails = LearnershipEmail.query.filter_by(is_reachable=True).all()
+        
+        # Format email data
+        email_list = []
+        for email in reachable_emails:
+            email_list.append({
+                'id': email.id,
+                'company_name': email.company_name,
+                'email_address': email.email_address,
+                'status': 'reachable',
+                'response_time': email.response_time
+            })
+        
+        # Calculate stats
+        total_count = len(emails)
+        reachable_count = len(reachable_emails)
+        checked_count = LearnershipEmail.query.filter(LearnershipEmail.is_reachable.isnot(None)).count()
+        
+        stats = {
+            'total': total_count,
+            'reachable': reachable_count,
+            'unreachable': checked_count - reachable_count,
+            'unchecked': total_count - checked_count
+        }
+        
+        # Get last update time
+        last_checked_email = LearnershipEmail.query.filter(
+            LearnershipEmail.last_checked.isnot(None)
+        ).order_by(LearnershipEmail.last_checked.desc()).first()
+        
+        last_updated = last_checked_email.last_checked.isoformat() if last_checked_email and last_checked_email.last_checked else None
+        
+        return jsonify({
+            'emails': email_list,
+            'stats': stats,
+            'last_updated': last_updated,
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        print(f"Error in get_email_status: {e}")
+        return jsonify({
+            'emails': [],
+            'stats': {'total': 0, 'reachable': 0, 'unreachable': 0},
+            'error': str(e)
+        }), 500
+
+
+# Manual email check route (for testing)
+@app.route('/admin/check-emails')
+@login_required
+def admin_check_emails():
+    """Manual trigger for email checking"""
+    if not current_user.is_admin:
+        flash('Access denied.', 'error')
+        return redirect(url_for('feed'))
+    
+    # Start background email check
+    threading.Thread(target=check_email_batch, args=(100,), daemon=True).start()
+    
+    flash('Email checking started in background. Check back in a few minutes.', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+
+# Add these imports at the top if not already present
+import threading
+try:
+    import dns.resolver
+except ImportError:
+    print("⚠️  dnspython not installed. Install with: pip install dnspython")
+    dns = None
+
+# Add these functions (only if they don't exist already)
+def check_email_reachability(email_address):
+    """Check if an email address is reachable via SMTP"""
+    if not dns:
+        return True, None  # Default to True if DNS checking is unavailable
+        
+    try:
+        start_time = time.time()
+        
+        if '@' not in email_address:
+            return False, None
+            
+        domain = email_address.split('@')[1].lower()
+        
+        # Check MX records
+        try:
+            mx_records = dns.resolver.resolve(domain, 'MX')
+            if not mx_records:
+                return False, None
+        except:
+            return False, None
+        
+        response_time = time.time() - start_time
+        return True, response_time  # Simplified - assume reachable if MX exists
+            
+    except Exception as e:
+        print(f"Error checking {email_address}: {e}")
+        return False, None
+
+def check_email_batch_background(limit=20):
+    """Check a batch of emails for reachability in background"""
+    with app.app_context():
+        try:
+            # Get unchecked emails
+            emails_to_check = LearnershipEmail.query.filter_by(is_reachable=None).limit(limit).all()
+            
+            print(f"Background checking {len(emails_to_check)} emails...")
+            
+            for email in emails_to_check:
+                try:
+                    is_reachable, response_time = check_email_reachability(email.email_address)
+                    
+                    email.is_reachable = is_reachable
+                    email.response_time = response_time
+                    email.last_checked = datetime.utcnow()
+                    email.check_count = (email.check_count or 0) + 1
+                    
+                    db.session.commit()
+                    
+                    time.sleep(1)  # Small delay
+                    
+                except Exception as e:
+                    print(f"Error checking {email.email_address}: {e}")
+                    db.session.rollback()
+                    continue
+            
+            print(f"Completed background email check")
+            
+        except Exception as e:
+            print(f"Error in background email check: {e}")
+
+# Add ONLY this new route (with unique name)
+@app.route('/api/email-status')
+@login_required
+def api_email_status():
+    """API endpoint to get email reachability status"""
+    try:
+        # Get all emails
+        emails = LearnershipEmail.query.all()
+        
+        # Start background check if needed
+        unchecked_count = LearnershipEmail.query.filter_by(is_reachable=None).count()
+        if unchecked_count > 0:
+            threading.Thread(target=check_email_batch_background, args=(50,), daemon=True).start()
+        
+        # Get reachable emails
+        reachable_emails = LearnershipEmail.query.filter_by(is_reachable=True).all()
+        
+        # Format email data
+        email_list = []
+        for email in reachable_emails:
+            email_list.append({
+                'id': email.id,
+                'company_name': email.company_name,
+                'email_address': email.email_address,
+                'status': 'reachable',
+                'response_time': email.response_time
+            })
+        
+        # Calculate stats
+        total_count = len(emails)
+        reachable_count = len(reachable_emails)
+        checked_count = LearnershipEmail.query.filter(LearnershipEmail.is_reachable.isnot(None)).count()
+        
+        stats = {
+            'total': total_count,
+            'reachable': reachable_count,
+            'unreachable': checked_count - reachable_count,
+            'unchecked': total_count - checked_count
+        }
+        
+        # Get last update time
+        last_checked_email = LearnershipEmail.query.filter(
+            LearnershipEmail.last_checked.isnot(None)
+        ).order_by(LearnershipEmail.last_checked.desc()).first()
+        
+        last_updated = last_checked_email.last_checked.isoformat() if last_checked_email and last_checked_email.last_checked else None
+        
+        return jsonify({
+            'emails': email_list,
+            'stats': stats,
+            'last_updated': last_updated,
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        print(f"Error in api_email_status: {e}")
+        return jsonify({
+            'emails': [],
+            'stats': {'total': 0, 'reachable': 0, 'unreachable': 0},
+            'error': str(e)
+        }), 500
 # =============================================================================
 # GOOGLE LOGIN
 # =============================================================================
@@ -1092,60 +1434,38 @@ def load_learnerships_from_json():
 @app.route("/user/learnerships", methods=["GET", "POST"])
 @login_required
 def learnerships():
-    form = LearnershipSearchForm()
+    """Display learnership opportunities"""
+    try:
+        # Get learnership emails
+        learnership_emails = LearnershipEmail.query.filter_by(is_active=True).all()
+        
+        # Convert to JSON-serializable format for template
+        emails_for_template = []
+        for email in learnership_emails:
+            emails_for_template.append({
+                'id': email.id,
+                'company_name': email.company_name,
+                'email_address': email.email_address,
+                'is_reachable': email.is_reachable,
+                'response_time': email.response_time,
+                'last_checked': email.last_checked.isoformat() if email.last_checked else None
+            })
+        
+        return render_template(
+            "learnerships.html",
+            learnership_emails=emails_for_template,
+            title="Available Learnership Opportunities"
+        )
+        
+    except Exception as e:
+        print(f"Error in learnerships route: {e}")
+        flash("Error loading learnership opportunities. Please try again.", "error")
+        return redirect(url_for('user_dashboard'))
 
-    query = Learnership.query.filter_by(is_active=True)
-
-    if form.validate_on_submit():
-        # Keyword search
-        if form.search.data:
-            term = f"%{form.search.data.lower()}%"
-            query = query.filter(
-                Learnership.title.ilike(term)
-                | Learnership.company.ilike(term)
-                | Learnership.description.ilike(term)
-            )
-
-        # Category filter
-        if form.category.data and form.category.data != "all":
-            query = query.filter(Learnership.category == form.category.data)
-
-    learnerships = query.order_by(Learnership.closing_date).all()
-
-    # Build category dropdown
-    categories = [c[0] for c in db.session.query(Learnership.category.distinct()).all()]
-    form.category.choices = [("all", "All Categories")] + [
-        (c, c.replace("_", " ").title()) for c in categories
-    ]
-
-    grouped = {}
-    for l in learnerships:
-        grouped.setdefault(l.category or "Other", []).append(l)
-
-    email_learnerships = LearnshipEmail.query.filter_by(is_active=True).all()
-
-    return render_template(
-        "learnerships.html",
-        form=form,
-        categories=grouped,
-        learnerships=learnerships,
-        learnership_emails=email_learnerships
-    )
-
-
-# =============================================================================
-# CV GENERATOR
-# =============================================================================
-
-@app.route("/cv-generator")
-@login_required
-def cv_generator():
-    return render_template("index.html")
-
-
+         
 @app.route("/cv-template/<template>")
 @login_required
-def cv_template(template):
+def cv_generator(template):
     mapping = {
         "classic": "classic.html",
         "modern": "modern.html",
@@ -1172,6 +1492,7 @@ def cv_template(template):
 
 @app.route("/user/apply", methods=["GET", "POST"])
 @login_required
+@check_application_limit  # ADD THIS LINE
 def apply_learnership():
     selected_ids = request.args.getlist("selected")
 
@@ -1184,6 +1505,16 @@ def apply_learnership():
     if not selected_ids:
         flash("Invalid selection.", "warning")
         return redirect(url_for("learnerships"))
+
+    # ADD THIS PREMIUM LIMIT CHECK FOR BULK LEARNERSHIPS
+    if not current_user.is_premium_active():
+        remaining = current_user.get_remaining_applications()
+        if remaining == 0:
+            flash("Daily application limit reached (24 applications). Upgrade to premium for unlimited applications!", "warning")
+            return redirect(url_for('upgrade_to_premium'))
+        elif len(selected_ids) > remaining:
+            flash(f"You can only apply to {remaining} more learnerships today. Selected {len(selected_ids)} learnerships. Upgrade to premium for unlimited applications!", "warning")
+            return redirect(url_for('upgrade_to_premium'))
 
     all_data = load_learnerships_from_json()
 
@@ -1208,6 +1539,7 @@ def apply_learnership():
 
     if form.validate_on_submit():
         created = []
+        applications_sent = 0  # ADD THIS COUNTER
 
         for lr in selected_learnerships:
             try:
@@ -1222,6 +1554,12 @@ def apply_learnership():
                 db.session.commit()
 
                 created.append(app_record)
+                
+                # ADD THIS: Track each application
+                current_user.use_application()
+                applications_sent += 1
+                print(f"📊 Application #{applications_sent} counted for user")
+                
             except Exception as e:
                 print("Error creating application:", e)
                 db.session.rollback()
@@ -1236,10 +1574,14 @@ def apply_learnership():
 
                 launch_bulk_send(current_user, selected_learnerships, attachment_ids)
 
-                flash(
-                    f"Created {len(created)} applications. Sending emails...",
-                    "success",
-                )
+                # ADD PREMIUM MESSAGE
+                remaining_today = current_user.get_remaining_applications()
+                success_msg = f"Created {len(created)} applications. Sending emails..."
+                if not current_user.is_premium_active():
+                    success_msg += f" You have {remaining_today} applications remaining today."
+                
+                flash(success_msg, "success")
+                
             except Exception as e:
                 flash(f"Applications created but email sending failed: {e}", "warning")
 
@@ -1254,8 +1596,6 @@ def apply_learnership():
         selected_learnerships=selected_learnerships,
         user_documents=user_docs,
     )
-
-
 # =============================================================================
 # GMAIL STATUS TRACKING — MAIN APPLICATION PAGE
 # =============================================================================
@@ -1549,11 +1889,13 @@ def gmail_status_dashboard():
 # =============================================================================
 # EMAIL SENDING HELPERS (GMAIL API)
 # =============================================================================
-
+# =============================================================================
+# EMAIL SENDING HELPERS (GMAIL API)
+# =============================================================================
 def send_application_email(recipient_email, company_name, user):
     """
     Send an application email to a company using the Gmail API (OAuth).
-    Returns (success: bool, message: str)
+    Returns dict with success, message, and gmail_data (id, threadId)
     """
     from mailer import (
         build_credentials,
@@ -1562,6 +1904,14 @@ def send_application_email(recipient_email, company_name, user):
     )
     from models import GoogleToken
     from socket import timeout
+    \
+
+    # Initialize result structure
+    result = {
+        "success": False,
+        "message": "",
+        "gmail_data": {}
+    }
 
     subject = f"Learnership Application from {user.full_name or user.email}"
 
@@ -1587,7 +1937,8 @@ Kind regards,
         token_row = GoogleToken.query.filter_by(user_id=user.id).first()
         if not token_row:
             print("No Google token found.")
-            return False, "Google authentication required."
+            result["message"] = "Google authentication required."
+            return result
 
         credentials = build_credentials(token_row.token_json)
 
@@ -1609,21 +1960,43 @@ Kind regards,
         )
 
         try:
-            result = send_gmail_message(credentials, message)
-            print("Email sent:", result)
-            return True, "Email sent successfully."
+            # ✅ FIX: Capture the returned message with ID and threadId
+            sent_message = send_gmail_message(credentials, message)
+            
+            if sent_message:
+                gmail_id = sent_message.get('id')
+                thread_id = sent_message.get('threadId')
+                
+                print(f"✅ Email sent to {recipient_email}")
+                print(f"   Gmail Message ID: {gmail_id}")
+                print(f"   Gmail Thread ID: {thread_id}")
+                
+                result["success"] = True
+                result["message"] = "Email sent successfully."
+                result["gmail_data"] = {
+                    "id": gmail_id,
+                    "threadId": thread_id
+                }
+            else:
+                result["message"] = "Failed to send email - no response from Gmail API"
+                
+            return result
+            
         except (timeout, TimeoutError):
-            return False, "Connection timed out."
+            result["message"] = "Connection timed out."
+            return result
         except Exception as e:
             print("Gmail API error:", e)
             if "quota" in str(e).lower():
-                return False, "Gmail quota exceeded."
-
-            return False, f"Email sending error: {e}"
+                result["message"] = "Gmail quota exceeded."
+            else:
+                result["message"] = f"Email sending error: {e}"
+            return result
 
     except Exception as e:
         print("Error sending Gmail:", e)
-        return False, f"Error preparing email: {e}"
+        result["message"] = f"Error preparing email: {e}"
+        return result
 
 
 # =============================================================================
@@ -1631,149 +2004,256 @@ Kind regards,
 # =============================================================================
 
 def send_application_email_with_gmail(recipient_email, company_name, user):
+    """
+    Wrapper that ensures consistent return format with Gmail tracking data
+    """
     result = send_application_email(recipient_email, company_name, user)
-
-    if isinstance(result, tuple):
-        success, message = result
-        return {"success": success, "message": message, "gmail_data": {}}
-
+    
+    # Result is now always a dict with the correct structure
     if isinstance(result, dict):
         return result
+    
+    # Fallback for legacy tuple format (shouldn't happen with new code)
+    if isinstance(result, tuple):
+        success, message = result
+        return {
+            "success": success, 
+            "message": message, 
+            "gmail_data": {}
+        }
 
     return {"success": False, "message": "Unknown error.", "gmail_data": {}}
+
 
 # =============================================================================
 # BULK EMAIL ROUTE — APPLY VIA EMAIL LIST
 # =============================================================================
-
 @app.route("/apply_bulk_email", methods=["POST"])
 @login_required
+@check_application_limit  # Premium limit decorator
 def apply_bulk_email():
-    ids = request.form.getlist("selected_emails")
+    try:
+        ids = request.form.getlist("selected_emails")
+        print(f"DEBUG: Received IDs: {ids}")
 
-    if not ids:
-        flash("Please select at least one company.", "warning")
-        return redirect(url_for("learnership_emails"))
+        if not ids:
+            flash("Please select at least one company.", "warning")
+            return redirect(url_for("learnership_emails"))
 
-    email_entries = LearnshipEmail.query.filter(
-        LearnshipEmail.id.in_(ids),
-        LearnshipEmail.is_active == True,
-    ).all()
+        # Premium limit check for bulk applications
+        if not current_user.is_premium_active():
+            remaining = current_user.get_remaining_applications()
+            if remaining == 0:
+                flash("Daily application limit reached (24 applications). Upgrade to premium for unlimited applications!", "warning")
+                return redirect(url_for('upgrade_to_premium'))
+            elif len(ids) > remaining:
+                flash(f"You can only apply to {remaining} more companies today. Selected {len(ids)} companies. Upgrade to premium for unlimited applications!", "warning")
+                return redirect(url_for('upgrade_to_premium'))
 
-    if not email_entries:
-        flash("No valid email addresses selected.", "error")
-        return redirect(url_for("learnership_emails"))
+        email_entries = LearnershipEmail.query.filter(
+            LearnershipEmail.id.in_(ids),
+            LearnershipEmail.is_active == True,
+        ).all()
+        
+        print(f"DEBUG: Found {len(email_entries)} email entries")
 
-    successful = []
-    failed = []
-    timeout_list = []
-    already = []
-    gmail_tracked = 0
+        if not email_entries:
+            flash("No valid email addresses selected.", "error")
+            return redirect(url_for("learnership_emails"))
 
-    for entry in email_entries:
-        # Prevent duplicate applications
-        existing = EmailApplication.query.filter_by(
-            user_id=current_user.id, learnership_email_id=entry.id
-        ).first()
+        successful = []
+        failed = []
+        timeout_list = []
+        already = []
+        gmail_tracked = 0
+        applications_sent = 0  # Track successful applications for premium limits
 
-        if existing:
-            already.append(entry.company_name)
-            continue
+        for entry in email_entries:
+            print(f"\n{'='*50}")
+            print(f"📧 Processing: {entry.company_name} - {entry.email_address}")
+            
+            # Check for existing applications
+            existing = LearnershipApplication.query.filter_by(
+                user_id=current_user.id, 
+                learnership_email_id=entry.id
+            ).first()
 
-        try:
-            result = send_application_email_with_gmail(
-                entry.email, entry.company_name, current_user
-            )
+            if existing:
+                already.append(entry.company_name)
+                print(f"   ⚠️ Already applied to {entry.company_name}")
+                continue
 
-            success = result["success"]
-            message = result["message"]
-            gmail_data = result.get("gmail_data", {})
+            try:
+                # Send the email
+                result = send_application_email_with_gmail(
+                    entry.email_address, entry.company_name, current_user
+                )
+                
+                print(f"DEBUG: Email result: {result}")
 
-            # Always create app record
-            app_email = EmailApplication(
-                user_id=current_user.id,
-                learnership_email_id=entry.id,
-                status="sent" if success else "failed",
-            )
-            db.session.add(app_email)
-
-            # Create standard application record
-            standard_app = Application(
-                user_id=current_user.id,
-                company_name=entry.company_name,
-                learnership_name="Email Application",
-                status="sent" if success else "pending",
-            )
-
-            if success:
-                standard_app.email_status = "sent"
-                standard_app.sent_at = datetime.utcnow()
-                standard_app.gmail_message_id = gmail_data.get("id")
-                standard_app.gmail_thread_id = gmail_data.get("threadId")
-                standard_app.has_response = False
-            else:
-                standard_app.email_status = "failed"
-
-            db.session.add(standard_app)
-
-            if success:
-                successful.append(entry.company_name)
-                if gmail_data.get("id"):
-                    gmail_tracked += 1
-            else:
-                if "timeout" in message.lower():
-                    timeout_list.append(entry.company_name)
+                success = result.get("success", False)
+                message = result.get("message", "")
+                gmail_data = result.get("gmail_data", {})
+                
+                # Log Gmail tracking data
+                if gmail_data:
+                    print(f"   📬 Gmail ID: {gmail_data.get('id')}")
+                    print(f"   🧵 Thread ID: {gmail_data.get('threadId')}")
                 else:
-                    failed.append(entry.company_name)
+                    print(f"   ⚠️ No Gmail tracking data received!")
 
-            db.session.commit()
+                # Create learnership application record
+                learnership_app = LearnershipApplication(
+                    user_id=current_user.id,
+                    learnership_email_id=entry.id,
+                    company_name=entry.company_name,
+                    email_address=entry.email_address,
+                    status="sent" if success else "failed",
+                )
+                db.session.add(learnership_app)
 
-        except Exception as e:
-            db.session.rollback()
-            failed.append(entry.company_name)
-            print("Bulk email error:", e)
+                # Also create the legacy EmailApplication record
+                email_app = EmailApplication(
+                    user_id=current_user.id,
+                    learnership_email_id=entry.id,
+                    status="sent" if success else "failed",
+                )
+                db.session.add(email_app)
 
-    # Results
-    if successful:
-        msg = (
-            f"Successfully sent applications to {len(successful)} companies!"
-            if len(successful) > 5
-            else f"Successfully sent applications to: {', '.join(successful)}"
-        )
+                # Create standard application record WITH Gmail tracking
+                standard_app = Application(
+                    user_id=current_user.id,
+                    company_name=entry.company_name,
+                    learnership_name="Email Application",
+                    status="submitted" if success else "pending",
+                )
+
+                if success:
+                    standard_app.email_status = "sent"
+                    standard_app.sent_at = datetime.utcnow()
+                    
+                    # CRITICAL: Save Gmail tracking IDs
+                    standard_app.gmail_message_id = gmail_data.get("id")
+                    standard_app.gmail_thread_id = gmail_data.get("threadId")
+                    standard_app.has_response = False
+                    
+                    # PREMIUM FEATURE: Track application usage
+                    current_user.use_application()
+                    applications_sent += 1
+                    
+                    # Log what we're saving
+                    print(f"   ✅ Saving Application with:")
+                    print(f"      gmail_message_id: {standard_app.gmail_message_id}")
+                    print(f"      gmail_thread_id: {standard_app.gmail_thread_id}")
+                    print(f"   📊 Application #{applications_sent} counted for user")
+                else:
+                    standard_app.email_status = "failed"
+                    print(f"   ❌ Email failed: {message}")
+
+                db.session.add(standard_app)
+
+                if success:
+                    successful.append(entry.company_name)
+                    if gmail_data.get("id"):
+                        gmail_tracked += 1
+                        print(f"   🎯 Gmail tracking ENABLED for {entry.company_name}")
+                    else:
+                        print(f"   ⚠️ Email sent but NO Gmail tracking for {entry.company_name}")
+                else:
+                    if "timeout" in message.lower():
+                        timeout_list.append(entry.company_name)
+                    else:
+                        failed.append(entry.company_name)
+
+                db.session.commit()
+                print(f"   💾 Saved to database")
+
+            except Exception as e:
+                print(f"❌ Bulk email error for {entry.company_name}: {e}")
+                import traceback
+                traceback.print_exc()
+                db.session.rollback()
+                failed.append(entry.company_name)
+
+        # Summary
+        print(f"\n{'='*50}")
+        print(f"📊 BULK SEND SUMMARY:")
+        print(f"   ✅ Successful: {len(successful)}")
+        print(f"   🎯 Gmail tracked: {gmail_tracked}")
+        print(f"   📱 Applications counted: {applications_sent}")
+        print(f"   ❌ Failed: {len(failed)}")
+        print(f"   ⏰ Timeout: {len(timeout_list)}")
+        print(f"   ⚠️ Already applied: {len(already)}")
+        print(f"{'='*50}\n")
+
+        # Flash messages for results with premium upselling
+        if successful:
+            remaining_today = current_user.get_remaining_applications()
+            msg = (
+                f"Successfully sent applications to {len(successful)} companies!"
+                if len(successful) > 5
+                else f"Successfully sent applications to: {', '.join(successful)}"
+            )
+            if gmail_tracked:
+                msg += f" ({gmail_tracked} tracked via Gmail)"
+            
+            # Premium upsell message for free users
+            if not current_user.is_premium_active():
+                if remaining_today == "Unlimited":
+                    pass  # This shouldn't happen for non-premium, but just in case
+                elif remaining_today == 0:
+                    msg += " ⚠️ You've reached your daily limit. Upgrade to premium for unlimited applications!"
+                else:
+                    msg += f" You have {remaining_today} applications remaining today."
+            
+            flash(msg, "success")
+
+        if timeout_list:
+            flash(
+                f"Network timeout for: {', '.join(timeout_list)}. Please try again later.",
+                "warning",
+            )
+
+        if failed:
+            flash(
+                f"Failed to send applications to: {', '.join(failed)}. Please check your internet connection and try again.",
+                "error",
+            )
+
+        if already:
+            flash(
+                f"You've already applied to: {', '.join(already)}",
+                "info",
+            )
+
         if gmail_tracked:
-            msg += f" ({gmail_tracked} tracked via Gmail)"
-        flash(msg, "success")
+            flash(f"🔔 {gmail_tracked} applications are being tracked for responses.", "info")
 
-    if timeout_list:
-        flash(
-            f"Network timeout for: {', '.join(timeout_list)}.",
-            "warning",
-        )
+        # Premium upgrade suggestion for users near their limit
+        if not current_user.is_premium_active():
+            remaining_after = current_user.get_remaining_applications()
+            if remaining_after <= 5 and remaining_after > 0:
+                flash(f"💡 Only {remaining_after} applications remaining today. Upgrade to premium for unlimited daily applications!", "info")
+            elif remaining_after == 0:
+                flash("🚫 Daily limit reached! Upgrade to premium to continue applying to more companies.", "warning")
 
-    if failed:
-        flash(
-            f"Failed for: {', '.join(failed)}",
-            "error",
-        )
+        return redirect(url_for("my_applications"))
 
-    if already:
-        flash(
-            f"You've already applied to: {', '.join(already)}",
-            "info",
-        )
-
-    if gmail_tracked:
-        flash(f"🔔 {gmail_tracked} applications are being tracked for responses.", "info")
-
-    return redirect(url_for("my_applications"))
-
+    except Exception as e:
+        print(f"Fatal error in apply_bulk_email: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        flash("An error occurred while processing your applications. Please try again.", "error")
+        return redirect(url_for("learnership_emails"))
+    
 
 # =============================================================================
 # BULK PROCESSING JOB (async worker)
 # =============================================================================
 
 def bulk_send_job(app, user_id, learnerships, attachment_ids):
-    """Background job to send multiple applications."""
+    """Background job to send multiple applications with Gmail tracking."""
     with app.app_context():
         try:
             from mailer import (
@@ -1808,7 +2288,8 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
 
             for lr in learnerships:
                 try:
-                    print("Processing:", lr.get("title"))
+                    print(f"\n📧 Processing: {lr.get('title')}")
+                    
                     new_app = Application(
                         user_id=user.id,
                         status="processing",
@@ -1828,7 +2309,6 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
                                 document_id=d.id,
                             )
                         )
-
                     db.session.commit()
 
                     # Send email
@@ -1837,23 +2317,303 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
                     body = f"Dear {lr.get('company')}...\n\n{getattr(user, 'email_body', '')}"
 
                     message = create_message_with_attachments(
-                        user.email, email, subject, body, file_paths
+                        user.email,
+                        email, 
+                        subject, 
+                        body, 
+                        file_paths
                     )
-                    send_gmail_message(credentials, message)
-
-                    new_app.status = "submitted"
+                    
+                    # ✅ FIX: Capture Gmail response with tracking IDs
+                    sent_message = send_gmail_message(credentials, message)
+                    
+                    if sent_message:
+                        new_app.status = "submitted"
+                        new_app.email_status = "sent"
+                        new_app.sent_at = datetime.utcnow()
+                        
+                        # ✅ SAVE GMAIL TRACKING IDs
+                        new_app.gmail_message_id = sent_message.get('id')
+                        new_app.gmail_thread_id = sent_message.get('threadId')
+                        new_app.has_response = False
+                        
+                        print(f"   ✅ Sent! Gmail ID: {new_app.gmail_message_id}")
+                    else:
+                        new_app.status = "error"
+                        new_app.email_status = "failed"
+                        print(f"   ❌ Failed to send")
+                    
                     db.session.commit()
 
                 except Exception as e:
-                    print("Bulk job error:", e)
-                    new_app.status = "error"
-                    db.session.commit()
+                    print(f"Bulk job error: {e}")
+                    if 'new_app' in locals():
+                        new_app.status = "error"
+                        new_app.email_status = "failed"
+                        db.session.commit()
 
                 time.sleep(1)
 
         except Exception as e:
-            print("Fatal bulk job error:", e)
+            print(f"Fatal bulk job error: {e}")
+            import traceback
+            traceback.print_exc()
 
+# --------------------------------------------------------------------
+# USER PREMIUM FEATURES
+# --------------------------------------------------------------------
+
+# Add these imports at the top of your app.py
+from decorators import admin_required, premium_required, check_application_limit, track_application_usage
+from models import PremiumTransaction
+from datetime import datetime, timedelta
+
+# Add these routes to your existing app.py
+
+# Premium Management Routes
+@app.route('/admin/premium-management')
+@login_required
+@admin_required
+def premium_management():
+    """Premium management dashboard"""
+    users = User.query.all()
+    premium_users = User.query.filter_by(is_premium=True).all()
+    transactions = PremiumTransaction.query.order_by(PremiumTransaction.created_at.desc()).limit(50).all()
+    
+    # Statistics
+    total_premium = len(premium_users)
+    expired_premium = sum(1 for user in premium_users if user.premium_expires and user.premium_expires <= datetime.now())
+    active_premium = total_premium - expired_premium
+    
+    stats = {
+        'total_premium': total_premium,
+        'active_premium': active_premium,
+        'expired_premium': expired_premium,
+        'total_users': User.query.count()
+    }
+    
+    return render_template('admin_premium.html', 
+                         users=users, 
+                         moment=datetime,
+                         transactions=transactions, 
+                         stats=stats)
+
+
+@app.route('/admin/bulk-premium', methods=['POST'])
+@login_required
+@admin_required
+def bulk_premium():
+    """Handle bulk premium operations - AJAX version"""
+    try:
+        user_ids_str = request.form.get('user_ids', '')
+        duration_days = int(request.form.get('duration_days', 30))
+        notes = request.form.get('notes', '')
+        
+        # Parse user IDs
+        user_ids = []
+        for uid in user_ids_str.split(','):
+            uid = uid.strip()
+            if uid.isdigit():
+                user_ids.append(int(uid))
+        
+        if not user_ids:
+            return jsonify({
+                'success': False,
+                'message': 'No valid user IDs provided.'
+            }), 400
+        
+        users = User.query.filter(User.id.in_(user_ids)).all()
+        success_count = 0
+        
+        for user in users:
+            user.is_premium = True
+            user.premium_expires = datetime.utcnow() + timedelta(days=duration_days)
+            user.premium_activated_by = current_user.id
+            user.premium_activated_at = datetime.utcnow()
+            
+            transaction = PremiumTransaction(
+                user_id=user.id,
+                transaction_type='admin_bulk_grant',
+                duration_days=duration_days,
+                activated_by_admin=current_user.id,
+                notes=f"Bulk grant: {notes}"
+            )
+            db.session.add(transaction)
+            success_count += 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Premium granted to {success_count} users for {duration_days} days!'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error in bulk premium grant: {str(e)}'
+        }), 500
+
+@app.route('/admin/premium-stats')
+@login_required
+@admin_required
+def premium_stats():
+    """Get updated premium statistics"""
+    try:
+        users = User.query.all()
+        total_users = len(users)
+        premium_users = [u for u in users if u.is_premium]
+        total_premium = len(premium_users)
+        
+        now = datetime.utcnow()
+        active_premium = sum(1 for u in premium_users if not u.premium_expires or u.premium_expires > now)
+        expired_premium = total_premium - active_premium
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_users': total_users,
+                'total_premium': total_premium,
+                'active_premium': active_premium,
+                'expired_premium': expired_premium
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/upgrade-to-premium')
+@login_required
+def upgrade_to_premium():
+    """Premium upgrade page"""
+    remaining = current_user.get_remaining_applications()
+    premium_status = current_user.get_premium_status()
+    
+    return render_template('upgrade_premium.html', 
+                         remaining_applications=remaining,
+                         premium_status=premium_status)
+
+@app.route('/api/user-stats')
+@login_required
+def user_stats():
+    """API endpoint for user application statistics"""
+    return jsonify({
+        'is_premium': current_user.is_premium,
+        'is_premium_active': current_user.is_premium_active(),
+        'remaining_applications': current_user.get_remaining_applications(),
+        'daily_used': current_user.daily_applications_used,
+        'premium_expires': current_user.premium_expires.isoformat() if current_user.premium_expires else None,
+        'premium_status': current_user.get_premium_status()
+    })
+
+@app.route('/api/check-application-limit')
+@login_required
+def check_application_limit_api():
+    """API endpoint to check if user can apply"""
+    can_apply = current_user.can_apply_today()
+    remaining = current_user.get_remaining_applications()
+    
+    return jsonify({
+        'can_apply': can_apply,
+        'remaining': remaining,
+        'is_premium': current_user.is_premium_active(),
+        'message': 'You can apply' if can_apply else 'Daily limit reached'
+    })
+
+# Premium feature example routes
+@app.route('/premium/analytics')
+@login_required
+@premium_required
+def premium_analytics():
+    """Premium analytics dashboard"""
+    # Your premium analytics logic
+    return render_template('premium_analytics.html')
+
+@app.route('/premium/advanced-search')
+@login_required
+@premium_required
+def premium_search():
+    """Premium advanced search"""
+    # Your premium search logic
+    return render_template('premium_search.html')
+
+# --------------------------------------------------------------------
+# USER ANALYTICS DASHBOARD (REAL DATA)
+# --------------------------------------------------------------------
+
+from sqlalchemy import func
+
+@app.route("/user/applications/analytics", endpoint="application_analytics")
+@login_required
+def analytics_dashboard_user_live():
+    """Render analytics page with user's real application stats"""
+    user_id = current_user.id
+
+    # --- STATUS SUMMARY ---------------------------------------------
+    status_counts = dict(
+        db.session.query(Application.email_status, func.count(Application.id))
+        .filter(Application.user_id == user_id)
+        .group_by(Application.email_status)
+        .all()
+    )
+
+    all_statuses = ["sent", "delivered", "read", "responded", "pending", "failed"]
+    status_summary = []
+    for s in all_statuses:
+        status_summary.append({
+            "label": s.capitalize(),
+            "value": status_counts.get(s, 0),
+            "color": {
+                "sent": "#3b82f6",
+                "delivered": "#10b981",
+                "read": "#8b5cf6",
+                "responded": "#22c55e",
+                "pending": "#f97316",
+                "failed": "#ef4444"
+            }.get(s, "#94a3b8")
+        })
+
+    # --- WEEKLY RESPONSE TREND -------------------------------------
+    ten_weeks_ago = datetime.utcnow() - timedelta(weeks=10)
+    weekly_responses = (
+        db.session.query(
+            func.strftime("%Y-%W", Application.response_received_at).label("week"),
+            func.count(Application.id)
+        )
+        .filter(
+            Application.user_id == user_id,
+            Application.response_received_at.isnot(None),
+            Application.response_received_at >= ten_weeks_ago
+        )
+        .group_by("week")
+        .order_by("week")
+        .all()
+    )
+    response_trend = [r[1] for r in weekly_responses]
+
+    # --- RECENT APPLICATIONS ---------------------------------------
+    recent_apps = (
+        Application.query.filter_by(user_id=user_id)
+        .order_by(Application.sent_at.desc().nullslast())
+        .limit(5)
+        .all()
+    )
+
+    recent_list = []
+    for app_obj in recent_apps:
+        recent_list.append({
+            "company": app_obj.company_name or "Unknown",
+            "date": app_obj.sent_at.strftime("%d %b %Y %H:%M") if app_obj.sent_at else "Pending",
+            "status": app_obj.email_status or "pending"
+        })
+
+    # --- RENDER TEMPLATE -------------------------------------------
+    return render_template(
+        "analytics_dashboard.html",
+        status_summary=status_summary,
+        response_trend=response_trend,
+        recent_list=recent_list
+    )
 
 # =============================================================================
 # ADMIN DASHBOARD
@@ -1870,7 +2630,7 @@ def admin_dashboard():
         # Fetch all system data
         users = User.query.all()
         applications = Application.query.all()
-        learnerships = LearnshipEmail.query.filter_by(is_active=True).all()
+        learnerships = LearnershipEmail.query.filter_by(is_active=True).all()
 
         print(f"Users: {len(users)}")
         print(f"Learnership emails: {len(learnerships)}")
@@ -1887,14 +2647,21 @@ def admin_dashboard():
         # Recent items
         recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
         recent_learnerships = (
-            LearnshipEmail.query.filter_by(is_active=True)
-            .order_by(LearnshipEmail.created_at.desc())
+            LearnershipEmail.query.filter_by(is_active=True)
+            .order_by(LearnershipEmail.created_at.desc())
             .limit(5)
             .all()
         )
         recent_applications = (
             Application.query.order_by(Application.submitted_at.desc()).limit(5).all()
         )
+        premium_users = User.query.filter_by(is_premium=True).all()
+
+        premium_stats = {
+            'total_premium': len(premium_users),
+            'active_premium': sum(1 for user in premium_users 
+                                if not user.premium_expires or user.premium_expires > datetime.now())
+        }
 
         return render_template(
             "admin_dashboard.html",
@@ -1906,6 +2673,8 @@ def admin_dashboard():
             recent_learnerships=recent_learnerships,
             recent_applications=recent_applications,
             current_user=current_user,
+            premium_stats=premium_stats,
+            premium_count=premium_stats['active_premium']
         )
 
     except Exception as e:
@@ -1929,13 +2698,75 @@ def admin_dashboard():
             recent_learnerships=[],
             recent_applications=[],
             current_user=current_user,
+            premium_stats=premium_stats,
+            premium_count=premium_stats['active_premium']
         )
 
 
 # =============================================================================
 # ADMIN USER MANAGEMENT
 # =============================================================================
-
+@app.route('/admin/toggle-premium/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def toggle_premium(user_id):
+    """Toggle premium status via AJAX"""
+    try:
+        data = request.get_json()
+        user = User.query.get_or_404(user_id)
+        action = data.get('action')
+        duration_days = data.get('duration_days', 30)
+        
+        # DEBUG: Log current state
+        print(f"DEBUG: Before toggle - User {user_id}: is_premium={user.is_premium}, expires={user.premium_expires}")
+        
+        if action == 'grant':
+            user.is_premium = True
+            user.premium_expires = datetime.utcnow() + timedelta(days=duration_days)
+            user.premium_activated_by = current_user.id
+            user.premium_activated_at = datetime.utcnow()
+            message = f'Premium granted to {user.username or user.email}'
+        elif action == 'revoke':
+            user.is_premium = False
+            user.premium_expires = datetime.utcnow() - timedelta(days=1)  # Set to past date
+            message = f'Premium revoked from {user.username or user.email}'
+        else:
+            return jsonify({'success': False, 'message': 'Invalid action'}), 400
+        
+        # DEBUG: Log new state before commit
+        print(f"DEBUG: After change - User {user_id}: is_premium={user.is_premium}, expires={user.premium_expires}")
+        
+        # Log transaction
+        transaction = PremiumTransaction(
+            user_id=user_id,
+            transaction_type=f'admin_{action}',
+            duration_days=duration_days if action == 'grant' else 0,
+            activated_by_admin=current_user.id,
+            notes=data.get('notes', f'{action.title()} via toggle button')
+        )
+        db.session.add(transaction)
+        
+        # Commit changes
+        db.session.commit()
+        
+        # DEBUG: Verify changes after commit
+        user_check = User.query.get(user_id)
+        print(f"DEBUG: After commit - User {user_id}: is_premium={user_check.is_premium}, expires={user_check.premium_expires}")
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'is_premium_active': user.is_premium and (not user.premium_expires or user.premium_expires > datetime.utcnow())
+        })
+        
+    except Exception as e:
+        print(f"DEBUG: Error in toggle_premium: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        }), 500
+    
 @app.route("/admin/users/<int:user_id>/toggle", methods=["POST"])
 @login_required
 @admin_required
@@ -2065,7 +2896,7 @@ def edit_user(user_id):
 
     if request.method == "POST":
 
-        user.email = request.form.get("email")
+        user.email_address = request.form.get("email")
         user.username = request.form.get("username")
         user.full_name = request.form.get("full_name")
         user.phone = request.form.get("phone")
@@ -2172,7 +3003,7 @@ def download_document(document_id):
 def toggle_learnership_status(learnership_id):
     """Toggle active/inactive status of a learnership email entry."""
     try:
-        email = LearnshipEmail.query.get_or_404(learnership_id)
+        email = LearnershipEmail.query.get_or_404(learnership_id)
         email.is_active = not email.is_active
         db.session.commit()
 
@@ -2196,7 +3027,7 @@ def toggle_learnership_status(learnership_id):
 def update_learnership_email(email_id):
     """Update a learnership email via AJAX."""
     try:
-        email = LearnshipEmail.query.get_or_404(email_id)
+        email = LearnershipEmail.query.get_or_404(email_id)
         data = request.get_json()
 
         # Validate email
@@ -2209,7 +3040,7 @@ def update_learnership_email(email_id):
 
         # Update fields
         email.company_name = data.get("company_name", "").strip()
-        email.email = new_email
+        email.email_address = new_email
 
         db.session.commit()
         return jsonify(success=True, message="Learnership email updated successfully")
@@ -2551,7 +3382,7 @@ def init_learnership_emails():
     with app.app_context():
         # Get existing emails (case-insensitive)
         existing_emails = {
-            e.email.lower() for e in LearnshipEmail.query.all()
+            e.email.lower() for e in LearnershipEmail.query.all()
         }
         
         added = 0
@@ -2565,7 +3396,7 @@ def init_learnership_emails():
                 continue  # Skip duplicates
             
             # Add new entry
-            email_entry = LearnshipEmail(
+            email_entry = LearnershipEmail(
                 company_name=entry["company_name"],
                 email=entry["email"],
                 is_active=True
