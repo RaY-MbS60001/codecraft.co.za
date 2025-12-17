@@ -2771,7 +2771,7 @@ def get_current_week_responses():
         
     except Exception as e:
         print(f"❌ API error: {e}")
-        return jsonify({
+        return jsonify({ 
             'success': False, 
             'error': str(e),
             'responses': [0, 0, 0, 0, 0, 0, 0]

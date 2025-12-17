@@ -197,13 +197,13 @@
     });
   }
 
-  // ✅ UPDATED LINE GRAPH FOR CURRENT WEEK DAILY RESPONSES
+  // ✅ UPDATED LINE GRAPH WITH LARGER LABELS MATCHING BAR CHART
   function renderLine() {
     const svg = document.getElementById('lineChart');
     const container = svg.parentElement;
     const width = container.clientWidth || 580;
-    const height = Math.max(180, container.clientWidth * 0.4);
-    const pad = 36;
+    const height = Math.max(240, container.clientWidth * 0.4); // ✅ Increased height
+    const pad = 45; // ✅ Increased padding for larger labels
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
     svg.innerHTML = '';
 
@@ -284,7 +284,7 @@
       
       // Data point circle
       const circle = make("circle", { 
-        cx: p[0], cy: p[1], r: hasResponse ? 5 : 3, 
+        cx: p[0], cy: p[1], r: hasResponse ? 6 : 4, // ✅ Slightly larger circles
         stroke: "#3b82f6", 
         fill: hasResponse ? "#22c55e" : "#64748b",
         "stroke-width": "2",
@@ -292,25 +292,27 @@
       });
       svg.appendChild(circle);
       
-      // Day labels
+      // ✅ DAY LABELS - Same size as bar chart labels (0.75rem)
       const dayLabel = make("text", { 
-        x: p[0], y: height - pad + 16, 
-        fill: "#94a3b8", 
-        "font-size": "12", 
+        x: p[0], y: height - pad + 18, // ✅ More space for larger labels
+        fill: "#cbd5e1", // ✅ Same color as bar chart labels
+        "font-size": "12", // ✅ Same as bar chart (0.75rem = 12px)
         "text-anchor": "middle",
-        "font-weight": "500"
+        "font-weight": "400", // ✅ Same weight as bar chart
+        "font-family": "Inter, Arial, sans-serif"
       });
       dayLabel.textContent = dayLabels[i];
       svg.appendChild(dayLabel);
       
-      // Response count labels (only show if > 0)
+      // ✅ RESPONSE COUNT LABELS - Same size as bar chart values (0.8rem)
       if (hasResponse) {
         const valueLabel = make("text", { 
-          x: p[0], y: p[1] - 12, 
+          x: p[0], y: p[1] - 15, // ✅ More space above
           fill: "#22c55e", 
-          "font-size": "13", 
+          "font-size": "13", // ✅ Same as bar chart values (0.8rem = 13px)
           "text-anchor": "middle",
-          "font-weight": "bold"
+          "font-weight": "600", // ✅ Same weight as bar chart values
+          "font-family": "Inter, Arial, sans-serif"
         });
         valueLabel.textContent = weekData[i];
         svg.appendChild(valueLabel);
@@ -318,7 +320,7 @@
 
       // Interactive hover area
       const hoverArea = make("circle", {
-        cx: p[0], cy: p[1], r: 12,
+        cx: p[0], cy: p[1], r: 15, // ✅ Larger hover area
         fill: "transparent",
         style: "cursor: pointer;",
         class: "hover-area"
@@ -326,26 +328,27 @@
       
       // Hover effects
       hoverArea.addEventListener('mouseenter', function() {
-        circle.setAttribute('r', hasResponse ? '7' : '5');
+        circle.setAttribute('r', hasResponse ? '8' : '6'); // ✅ Larger hover state
         
         // Show detailed tooltip
         const tooltip = make("rect", {
-          x: p[0] - 35, y: p[1] - 45,
-          width: 70, height: 25,
+          x: p[0] - 40, y: p[1] - 50, // ✅ Larger tooltip
+          width: 80, height: 30,
           fill: "#1e293b",
           stroke: "#3b82f6",
           "stroke-width": "1",
-          rx: "4",
+          rx: "6",
           class: "tooltip-bg"
         });
         svg.appendChild(tooltip);
         
         const tooltipText = make("text", {
-          x: p[0], y: p[1] - 28,
+          x: p[0], y: p[1] - 30,
           fill: "#f8fafc",
-          "font-size": "11",
+          "font-size": "12", // ✅ Larger tooltip text
           "text-anchor": "middle",
-          "font-weight": "bold",
+          "font-weight": "600",
+          "font-family": "Inter, Arial, sans-serif",
           class: "tooltip-text"
         });
         tooltipText.textContent = `${dayLabels[i]}: ${weekData[i]} responses`;
@@ -353,7 +356,7 @@
       });
       
       hoverArea.addEventListener('mouseleave', function() {
-        circle.setAttribute('r', hasResponse ? '5' : '3');
+        circle.setAttribute('r', hasResponse ? '6' : '4');
         
         // Remove tooltip elements
         const tooltip = svg.querySelector('.tooltip-bg');
@@ -367,7 +370,7 @@
 
     // Add current day indicator with pulsing animation
     const today = new Date().getDay();
-    const currentDayIndex = today === 0 ? 6 : today - 1; // Convert Sunday=0 to our Mon-Sun format
+    const currentDayIndex = today === 0 ? 6 : today - 1;
     
     if (currentDayIndex >= 0 && currentDayIndex < pts.length) {
       const currentPoint = pts[currentDayIndex];
@@ -376,10 +379,10 @@
       const currentRing = make("circle", {
         cx: currentPoint[0],
         cy: currentPoint[1],
-        r: 8,
+        r: 10, // ✅ Larger ring
         fill: "none",
         stroke: "#f59e0b",
-        "stroke-width": "2",
+        "stroke-width": "3", // ✅ Thicker stroke
         opacity: "0.8"
       });
       svg.appendChild(currentRing);
@@ -388,17 +391,16 @@
       const pulseRing = make("circle", {
         cx: currentPoint[0],
         cy: currentPoint[1],
-        r: 8,
+        r: 10,
         fill: "none",
         stroke: "#f59e0b",
         "stroke-width": "1",
         opacity: "0.4"
       });
       
-      // Add CSS animation via SVG animate
       const animate1 = make("animate", {
         attributeName: "r",
-        values: "8;15;8",
+        values: "10;18;10", // ✅ Larger pulse
         dur: "2s",
         repeatCount: "indefinite"
       });
@@ -413,14 +415,15 @@
       pulseRing.appendChild(animate2);
       svg.appendChild(pulseRing);
       
-      // "TODAY" label
+      // ✅ "TODAY" LABEL - Same size as axis labels
       const todayLabel = make("text", {
         x: currentPoint[0],
-        y: height - pad + 30,
+        y: height - pad + 35, // ✅ More space below
         fill: "#f59e0b",
-        "font-size": "10",
+        "font-size": "12", // ✅ Same as axis labels
         "text-anchor": "middle",
-        "font-weight": "bold"
+        "font-weight": "600",
+        "font-family": "Inter, Arial, sans-serif"
       });
       todayLabel.textContent = "TODAY";
       svg.appendChild(todayLabel);
@@ -475,13 +478,11 @@
       .then(response => response.json())
       .then(data => {
         if (data.success && JSON.stringify(data.responses) !== JSON.stringify(currentWeekResponses)) {
-          // Update the data if it changed
           currentWeekResponses = data.responses;
-          renderLine(); // Re-render line chart only
+          renderLine();
           
           console.log('📊 Updated current week responses:', data.responses);
           
-          // Show notification if new response received
           const totalResponses = data.responses.reduce((a, b) => a + b, 0);
           if (totalResponses > 0) {
             console.log(`🔔 Total responses this week: ${totalResponses}`);
@@ -780,14 +781,15 @@
     margin-top: 5px;
   }
 
+  /* ✅ ENHANCED LINE CHART STYLING - LARGER LABELS */
   .line-svg {
     width: 100%;
-    height: 220px;
+    height: 240px; /* ✅ Increased height for larger labels */
   }
 
-  /* ✅ ENHANCED LINE CHART STYLING */
   .line-container {
     position: relative;
+    padding: 5px; /* ✅ Added padding for larger labels */
   }
 
   #lineChart path {
@@ -798,24 +800,23 @@
     transition: r 0.3s ease;
   }
 
-  #lineChart .hover-area:hover + .data-point {
-    r: 7;
-  }
-
+  /* ✅ AXIS LABELS - Same size as bar chart */
   .axis-label {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 12px; /* ✅ Same as bar chart labels */
+    font-weight: 400;
     position: absolute;
+    font-family: Inter, Arial, sans-serif;
   }
 
   .x-axis-label {
-    bottom: 2px;
+    bottom: -2px; /* ✅ Adjusted for larger labels */
     left: 50%;
     transform: translateX(-50%);
   }
 
   .y-axis-label {
-    left: -18px;
+    left: -25px; /* ✅ More space for larger labels */
     top: 50%;
     transform: translate(-50%, -50%) rotate(-90deg);
   }
@@ -865,6 +866,7 @@
     border-radius: 50%;
   }
 
+  /* ✅ RESPONSIVE ADJUSTMENTS FOR LARGER LABELS */
   @media (max-width:768px) {
     .bar-wrapper {
       height: 210px;
@@ -876,7 +878,11 @@
     }
 
     .line-svg {
-      height: 180px;
+      height: 200px; /* ✅ Adequate space for mobile */
+    }
+
+    .axis-label {
+      font-size: 11px; /* ✅ Slightly smaller on mobile */
     }
   }
 
@@ -895,7 +901,11 @@
     }
 
     .line-svg {
-      height: 160px;
+      height: 180px; /* ✅ Compact for small screens */
+    }
+
+    .axis-label {
+      font-size: 10px; /* ✅ Small but readable */
     }
   }
 
