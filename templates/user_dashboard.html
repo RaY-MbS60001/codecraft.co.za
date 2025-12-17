@@ -36,40 +36,43 @@
         <div class="nav-right">
             <a href="{{ url_for('feed') }}" class="nav-feed-button" aria-label="View Feed">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                          d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 011 1h0a1 1 0 01-1 1h0a1 1 0 01-1-1h0a1 1 0 011-1z"/>
-                    </svg>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 011 1h0a1 1 0 01-1 1h0a1 1 0 01-1-1h0a1 1 0 011-1z" />
+                </svg>
                 <span>Feed</span>
             </a>
             <div class="user-menu">
                 <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
                     <div class="user-avatar-small">
                         {% if current_user.profile_picture %}
-                            <img src="{{ current_user.profile_picture }}" alt="">
+                        <img src="{{ current_user.profile_picture }}" alt="">
                         {% else %}
-                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
                         {% endif %}
                     </div>
                     <span class="user-name">{{ current_user.full_name or current_user.email }}</span>
                     <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
                     </svg>
                 </button>
                 <div class="user-menu-dropdown" role="menu">
                     <a href="{{ url_for('edit_profile') }}" class="menu-item" role="menuitem">
                         {% if current_user.profile_picture %}
-                        <img src="{{ current_user.profile_picture }}" 
-                            alt="Profile picture" 
+                        <img src="{{ current_user.profile_picture }}" alt="Profile picture"
                             style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
                         {% else %}
-                            <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                        <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
                         {% endif %}
                         Profile Settings
                     </a>
                     <div class="menu-divider"></div>
                     <a href="{{ url_for('logout') }}" class="menu-item logout" role="menuitem">
                         <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd"
+                                d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z"
+                                clip-rule="evenodd" />
                         </svg>
                         Logout
                     </a>
@@ -90,15 +93,19 @@
             <article class="stat-card hover-lift">
                 <div class="stat-icon applications">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                 </div>
                 <div class="stat-content">
-                    <h3 class="stat-number" data-count="{{ application_stats.total }}">{{ application_stats.total }}</h3>
+                    <h3 class="stat-number" data-count="{{ application_stats.total }}">{{ application_stats.total }}
+                    </h3>
                     <p class="stat-label">Total Applications</p>
                     <div class="stat-trend positive">
                         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                            <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd"
+                                d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z"
+                                clip-rule="evenodd" />
                         </svg>
                         <span>{{ application_stats.total }} submitted</span>
                     </div>
@@ -108,7 +115,8 @@
             <article class="stat-card hover-lift">
                 <div class="stat-icon documents">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                 </div>
                 <div class="stat-content">
@@ -123,7 +131,8 @@
             <article class="stat-card hover-lift">
                 <div class="stat-icon completion">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
                 <div class="stat-content">
@@ -134,38 +143,39 @@
                     </div>
                 </div>
             </article>
-                        <article class="stat-card hover-lift premium-status-card">
+            <article class="stat-card hover-lift premium-status-card">
                 <div class="stat-icon premium">
                     {% if current_user.is_premium_active() %}
-                        <i class="fas fa-crown" style="color: #f093fb;"></i>
+                    <i class="fas fa-crown" style="color: #f093fb;"></i>
                     {% else %}
-                        <i class="fas fa-user" style="color: #95a5a6;"></i>
+                    <i class="fas fa-user" style="color: #95a5a6;"></i>
                     {% endif %}
                 </div>
                 <div class="stat-content">
                     {% if current_user.is_premium_active() %}
-                        <h3 class="stat-number">∞</h3>
-                        <p class="stat-label">Premium Member</p>
-                        <div class="stat-trend premium">
-                            <span>Unlimited Applications</span>
-                        </div>
-                        {% if current_user.premium_expires %}
-                            <small class="premium-expires">
-                                Expires: {{ current_user.premium_expires.strftime('%Y-%m-%d') }}
-                            </small>
-                        {% endif %}
+                    <h3 class="stat-number">∞</h3>
+                    <p class="stat-label">Premium Member</p>
+                    <div class="stat-trend premium">
+                        <span>Unlimited Applications</span>
+                    </div>
+                    {% if current_user.premium_expires %}
+                    <small class="premium-expires">
+                        Expires: {{ current_user.premium_expires.strftime('%Y-%m-%d') }}
+                    </small>
+                    {% endif %}
                     {% else %}
-                        <h3 class="stat-number" data-count="{{ current_user.get_remaining_applications() if current_user.get_remaining_applications() != 'Unlimited' else 24 }}">
-                            {{ current_user.get_remaining_applications() }}
-                        </h3>
-                        <p class="stat-label">Applications Remaining</p>
-                        <div class="progress-container">
-                            {% set used_percentage = (current_user.daily_applications_used / 24) * 100 %}
-                            <div class="progress-bar" style="width: {{ used_percentage }}%"></div>
-                        </div>
-                        <a href="{{ url_for('upgrade_to_premium') }}" class="upgrade-link">
-                            <i class="fas fa-arrow-up"></i> Upgrade to Premium
-                        </a>
+                    <h3 class="stat-number"
+                        data-count="{{ current_user.get_remaining_applications() if current_user.get_remaining_applications() != 'Unlimited' else 24 }}">
+                        {{ current_user.get_remaining_applications() }}
+                    </h3>
+                    <p class="stat-label">Applications Remaining</p>
+                    <div class="progress-container">
+                        {% set used_percentage = (current_user.daily_applications_used / 24) * 100 %}
+                        <div class="progress-bar" style="width: {{ used_percentage }}%"></div>
+                    </div>
+                    <a href="{{ url_for('upgrade_to_premium') }}" class="upgrade-link">
+                        <i class="fas fa-arrow-up"></i> Upgrade to Premium
+                    </a>
                     {% endif %}
                 </div>
             </article>
@@ -178,18 +188,16 @@
                 <div class="profile-header">
                     <div class="profile-avatar-container">
                         {% if current_user.profile_picture %}
-                            <img src="{{ current_user.profile_picture }}" 
-                                 alt="Profile picture" 
-                                 class="profile-avatar"
-                                 onload="console.log('✅ Image loaded:', this.src)"
-                                 onerror="console.error('❌ Image failed:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="avatar-placeholder" style="display: none;">
-                                {{ (current_user.full_name or current_user.email)[0].upper() }}
-                            </div>
+                        <img src="{{ current_user.profile_picture }}" alt="Profile picture" class="profile-avatar"
+                            onload="console.log('✅ Image loaded:', this.src)"
+                            onerror="console.error('❌ Image failed:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="avatar-placeholder" style="display: none;">
+                            {{ (current_user.full_name or current_user.email)[0].upper() }}
+                        </div>
                         {% else %}
-                            <div class="avatar-placeholder">
-                                {{ (current_user.full_name or current_user.email)[0].upper() }}
-                            </div>
+                        <div class="avatar-placeholder">
+                            {{ (current_user.full_name or current_user.email)[0].upper() }}
+                        </div>
                         {% endif %}
                         <span class="profile-status online" aria-label="Online"></span>
                     </div>
@@ -210,7 +218,8 @@
                             <dd class="value">
                                 <div class="auth-method">
                                     {% if current_user.auth_method == 'google' %}
-                                        <img src="/static/images/google-icon.svg" alt="" class="auth-icon" width="14" height="14">
+                                    <img src="/static/images/google-icon.svg" alt="" class="auth-icon" width="14"
+                                        height="14">
                                     {% endif %}
                                     {{ current_user.auth_method|title }}
                                 </div>
@@ -228,11 +237,11 @@
                             <dt class="label">Last Login</dt>
                             <dd class="value">
                                 {% if current_user.last_login %}
-                                    <time datetime="{{ current_user.last_login.isoformat() }}">
-                                        {{ current_user.last_login.strftime('%b %d, %Y') }}
-                                    </time>
+                                <time datetime="{{ current_user.last_login.isoformat() }}">
+                                    {{ current_user.last_login.strftime('%b %d, %Y') }}
+                                </time>
                                 {% else %}
-                                    Just now
+                                Just now
                                 {% endif %}
                             </dd>
                         </div>
@@ -241,7 +250,8 @@
 
                 <a href="{{ url_for('edit_profile') }}" class="edit-profile-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="16" height="16">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                     Edit Profile
                 </a>
@@ -256,34 +266,38 @@
                         <a href="{{ url_for('learnerships') }}" class="action-item primary hover-float">
                             <div class="action-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                                 </svg>
                             </div>
                             <span>Browse Learnerships</span>
                         </a>
-                        
+
                         <a href="{{ url_for('my_applications') }}" class="action-item hover-float">
                             <div class="action-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                             </div>
                             <span>My Applications</span>
                         </a>
-                        
+
                         <a href="{{ url_for('document_center') }}" class="action-item hover-float">
                             <div class="action-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                                 </svg>
                             </div>
                             <span>Document Center</span>
                         </a>
-                        
+
                         <a href="{{ url_for('edit_profile') }}" class="action-item hover-float">
                             <div class="action-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                             </div>
                             <span>Update Profile</span>
@@ -291,122 +305,128 @@
                     </nav>
                 </section>
 
-                <!-- Recent Applications - Enhanced but keeping your style -->
-{% if recent_applications %}
-<section class="applications-card glass-effect">
-    <header class="card-header">
-        <h3>Recent Applications</h3>
-        <a href="{{ url_for('my_applications') }}" class="view-all-link">
-            View All
-            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
-        </a>
-    </header>
-    <div class="applications-list">
-        {% for app in recent_applications[:3] %}
-        <article class="application-item hover-highlight">
-            <div class="app-logo">
-                {% if app.company_logo %}
-                    <img src="{{ app.company_logo }}" 
-                         alt="{{ app.company_name }} logo"
-                         loading="lazy" width="40" height="40">
-                {% else %}
-                    <!-- Company initial as fallback -->
-                    <div class="company-initial">
-                        {{ app.company_name[0].upper() if app.company_name and app.company_name != 'Company Name Not Available' else 'C' }}
+                <!-- Recent Applications - UPDATED with status on far right and minimal height -->
+                {% if recent_applications %}
+                <section class="applications-card glass-effect">
+                    <header class="card-header">
+                        <h3>Recent Applications</h3>
+                        <a href="{{ url_for('my_applications') }}" class="view-all-link">
+                            View All
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                                <path fill-rule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </a>
+                    </header>
+                    <div class="applications-list compact">
+                        {% for app in recent_applications[:2] %}
+                        <article class="application-item hover-highlight compact">
+                            <div class="app-logo compact">
+                                {% if app.company_logo %}
+                                <img src="{{ app.company_logo }}" alt="{{ app.company_name }} logo" loading="lazy"
+                                    width="32" height="32">
+                                {% else %}
+                                <!-- Company initial as fallback -->
+                                <div class="company-initial compact">
+                                    {{ app.company_name[0].upper() if app.company_name and app.company_name != 'Company
+                                    Name Not Available' else 'C' }}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="app-info compact">
+                                <!-- Show company name as main title -->
+                                <h4>{{ app.company_name }}</h4>
+                                <p class="company-name">{{ app.position_title or "Email Application" }}</p>
+                            </div>
+
+                            <!-- Status on the far right -->
+                            <div class="app-status far-right">
+                                <span class="status-badge {{ app.status or 'pending' }}">
+                                    {{ (app.status or 'pending')|title }}
+                                </span>
+                                {% if app.email_status and app.email_status != 'draft' %}
+                                <small class="email-status-small">
+                                    {{ app.email_status|title }}
+                                </small>
+                                {% endif %}
+                            </div>
+                        </article>
+                        {% endfor %}
                     </div>
-                {% endif %}
-            </div>
-            <div class="app-info">
-                <!-- Show company name as main title -->
-                <h4>{{ app.company_name }}</h4>
-                <p class="company-name">Application submitted</p>
-                <div class="app-meta">
-                    <!-- Only show location if it exists and is not the fallback -->
-                    {% if app.location and app.location != 'Location Not Specified' %}
-                    <span class="location">
-                        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                </section>
+                {% else %}
+                <section class="empty-state-card glass-effect compact">
+                    <div class="empty-state compact">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="36" height="36"
+                            class="empty-state-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
-                        {{ app.location }}
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="app-status">
-                <span class="status-badge {{ app.status or 'pending' }}">
-                    <span class="status-dot"></span>
-                    {{ (app.status or 'pending')|title }}
-                </span>
-                <time class="app-date" datetime="{{ app.created_at.isoformat() }}">
-                    {{ app.created_at.strftime('%b %d') }}
-                </time>
-            </div>
-        </article>
-        {% endfor %}
-    </div>
-</section>
-{% else %}
-<section class="empty-state-card glass-effect">
-    <div class="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="48" height="48" class="empty-state-icon">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-        <h3>No applications yet</h3>
-        <p>Start your learnership journey by browsing available opportunities!</p>
-        <a href="{{ url_for('learnerships') }}" class="cta-button">Browse Learnerships</a>
-    </div>
-</section>
-{% endif %}
+                        <h4>No applications yet</h4>
+                        <p>Start your learnership journey!</p>
+                        <a href="{{ url_for('learnerships') }}" class="cta-button compact">Browse Learnerships</a>
+                    </div>
+                </section>
+                {% endif %}
             </div>
         </div>
     </main>
-<!-- ======= FOOTER ======= -->
-<footer class="main-footer">
-  <div class="footer-inner">
-    <!-- Brand -->
-    <div class="footer-brand">
-      <div class="logo-container">
-        <div class="word">
-          <div class="letter-box red"><div class="letter">C</div></div>
-          <div class="word-text">ode</div>
-        </div>
-        <div class="word">
-          <div class="letter-box blue"><div class="letter">C</div></div>
-          <div class="word-text">raft</div>
-        </div>
-        <div class="word">
-          <div class="letter-box orange"><div class="letter">C</div></div>
-          <div class="word-text">o</div>
-        </div>
-      </div>
-      <p class="footer-tagline">Empowering developers with smart tools.</p>
-    </div>
+    <!-- ======= FOOTER ======= -->
+    <footer class="main-footer">
+        <div class="footer-inner">
+            <!-- Brand -->
+            <div class="footer-brand">
+                <div class="logo-container">
+                    <div class="word">
+                        <div class="letter-box red">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">ode</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box blue">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">raft</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box orange">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">o</div>
+                    </div>
+                </div>
+                <p class="footer-tagline">Empowering developers with smart tools.</p>
+            </div>
 
-    <!-- Links -->
-    <div class="footer-links">
-      <a href="{{ url_for('user_dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('edit_profile') }}">Profile</a>
-      <a href="#">Contact</a>
-      <a href="#">Privacy</a>
-      <a href="#">Terms</a>
-    </div>
+            <!-- Links -->
+            <div class="footer-links">
+                <a href="{{ url_for('user_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('edit_profile') }}">Profile</a>
+                <a href="#">Contact</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
 
-    <!-- Social -->
-    <div class="footer-social">
-      <a href="#" aria-label="LinkedIn" class="social-btn linkedin"><i class="fa-brands fa-linkedin-in"></i></a>
-      <a href="#" aria-label="GitHub" class="social-btn github"><i class="fa-brands fa-github"></i></a>
-      <a href="#" aria-label="Instagram" class="social-btn instagram"><i class="fa-brands fa-instagram"></i></a>
-      <a href="#" aria-label="Facebook" class="social-btn facebook"><i class="fa-brands fa-facebook-f"></i></a>
-      <a href="#" aria-label="WhatsApp" class="social-btn whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
-    </div>
-  </div>
+            <!-- Social -->
+            <div class="footer-social">
+                <a href="#" aria-label="LinkedIn" class="social-btn linkedin"><i
+                        class="fa-brands fa-linkedin-in"></i></a>
+                <a href="#" aria-label="GitHub" class="social-btn github"><i class="fa-brands fa-github"></i></a>
+                <a href="#" aria-label="Instagram" class="social-btn instagram"><i
+                        class="fa-brands fa-instagram"></i></a>
+                <a href="#" aria-label="Facebook" class="social-btn facebook"><i
+                        class="fa-brands fa-facebook-f"></i></a>
+                <a href="#" aria-label="WhatsApp" class="social-btn whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
+            </div>
+        </div>
 
-  <div class="footer-bottom">
-    <p>© {{ current_year or 2024 }} <strong>CodeCraftCo</strong>. All rights reserved.</p>
-  </div>
-</footer>
+        <div class="footer-bottom">
+            <p>© {{ current_year or 2024 }} <strong>CodeCraftCo</strong>. All rights reserved.</p>
+        </div>
+    </footer>
 
     <!-- Keep your existing WhatsApp modal -->
     <div id="whatsappModal" class="modal-overlay">
@@ -414,53 +434,65 @@
             <div class="modal-header">
                 <div class="whatsapp-icon">
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="#25D366">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.516"/>
+                        <path
+                            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.516" />
                     </svg>
                 </div>
                 <h3>Join Our WhatsApp Community!</h3>
             </div>
-            
+
             <div class="modal-body">
                 <p>Stay connected with fellow learners and get instant updates about:</p>
                 <ul class="benefits-list">
                     <li>
                         <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clip-rule="evenodd" />
                         </svg>
                         New learnership opportunities
                     </li>
                     <li>
                         <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clip-rule="evenodd" />
                         </svg>
                         Application deadlines and reminders
                     </li>
                     <li>
                         <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clip-rule="evenodd" />
                         </svg>
                         Tips and guidance from successful applicants
                     </li>
                     <li>
                         <svg viewBox="0 0 20 20" fill="#25D366" width="16" height="16">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            <path fill-rule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clip-rule="evenodd" />
                         </svg>
                         Networking with other learners
                     </li>
                 </ul>
                 <p class="note">You can leave the group anytime if you change your mind.</p>
             </div>
-            
+
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" id="declineWhatsApp">
                     <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        <path fill-rule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
                     </svg>
                     Maybe Later
                 </button>
                 <button type="button" class="btn-whatsapp" id="joinWhatsApp">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.516"/>
+                        <path
+                            d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.465 3.516" />
                     </svg>
                     Join WhatsApp Group
                 </button>
@@ -474,1727 +506,1875 @@
 
 <!-- Keep your existing JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // User Menu Dropdown
-    const menuTrigger = document.querySelector('.user-menu-trigger');
-    const menuDropdown = document.querySelector('.user-menu-dropdown');
-    
-    if (menuTrigger && menuDropdown) {
-        menuTrigger.addEventListener('click', function() {
-            const isExpanded = this.getAttribute('aria-expanded') === 'true';
-            this.setAttribute('aria-expanded', !isExpanded);
-            menuDropdown.classList.toggle('active');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
-                menuTrigger.setAttribute('aria-expanded', 'false');
-                menuDropdown.classList.remove('active');
-            }
-        });
-    }
-    
-    // Animated Number Counter
-    const counters = document.querySelectorAll('.stat-number[data-count]');
-    
-    counters.forEach(counter => {
-        const target = parseInt(counter.getAttribute('data-count'));
-        const duration = 1000;
-        const steps = 20;
-        const increment = target / steps;
-        let current = 0;
-        let step = 0;
-        
-        const updateCounter = () => {
-            step++;
-            current = Math.min(Math.round(increment * step), target);
-            counter.textContent = current;
-            
-            if (step < steps) {
-                requestAnimationFrame(updateCounter);
-            }
-        };
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    updateCounter();
-                    observer.unobserve(entry.target);
-                }
+    document.addEventListener('DOMContentLoaded', function () {
+        // User Menu Dropdown
+        const menuTrigger = document.querySelector('.user-menu-trigger');
+        const menuDropdown = document.querySelector('.user-menu-dropdown');
+
+        if (menuTrigger && menuDropdown) {
+            menuTrigger.addEventListener('click', function () {
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                this.setAttribute('aria-expanded', !isExpanded);
+                menuDropdown.classList.toggle('active');
             });
-        }, { threshold: 0.1 });
-        
-        observer.observe(counter);
-    });
-    
-    // Flash message auto-dismiss
-    const flashMessages = document.querySelectorAll('.flash-message');
-    flashMessages.forEach(message => {
-        setTimeout(() => {
-            message.style.animation = 'slideOutRight 0.3s ease-out forwards';
-            setTimeout(() => message.remove(), 300);
-        }, 5000);
-        
-        const closeBtn = message.querySelector('button');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                message.style.animation = 'slideOutRight 0.3s ease-out forwards';
-                setTimeout(() => message.remove(), 300);
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (event) {
+                if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
+                    menuTrigger.setAttribute('aria-expanded', 'false');
+                    menuDropdown.classList.remove('active');
+                }
             });
         }
-    });
 
-    // WhatsApp Modal System (keeping your existing code)
-    const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/KMr0zfGnacWJk5HrTyiwYH';
-    
-    const WhatsAppModal = {
-        modal: null,
-        isOpen: false,
-        
-        init() {
-            this.modal = document.getElementById('whatsappModal');
-            if (!this.modal) {
-                console.error('❌ WhatsApp modal not found in DOM');
-                return;
-            }
-            
-            console.log('✅ WhatsApp modal initialized');
-            this.setupEventListeners();
-            this.checkAndShow();
-        },
-        
-        setupEventListeners() {
-            // Decline button
-            const declineBtn = document.getElementById('declineWhatsApp');
-            if (declineBtn) {
-                declineBtn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('❌ User declined WhatsApp invitation');
-                    this.decline();
-                };
-            }
-            
-            // Join button
-            const joinBtn = document.getElementById('joinWhatsApp');
-            if (joinBtn) {
-                joinBtn.onclick = (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('✅ User wants to join WhatsApp group');
-                    this.join();
-                };
-            }
-            
-            // ONLY close on ESC key - NO OTHER AUTO-CLOSE
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && this.isOpen) {
-                    console.log('🔒 User pressed ESC to close modal');
-                    this.close();
+        // Animated Number Counter
+        const counters = document.querySelectorAll('.stat-number[data-count]');
+
+        counters.forEach(counter => {
+            const target = parseInt(counter.getAttribute('data-count'));
+            const duration = 1000;
+            const steps = 20;
+            const increment = target / steps;
+            let current = 0;
+            let step = 0;
+
+            const updateCounter = () => {
+                step++;
+                current = Math.min(Math.round(increment * step), target);
+                counter.textContent = current;
+
+                if (step < steps) {
+                    requestAnimationFrame(updateCounter);
                 }
-            });
-        },
-        
-        checkAndShow() {
-            // Check if should show
-            const alreadyShown = sessionStorage.getItem('whatsappModalShown');
-            const declined = localStorage.getItem('whatsappModalDeclined');
-            const joined = localStorage.getItem('whatsappModalJoined');
-            
-            console.log('🔍 Modal status check:', {
-                alreadyShown: !!alreadyShown,
-                declined: !!declined,
-                joined: !!joined
-            });
-            
-            if (alreadyShown || declined || joined) {
-                console.log('⏭️ Modal already shown or user made choice');
-                return;
-            }
-            
-            // Show modal after delay
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        updateCounter();
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            observer.observe(counter);
+        });
+
+        // Flash message auto-dismiss
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(message => {
             setTimeout(() => {
-                this.show();
-            }, 2500); // 2.5 second delay
-        },
-        
-        show() {
-            if (!this.modal) return;
-            
-            console.log('🎉 Showing WhatsApp modal');
-            this.modal.classList.add('active');
-            this.isOpen = true;
-            document.body.style.overflow = 'hidden';
-            
-            // Add a visual indicator that modal is intentionally open
-            this.modal.style.zIndex = '9999';
-        },
-        
-        close() {
-            if (!this.modal || !this.isOpen) return;
-            
-            console.log('🔒 Closing WhatsApp modal');
-            this.modal.classList.remove('active');
-            this.isOpen = false;
-            document.body.style.overflow = '';
-            
-            // Mark as shown for this session
-            sessionStorage.setItem('whatsappModalShown', 'true');
-        },
-        
-        decline() {
-            // Store preference for a week
-            const expiryDate = new Date();
-            expiryDate.setDate(expiryDate.getDate() + 7);
-            localStorage.setItem('whatsappModalDeclined', expiryDate.toISOString());
-            
-            this.close();
-        },
-        
-        join() {
-            const joinBtn = document.getElementById('joinWhatsApp');
-            if (joinBtn) {
-                // Show loading state
-                joinBtn.innerHTML = `
+                message.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                setTimeout(() => message.remove(), 300);
+            }, 5000);
+
+            const closeBtn = message.querySelector('button');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    message.style.animation = 'slideOutRight 0.3s ease-out forwards';
+                    setTimeout(() => message.remove(), 300);
+                });
+            }
+        });
+
+        // WhatsApp Modal System (keeping your existing code)
+        const WHATSAPP_GROUP_LINK = 'https://chat.whatsapp.com/KMr0zfGnacWJk5HrTyiwYH';
+
+        const WhatsAppModal = {
+            modal: null,
+            isOpen: false,
+
+            init() {
+                this.modal = document.getElementById('whatsappModal');
+                if (!this.modal) {
+                    console.error('❌ WhatsApp modal not found in DOM');
+                    return;
+                }
+
+                console.log('✅ WhatsApp modal initialized');
+                this.setupEventListeners();
+                this.checkAndShow();
+            },
+
+            setupEventListeners() {
+                // Decline button
+                const declineBtn = document.getElementById('declineWhatsApp');
+                if (declineBtn) {
+                    declineBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('❌ User declined WhatsApp invitation');
+                        this.decline();
+                    };
+                }
+
+                // Join button
+                const joinBtn = document.getElementById('joinWhatsApp');
+                if (joinBtn) {
+                    joinBtn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('✅ User wants to join WhatsApp group');
+                        this.join();
+                    };
+                }
+
+                // ONLY close on ESC key - NO OTHER AUTO-CLOSE
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.isOpen) {
+                        console.log('🔒 User pressed ESC to close modal');
+                        this.close();
+                    }
+                });
+            },
+
+            checkAndShow() {
+                // Check if should show
+                const alreadyShown = sessionStorage.getItem('whatsappModalShown');
+                const declined = localStorage.getItem('whatsappModalDeclined');
+                const joined = localStorage.getItem('whatsappModalJoined');
+
+                console.log('🔍 Modal status check:', {
+                    alreadyShown: !!alreadyShown,
+                    declined: !!declined,
+                    joined: !!joined
+                });
+
+                if (alreadyShown || declined || joined) {
+                    console.log('⏭️ Modal already shown or user made choice');
+                    return;
+                }
+
+                // Show modal after delay
+                setTimeout(() => {
+                    this.show();
+                }, 2500); // 2.5 second delay
+            },
+
+            show() {
+                if (!this.modal) return;
+
+                console.log('🎉 Showing WhatsApp modal');
+                this.modal.classList.add('active');
+                this.isOpen = true;
+                document.body.style.overflow = 'hidden';
+
+                // Add a visual indicator that modal is intentionally open
+                this.modal.style.zIndex = '9999';
+            },
+
+            close() {
+                if (!this.modal || !this.isOpen) return;
+
+                console.log('🔒 Closing WhatsApp modal');
+                this.modal.classList.remove('active');
+                this.isOpen = false;
+                document.body.style.overflow = '';
+
+                // Mark as shown for this session
+                sessionStorage.setItem('whatsappModalShown', 'true');
+            },
+
+            decline() {
+                // Store preference for a week
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + 7);
+                localStorage.setItem('whatsappModalDeclined', expiryDate.toISOString());
+
+                this.close();
+            },
+
+            join() {
+                const joinBtn = document.getElementById('joinWhatsApp');
+                if (joinBtn) {
+                    // Show loading state
+                    joinBtn.innerHTML = `
                     <div class="spinner"></div>
                     Opening WhatsApp...
                 `;
-                joinBtn.disabled = true;
-                
-                // Open WhatsApp and close modal
-                setTimeout(() => {
-                    window.open(WHATSAPP_GROUP_LINK, '_blank');
-                    localStorage.setItem('whatsappModalJoined', 'true');
-                    this.close();
-                    
-                    // Show success message
-                    this.showToast('WhatsApp group opened in new tab! 🎉', 'success');
-                }, 1000);
-            }
-        },
-        
-        showToast(message, type = 'info') {
-            const toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) return;
+                    joinBtn.disabled = true;
 
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            
-            const icon = type === 'success' ? 
-                `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    // Open WhatsApp and close modal
+                    setTimeout(() => {
+                        window.open(WHATSAPP_GROUP_LINK, '_blank');
+                        localStorage.setItem('whatsappModalJoined', 'true');
+                        this.close();
+
+                        // Show success message
+                        this.showToast('WhatsApp group opened in new tab! 🎉', 'success');
+                    }, 1000);
+                }
+            },
+
+            showToast(message, type = 'info') {
+                const toastContainer = document.querySelector('.toast-container');
+                if (!toastContainer) return;
+
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+
+                const icon = type === 'success' ?
+                    `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>` : 
-                `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                </svg>` :
+                    `<svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                 </svg>`;
 
-            toast.innerHTML = `
+                toast.innerHTML = `
                 <div class="toast-icon">${icon}</div>
                 <div class="toast-message">${message}</div>
                 <button class="toast-close" aria-label="Close notification">×</button>
             `;
 
-            toastContainer.appendChild(toast);
+                toastContainer.appendChild(toast);
 
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.remove();
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 5000);
+
+                // Close button
+                const closeBtn = toast.querySelector('.toast-close');
+                if (closeBtn) {
+                    closeBtn.onclick = () => toast.remove();
                 }
-            }, 5000);
-
-            // Close button
-            const closeBtn = toast.querySelector('.toast-close');
-            if (closeBtn) {
-                closeBtn.onclick = () => toast.remove();
             }
+        };
+
+        // Initialize WhatsApp Modal
+        WhatsAppModal.init();
+
+        // Check if user came from login
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('login') === 'success') {
+            console.log('🎉 User came from successful login');
+            setTimeout(() => {
+            }, 500);
+
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname);
         }
-    };
-    
-    // Initialize WhatsApp Modal
-    WhatsAppModal.init();
 
-    // Check if user came from login
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('login') === 'success') {
-        console.log('🎉 User came from successful login');
-        setTimeout(() => {
-        }, 500);
-        
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-    }
+        // Profile picture error handling
+        const profileImages = document.querySelectorAll('.profile-avatar, .user-avatar-small img');
+        profileImages.forEach(img => {
+            img.addEventListener('error', function () {
+                console.error('❌ Profile image failed to load:', this.src);
+                this.style.display = 'none';
 
-    // Profile picture error handling
-    const profileImages = document.querySelectorAll('.profile-avatar, .user-avatar-small img');
-    profileImages.forEach(img => {
-        img.addEventListener('error', function() {
-            console.error('❌ Profile image failed to load:', this.src);
-            this.style.display = 'none';
-            
-            const placeholder = this.nextElementSibling;
-            if (placeholder && placeholder.classList.contains('avatar-placeholder')) {
-                placeholder.style.display = 'flex';
-            }
+                const placeholder = this.nextElementSibling;
+                if (placeholder && placeholder.classList.contains('avatar-placeholder')) {
+                    placeholder.style.display = 'flex';
+                }
+            });
         });
+
+        console.log('✅ Dashboard JavaScript loaded successfully!');
     });
 
-    console.log('✅ Dashboard JavaScript loaded successfully!');
-});
-
-// TEST FUNCTION - You can call this in console to test the modal
-function testWhatsAppModal() {
-    console.log('🧪 Testing WhatsApp modal...');
-    sessionStorage.removeItem('whatsappModalShown');
-    localStorage.removeItem('whatsappModalDeclined');
-    localStorage.removeItem('whatsappModalJoined');
-    location.reload();
-}
+    // TEST FUNCTION - You can call this in console to test the modal
+    function testWhatsAppModal() {
+        console.log('🧪 Testing WhatsApp modal...');
+        sessionStorage.removeItem('whatsappModalShown');
+        localStorage.removeItem('whatsappModalDeclined');
+        localStorage.removeItem('whatsappModalJoined');
+        location.reload();
+    }
 </script>
 
 <!-- Keep ALL your existing styles - just add the dark theme variables at the top -->
 <style>
-/* Apply dark theme variables as default */
-:root {
-    --background: #1e293b;
-    --surface: #334155;
-    --surface-hover: #475569;
-    --surface-alt: #64748b;
-    --border-color: #475569;
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-tertiary: #94a3b8;
-    --primary-color: #3b82f6;
-    --primary-hover: #2563eb;
-    --primary-light: rgba(59, 130, 246, 0.15);
-    --success-color: #10b981;
-    --success-hover: #059669;
-    --success-light: rgba(16, 185, 129, 0.15);
-    --warning-color: #f59e0b;
-    --warning-hover: #d97706;
-    --warning-light: rgba(245, 158, 11, 0.15);
-    --warning-dark: #92400e;
-    --danger-color: #ef4444;
-    --danger-hover: #dc2626;
-    --danger-light: rgba(239, 68, 68, 0.15);
-    --info-color: #06b6d4;
-    --info-light: rgba(6, 182, 212, 0.15);
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-full: 50%;
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.3s ease;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-    --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-}
+    /* Apply dark theme variables as default */
+    :root {
+        --background: #1e293b;
+        --surface: #334155;
+        --surface-hover: #475569;
+        --surface-alt: #64748b;
+        --border-color: #475569;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --primary-light: rgba(59, 130, 246, 0.15);
+        --success-color: #10b981;
+        --success-hover: #059669;
+        --success-light: rgba(16, 185, 129, 0.15);
+        --warning-color: #f59e0b;
+        --warning-hover: #d97706;
+        --warning-light: rgba(245, 158, 11, 0.15);
+        --warning-dark: #92400e;
+        --danger-color: #ef4444;
+        --danger-hover: #dc2626;
+        --danger-light: rgba(239, 68, 68, 0.15);
+        --info-color: #06b6d4;
+        --info-light: rgba(6, 182, 212, 0.15);
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-full: 50%;
+        --transition-fast: 0.15s ease;
+        --transition-normal: 0.3s ease;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+        --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
 
-/* Update glass effect for dark theme */
-.glass-effect {
-    background: rgba(51, 65, 85, 0.8);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-}
+    /* Update glass effect for dark theme */
+    .glass-effect {
+        background: rgba(51, 65, 85, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+    }
 
-/* Keep ALL your existing dashboard styles exactly as they were */
-/* Custom styles for this dashboard */
-.dashboard-content {
-    max-width: 1200px;
-}
+    /* Keep ALL your existing dashboard styles exactly as they were */
+    /* Custom styles for this dashboard */
+    .dashboard-content {
+        max-width: 1200px;
+    }
 
-/* Enhanced user menu */
-.user-menu {
-    position: relative;
-}
+    /* Enhanced user menu */
+    .user-menu {
+        position: relative;
+    }
 
-.user-menu-trigger {
-    display: flex;
-    align-items: center;
+    .user-menu-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: none;
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: background-color var(--transition-fast);
+    }
+
+    .user-menu-trigger:hover {
+        background-color: var(--surface-hover);
+    }
+
+    .user-avatar-small {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-color);
+        font-weight: 600;
+        overflow: hidden;
+    }
+
+    .user-avatar-small img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .user-name {
+        font-weight: 500;
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #fff;
+    }
+
+    .chevron-icon {
+        transition: transform var(--transition-fast);
+    }
+
+    .user-menu-trigger[aria-expanded="true"] .chevron-icon {
+        transform: rotate(180deg);
+    }
+
+    /* Company initial fallback styling */
+    .company-initial {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    /* Ensure h4 styling for company names */
+    .app-info h4 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    .user-menu-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background: var(--surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        min-width: 180px;
+        overflow: hidden;
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition: all var(--transition-normal);
+    }
+
+    .user-menu-dropdown.active {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: background-color var(--transition-fast);
+    }
+
+    .menu-item:hover {
+        background-color: var(--surface-hover);
+    }
+
+    .menu-item.logout {
+        color: var(--danger-color);
+    }
+
+    .menu-divider {
+        height: 1px;
+        background-color: var(--border-color);
+        margin: 4px 0;
+    }
+
+    /* Enhanced stat cards */
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .stat-icon.applications {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .stat-icon.documents {
+        background-color: var(--warning-light);
+        color: var(--warning-color);
+    }
+
+    .stat-icon.completion {
+        background-color: var(--success-light);
+        color: var(--success-color);
+    }
+
+    .stat-content {
+        flex-grow: 1;
+    }
+
+    .stat-number {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        line-height: 1;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .stat-trend {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--text-tertiary);
+    }
+
+    .stat-trend.positive {
+        color: var(--success-color);
+    }
+
+    /* Progress bar */
+    .progress-container {
+        height: 6px;
+        background-color: var(--border-color);
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        margin-top: 8px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background-color: var(--success-color);
+        border-radius: var(--radius-full);
+    }
+
+    /* Keep ALL your other existing styles... */
+    /* Keep ALL your other existing styles... */
+    /* Enhanced user grid layout */
+    .user-grid {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+        .user-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .dashboard-right-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    /* Profile card styling */
+    .profile-card {
+        padding: 0;
+        height: fit-content;
+    }
+
+    .profile-header {
+        background-color: var(--primary-light);
+        padding: 24px 16px 16px;
+        text-align: center;
+        color: white;
+        position: relative;
+    }
+
+    .profile-avatar-container {
+        position: relative;
+        margin: 0 auto 12px;
+        width: 80px;
+        height: 80px;
+    }
+
+    .profile-avatar,
+    .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid white;
+        box-shadow: var(--shadow);
+    }
+
+    .avatar-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        color: white;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .profile-status {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background-color: var(--success-color);
+        border: 2px solid white;
+    }
+
+    .profile-header h3 {
+        margin-bottom: 4px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .profile-header .email {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+
+    .profile-info {
+        padding: 16px;
+    }
+
+    .info-list {
+        margin: 0;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    .label {
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .value {
+        font-weight: 500;
+    }
+
+    .badge {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .badge-user {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .badge-admin {
+        background-color: #7c3aed;
+        color: white;
+    }
+
+    .auth-method {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+    }
+
+    .auth-icon {
+        display: block;
+    }
+
+    .edit-profile-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 0 16px 16px;
+        padding: 8px 12px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        text-decoration: none;
+        transition: background-color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .edit-profile-btn:hover {
+        background-color: var(--primary-hover);
+        color: white;
+    }
+
+    .edit-profile-btn:active {
+        transform: scale(0.98);
+    }
+
+    /* Quick actions styling */
+    .actions-card {
+        padding: 16px;
+    }
+
+    .actions-card h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 12px;
+    }
+
+    .action-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 8px;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        background-color: var(--surface-hover);
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: transform var(--transition-normal), background-color var(--transition-fast);
+    }
+
+    .action-item:hover {
+        background-color: var(--border-color);
+    }
+
+    .hover-float:hover {
+        transform: translateY(-4px);
+    }
+
+    .action-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        background-color: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+    }
+
+    .action-item.primary .action-icon {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+
+    .action-item span {
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    /* Applications styling */
+    .applications-card {
+        padding: 16px;
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .card-header h3 {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .view-all-link {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .view-all-link:hover {
+        text-decoration: underline;
+    }
+
+    .applications-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    .application-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        transition: background-color var(--transition-fast);
+    }
+
+    .hover-highlight:hover {
+        background-color: var(--surface-hover);
+    }
+
+    .app-logo {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        background-color: var(--background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .app-logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .app-info {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .app-info h4 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .company-name {
+        font-size: 13px;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+
+    .app-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .location {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--text-tertiary);
+    }
+
+    .app-status {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .status-badge {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-badge.pending {
+        background-color: var(--warning-light);
+        color: var(--warning-color);
+    }
+
+    .status-badge.approved {
+        background-color: var(--success-light);
+        color: var(--success-color);
+    }
+
+    .status-badge.rejected {
+        background-color: var(--danger-light);
+        color: var(--danger-color);
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: currentColor;
+    }
+
+    .app-date {
+        font-size: 12px;
+        color: var(--text-tertiary);
+    }
+
+    /* Empty state styling */
+    .empty-state-card {
+        padding: 32px 16px;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .empty-state-icon {
+        color: var(--text-tertiary);
+        margin-bottom: 16px;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        max-width: 300px;
+        margin: 0 auto 20px;
+    }
+
+    .cta-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        text-decoration: none;
+        transition: background-color var(--transition-fast);
+    }
+
+    .cta-button:hover {
+        background-color: var(--primary-hover);
+        color: white;
+    }
+
+    /* Logo styles */
+    .nav-logo {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        transform: translateY(16px);
+    }
+
+    /* Company initial fallback */
+    .company-initial {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        backdrop-filter: blur(10px);
+    }
+
+    .letter-box.red {
+        box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+    }
+
+    .letter-box.blue {
+        box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+    }
+
+    .letter-box.orange {
+        box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+    }
+
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+    }
+
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
+
+    /* Navigation styles */
+    .nav-feed-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        margin-right: 16px;
+        border-radius: 8px;
+        background: var(--surface-alt);
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .nav-feed-button:hover {
+        background: var(--surface-hover);
+        transform: translateY(-1px);
+    }
+
+    .nav-feed-button svg {
+        color: var(--primary-color);
+    }
+
+    .nav-feed-button span {
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    /* WhatsApp Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        max-width: 480px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: scale(0.8) translateY(20px);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+        padding: 24px 24px 16px;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .whatsapp-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #25D366, #128C7E);
+        border-radius: 50%;
+        margin: 0 auto 16px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+        }
+
+        70% {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
+        }
+
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+        }
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .modal-body {
+        padding: 20px 24px;
+    }
+
+    .modal-body p {
+        margin: 0 0 16px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+    }
+
+    .benefits-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 20px;
+    }
+
+    .benefits-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 8px 0;
+        color: var(--text-primary);
+        line-height: 1.5;
+    }
+
+    .benefits-list li svg {
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .note {
+        font-size: 14px;
+        color: var(--text-tertiary);
+        font-style: italic;
+        text-align: center;
+        margin-top: 16px;
+    }
+
+    .modal-footer {
+        padding: 16px 24px 24px;
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn-secondary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: var(--surface-hover);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-secondary:hover {
+        background: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .btn-whatsapp {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #25D366, #128C7E);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-whatsapp:hover {
+        background: linear-gradient(135deg, #128C7E, #25D366);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+    }
+
+    .btn-whatsapp:active {
+        transform: translateY(0);
+    }
+
+    .btn-whatsapp::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .btn-whatsapp:hover::before {
+        left: 100%;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 400px;
+    }
+
+    .toast {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: var(--surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-lg);
+        border-left: 4px solid var(--primary-color);
+        animation: slideInRight 0.3s ease-out;
+        max-width: 100%;
+    }
+
+    .toast-success {
+        border-left-color: var(--success-color);
+    }
+
+    .toast-error {
+        border-left-color: var(--danger-color);
+    }
+
+    .toast-warning {
+        border-left-color: var(--warning-color);
+    }
+
+    .toast-icon {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .toast-success .toast-icon {
+        color: var(--success-color);
+    }
+
+    .toast-error .toast-icon {
+        color: var(--danger-color);
+    }
+
+    .toast-warning .toast-icon {
+        color: var(--warning-color);
+    }
+
+    .toast-message {
+        flex-grow: 1;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .toast-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-secondary);
+        padding: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+
+    .toast-close:hover {
+        background-color: var(--surface-hover);
+        color: var(--text-primary);
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    /* Loading spinner */
+    .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Animation utilities */
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+    }
+
+    .delay-1 {
+        animation-delay: 0.1s;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideOutRight {
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+
+    /* Scrollbar styling */
+    .applications-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .applications-list::-webkit-scrollbar-track {
+        background: var(--border-color);
+        border-radius: 3px;
+    }
+
+    .applications-list::-webkit-scrollbar-thumb {
+        background: var(--text-tertiary);
+        border-radius: 3px;
+    }
+
+    .applications-list::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+    }
+
+    /* Media queries for responsiveness */
+    @media (max-width: 768px) {
+        .nav-feed-button span {
+            display: none;
+        }
+
+        .nav-feed-button {
+            padding: 8px;
+            margin-right: 8px;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .welcome-section h1 {
+            font-size: 20px;
+        }
+
+        .welcome-section p {
+            font-size: 14px;
+        }
+
+        .modal-content {
+            width: 95%;
+            margin: 20px;
+        }
+
+        .modal-header {
+            padding: 20px 16px 12px;
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .modal-footer {
+            padding: 12px 16px 20px;
+            flex-direction: column;
+        }
+
+        .btn-secondary,
+        .btn-whatsapp {
+            justify-content: center;
+        }
+
+        .toast-container {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 991px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 992px) {
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 480px) {
+        .logo-container {
+            transform: translateY(8px);
+        }
+
+        .letter-box {
+            width: 28px;
+            height: 28px;
+        }
+
+        .letter {
+            font-size: 16px;
+        }
+
+        .word-text {
+            font-size: 16px;
+        }
+
+        .stat-card {
+            padding: 12px;
+        }
+
+        .stat-number {
+            font-size: 20px;
+        }
+    }
+
+    /* Additional utility classes */
+    .text-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* Focus styles for accessibility */
+    .action-item:focus,
+    .edit-profile-btn:focus,
+    .cta-button:focus,
+    .user-menu-trigger:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    /* Print styles */
+    @media print {
+
+        .modal-overlay,
+        .toast-container,
+        .nav-feed-button {
+            display: none !important;
+        }
+
+        .dashboard-content {
+            max-width: none;
+            padding: 0;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .user-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .application-card {
+            break-inside: avoid;
+            box-shadow: none;
+            border: 2px solid var(--border-color);
+        }
+    }
+
+    /* ---------------- FOOTER (Compact + Responsive) ---------------- */
+    .main-footer {
+        background: #1e293b;
+        border-top: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 20px 14px 14px;
+        margin-top: 40px;
+    }
+
+    .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        max-width: 1100px;
+        margin: 0 auto;
+        gap: 12px;
+    }
+
+    .footer-brand {
+        flex: 1 1 200px;
+        text-align: center;
+    }
+
+    .footer-brand .logo-container {
+        justify-content: center;
+        transform: scale(0.9);
+    }
+
+    .footer-tagline {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        margin-top: 3px;
+    }
+
+    .footer-links {
+        flex: 1 1 280px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 12px;
+    }
+
+    .footer-links a {
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+        color: var(--text-primary);
+    }
+
+    .footer-social {
+        flex: 1 1 160px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .social-btn {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        color: white;
+        font-size: 12px;
+        transition: transform .25s ease, background .25s ease;
+    }
+
+    .social-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .social-btn.linkedin:hover {
+        background: #0077b5;
+    }
+
+    .social-btn.github:hover {
+        background: #181717;
+    }
+
+    .social-btn.instagram:hover {
+        background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+    }
+
+    .social-btn.facebook:hover {
+        background: #1877f2;
+    }
+
+    .social-btn.whatsapp:hover {
+        background: #25D366;
+    }
+
+    .footer-bottom {
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+        padding-top: 8px;
+        margin-top: 8px;
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+    }
+
+    /* ---------- Responsive (Ultra Compact for Mobile) ---------- */
+    @media (max-width:768px) {
+        .footer-inner {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-container {
+            transform: scale(0.8);
+        }
+
+        .footer-links {
+            order: 3;
+            gap: 4px 8px;
+            margin-top: 2px;
+        }
+
+        .footer-social {
+            order: 2;
+            gap: 5px;
+        }
+
+        .social-btn {
+            width: 22px;
+            height: 22px;
+            font-size: 11px;
+        }
+
+        .footer-tagline {
+            font-size: 0.76rem;
+        }
+
+        .main-footer {
+            padding: 12px 8px 8px;
+        }
+    }
+
+    @media (max-width:420px) {
+        .footer-tagline {
+            display: none;
+        }
+
+        .footer-links a {
+            font-size: 0.78rem;
+        }
+
+        .social-btn {
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+        }
+
+        .main-footer {
+            padding: 10px 6px 6px;
+        }
+    }
+
+    /* Premium Status Card Styles */
+    .premium-status-card .stat-icon.premium {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .stat-trend.premium {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .premium-expires {
+        display: block;
+        margin-top: 0.5rem;
+        color: #64748b;
+        font-size: 0.7rem;
+    }
+
+    .upgrade-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 15px;
+        text-decoration: none;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+        transition: transform 0.2s ease;
+    }
+
+    .upgrade-link:hover {
+        transform: translateY(-2px);
+        color: white;
+        text-decoration: none;
+    }
+    /* Compact Recent Applications Styles */
+.applications-list.compact {
     gap: 8px;
-    background: none;
-    border: none;
-    padding: 8px 12px;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: background-color var(--transition-fast);
 }
 
-.user-menu-trigger:hover {
-    background-color: var(--surface-hover);
+.application-item.compact {
+    padding: 12px 16px;
+    min-height: 60px;
+    align-items: center;
 }
 
-.user-avatar-small {
+.app-logo.compact {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
-    background: var(--primary-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-color);
-    font-weight: 600;
-    overflow: hidden;
+    min-width: 32px;
 }
 
-.user-avatar-small img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.user-name {
-    font-weight: 500;
-    max-width: 150px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: #fff;
-}
-
-.chevron-icon {
-    transition: transform var(--transition-fast);
-}
-
-.user-menu-trigger[aria-expanded="true"] .chevron-icon {
-    transform: rotate(180deg);
-}
-
-/* Company initial fallback styling */
-.company-initial {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-/* Ensure h4 styling for company names */
-.app-info h4 {
+.company-initial.compact {
+    width: 32px;
+    height: 32px;
     font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: var(--text-primary);
+    line-height: 32px;
+}
+
+.app-info.compact h4 {
+    font-size: 14px;
+    margin: 0 0 2px 0;
     line-height: 1.3;
 }
 
-.user-menu-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    background: var(--surface);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    min-width: 180px;
-    overflow: hidden;
-    z-index: 100;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-8px);
-    transition: all var(--transition-normal);
-}
-
-.user-menu-dropdown.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: background-color var(--transition-fast);
-}
-
-.menu-item:hover {
-    background-color: var(--surface-hover);
-}
-
-.menu-item.logout {
-    color: var(--danger-color);
-}
-
-.menu-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 4px 0;
-}
-
-/* Enhanced stat cards */
-.stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.stat-card {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px;
-    border-radius: var(--radius-md);
-    background: var(--surface);
-    box-shadow: var(--shadow);
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
-}
-
-.hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
-}
-
-.stat-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.stat-icon.applications {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
-}
-
-.stat-icon.documents {
-    background-color: var(--warning-light);
-    color: var(--warning-color);
-}
-
-.stat-icon.completion {
-    background-color: var(--success-light);
-    color: var(--success-color);
-}
-
-.stat-content {
-    flex-grow: 1;
-}
-
-.stat-number {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 4px;
-    line-height: 1;
-}
-
-.stat-label {
-    color: var(--text-secondary);
-    font-size: 14px;
-    margin-bottom: 8px;
-}
-
-.stat-trend {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+.app-info.compact .company-name {
     font-size: 12px;
-    color: var(--text-tertiary);
-}
-
-.stat-trend.positive {
-    color: var(--success-color);
-}
-
-/* Progress bar */
-.progress-container {
-    height: 6px;
-    background-color: var(--border-color);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-    margin-top: 8px;
-}
-
-.progress-bar {
-    height: 100%;
-    background-color: var(--success-color);
-    border-radius: var(--radius-full);
-}
-
-/* Keep ALL your other existing styles... */
-/* Keep ALL your other existing styles... */
-/* Enhanced user grid layout */
-.user-grid {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 20px;
-}
-
-@media (max-width: 900px) {
-    .user-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.dashboard-right-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* Profile card styling */
-.profile-card {
-    padding: 0;
-    height: fit-content;
-}
-
-.profile-header {
-    background-color: var(--primary-light);
-    padding: 24px 16px 16px;
-    text-align: center;
-    color: white;
-    position: relative;
-}
-
-.profile-avatar-container {
-    position: relative;
-    margin: 0 auto 12px;
-    width: 80px;
-    height: 80px;
-}
-
-.profile-avatar, .avatar-placeholder {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid white;
-    box-shadow: var(--shadow);
-}
-
-.avatar-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    color: white;
-    font-size: 28px;
-    font-weight: 600;
-}
-
-.profile-status {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background-color: var(--success-color);
-    border: 2px solid white;
-}
-
-.profile-header h3 {
-    margin-bottom: 4px;
-    font-size: 18px;
-    font-weight: 600;
-}
-
-.profile-header .email {
-    font-size: 14px;
-    opacity: 0.9;
-}
-
-.profile-info {
-    padding: 16px;
-}
-
-.info-list {
     margin: 0;
+    line-height: 1.2;
+    opacity: 0.7;
 }
 
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.info-item:last-child {
-    border-bottom: none;
-}
-
-.label {
-    color: var(--text-secondary);
-    font-size: 13px;
-}
-
-.value {
-    font-weight: 500;
-}
-
-.badge {
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.badge-user {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
-}
-
-.badge-admin {
-    background-color: #7c3aed;
-    color: white;
-}
-
-.auth-method {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-}
-
-.auth-icon {
-    display: block;
-}
-
-.edit-profile-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 0 16px 16px;
-    padding: 8px 12px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-weight: 500;
-    text-decoration: none;
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
-}
-
-.edit-profile-btn:hover {
-    background-color: var(--primary-hover);
-    color: white;
-}
-
-.edit-profile-btn:active {
-    transform: scale(0.98);
-}
-
-/* Quick actions styling */
-.actions-card {
-    padding: 16px;
-}
-
-.actions-card h3 {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 16px;
-}
-
-.actions-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 12px;
-}
-
-.action-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 8px;
-    padding: 12px;
-    border-radius: var(--radius-md);
-    background-color: var(--surface-hover);
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: transform var(--transition-normal), background-color var(--transition-fast);
-}
-
-.action-item:hover {
-    background-color: var(--border-color);
-}
-
-.hover-float:hover {
-    transform: translateY(-4px);
-}
-
-.action-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-md);
-    background-color: var(--background);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-}
-
-.action-item.primary .action-icon {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
-}
-
-.action-item span {
-    font-size: 13px;
-    font-weight: 500;
-}
-
-/* Applications styling */
-.applications-card {
-    padding: 16px;
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-}
-
-.card-header h3 {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.view-all-link {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.view-all-link:hover {
-    text-decoration: underline;
-}
-
-.applications-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 8px;
-}
-
-.application-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-radius: var(--radius-md);
-    transition: background-color var(--transition-fast);
-}
-
-.hover-highlight:hover {
-    background-color: var(--surface-hover);
-}
-
-.app-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background-color: var(--background);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.app-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.app-info {
-    flex-grow: 1;
-    min-width: 0;
-}
-
-.app-info h4 {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.company-name {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-}
-
-.app-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.location {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--text-tertiary);
-}
-
-.app-status {
+.app-status.far-right {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.status-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.status-badge.pending {
-    background-color: var(--warning-light);
-    color: var(--warning-color);
-}
-
-.status-badge.approved {
-    background-color: var(--success-light);
-    color: var(--success-color);
-}
-
-.status-badge.rejected {
-    background-color: var(--danger-light);
-    color: var(--danger-color);
-}
-
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background-color: currentColor;
-}
-
-.app-date {
-    font-size: 12px;
-    color: var(--text-tertiary);
-}
-
-/* Empty state styling */
-.empty-state-card {
-    padding: 32px 16px;
-}
-
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.empty-state-icon {
-    color: var(--text-tertiary);
-    margin-bottom: 16px;
-}
-
-.empty-state h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    max-width: 300px;
-    margin: 0 auto 20px;
-}
-
-.cta-button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: var(--radius-md);
-    font-weight: 500;
-    text-decoration: none;
-    transition: background-color var(--transition-fast);
-}
-
-.cta-button:hover {
-    background-color: var(--primary-hover);
-    color: white;
-}
-
-/* Logo styles */
-.nav-logo {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.nav-logo a {
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    height: 100%;
-}
-
-.logo-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    transform: translateY(16px);
-}
-/* Company initial fallback */
-.company-initial {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 600;
-}
-.word {
-    display: flex;
-    align-items: center;
     gap: 2px;
+    margin-left: auto;
 }
 
-.letter-box {
-    width: 35px;
-    height: 35px;
-    background-color: rgba(51, 51, 51, 0.9);
-    border: 2px solid #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    backdrop-filter: blur(10px);
-}
-
-.letter-box.red {
-    box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
-}
-
-.letter-box.blue {
-    box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
-}
-
-.letter-box.orange {
-    box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
-}
-
-.letter {
-    font-size: 20px;
-    font-weight: bold;
-    color: #fff;
-    text-align: center;
-    font-family: 'Arial', sans-serif;
-    line-height: 1;
-}
-
-.word-text {
-    font-size: 20px;
-    font-weight: normal;
-    color: #fff;
-    margin-left: 3px;
-    font-family: 'Arial', sans-serif;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-    line-height: 1;
-}
-
-/* Navigation styles */
-.nav-feed-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    margin-right: 16px;
-    border-radius: 8px;
-    background: var(--surface-alt);
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.nav-feed-button:hover {
-    background: var(--surface-hover);
-    transform: translateY(-1px);
-}
-
-.nav-feed-button svg {
-    color: var(--primary-color);
-}
-
-.nav-feed-button span {
-    font-weight: 500;
-    font-size: 14px;
-}
-
-/* WhatsApp Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(4px);
-}
-
-.modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-}
-
-.modal-content {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xl);
-    max-width: 480px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    transform: scale(0.8) translateY(20px);
-    transition: transform 0.3s ease;
-}
-
-.modal-overlay.active .modal-content {
-    transform: scale(1) translateY(0);
-}
-
-.modal-header {
-    padding: 24px 24px 16px;
-    text-align: center;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.whatsapp-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    background: linear-gradient(135deg, #25D366, #128C7E);
-    border-radius: 50%;
-    margin: 0 auto 16px;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
-    }
-    70% {
-        transform: scale(1.05);
-        box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-    }
-}
-
-.modal-header h3 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.modal-body {
-    padding: 20px 24px;
-}
-
-.modal-body p {
-    margin: 0 0 16px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-}
-
-.benefits-list {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 20px;
-}
-
-.benefits-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 8px 0;
-    color: var(--text-primary);
-    line-height: 1.5;
-}
-
-.benefits-list li svg {
-    margin-top: 2px;
-    flex-shrink: 0;
-}
-
-.note {
-    font-size: 14px;
-    color: var(--text-tertiary);
-    font-style: italic;
-    text-align: center;
-    margin-top: 16px;
-}
-
-.modal-footer {
-    padding: 16px 24px 24px;
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.btn-secondary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: var(--surface-hover);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-    background: var(--border-color);
-    color: var(--text-primary);
-}
-
-.btn-whatsapp {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: linear-gradient(135deg, #25D366, #128C7E);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-whatsapp:hover {
-    background: linear-gradient(135deg, #128C7E, #25D366);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
-}
-
-.btn-whatsapp:active {
-    transform: translateY(0);
-}
-
-.btn-whatsapp::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-}
-
-.btn-whatsapp:hover::before {
-    left: 100%;
-}
-
-/* Toast Notifications */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1050;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-width: 400px;
-}
-
-.toast {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--surface);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    border-left: 4px solid var(--primary-color);
-    animation: slideInRight 0.3s ease-out;
-    max-width: 100%;
-}
-
-.toast-success {
-    border-left-color: var(--success-color);
-}
-
-.toast-error {
-    border-left-color: var(--danger-color);
-}
-
-.toast-warning {
-    border-left-color: var(--warning-color);
-}
-
-.toast-icon {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.toast-success .toast-icon {
-    color: var(--success-color);
-}
-
-.toast-error .toast-icon {
-    color: var(--danger-color);
-}
-
-.toast-warning .toast-icon {
-    color: var(--warning-color);
-}
-
-.toast-message {
-    flex-grow: 1;
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.toast-close {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-}
-
-.toast-close:hover {
-    background-color: var(--surface-hover);
-    color: var(--text-primary);
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Loading spinner */
-.spinner {
-    width: 16px;
-    height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Animation utilities */
-.fade-in {
-    animation: fadeIn 0.5s ease forwards;
-}
-
-.delay-1 {
-    animation-delay: 0.1s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideOutRight {
-    to { opacity: 0; transform: translateX(100%); }
-}
-
-/* Scrollbar styling */
-.applications-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.applications-list::-webkit-scrollbar-track {
-    background: var(--border-color);
-    border-radius: 3px;
-}
-
-.applications-list::-webkit-scrollbar-thumb {
-    background: var(--text-tertiary);
-    border-radius: 3px;
-}
-
-.applications-list::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
-}
-
-/* Media queries for responsiveness */
-@media (max-width: 768px) {
-    .nav-feed-button span {
-        display: none;
-    }
-    
-    .nav-feed-button {
-        padding: 8px;
-        margin-right: 8px;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .actions-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .welcome-section h1 {
-        font-size: 20px;
-    }
-    
-    .welcome-section p {
-        font-size: 14px;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 20px;
-    }
-    
-    .modal-header {
-        padding: 20px 16px 12px;
-    }
-    
-    .modal-body {
-        padding: 16px;
-    }
-    
-    .modal-footer {
-        padding: 12px 16px 20px;
-        flex-direction: column;
-    }
-    
-    .btn-secondary,
-    .btn-whatsapp {
-        justify-content: center;
-    }
-    
-    .toast-container {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
-    }
-}
-
-@media (min-width: 768px) and (max-width: 991px) {
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 992px) {
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .logo-container {
-        transform: translateY(8px);
-    }
-    
-    .letter-box {
-        width: 28px;
-        height: 28px;
-    }
-    
-    .letter {
-        font-size: 16px;
-    }
-    
-    .word-text {
-        font-size: 16px;
-    }
-    
-    .stat-card {
-        padding: 12px;
-    }
-    
-    .stat-number {
-        font-size: 20px;
-    }
-}
-
-/* Additional utility classes */
-.text-truncate {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* Focus styles for accessibility */
-.action-item:focus,
-.edit-profile-btn:focus,
-.cta-button:focus,
-.user-menu-trigger:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-/* Print styles */
-@media print {
-    .modal-overlay,
-    .toast-container,
-    .nav-feed-button {
-        display: none !important;
-    }
-    
-    .dashboard-content {
-        max-width: none;
-        padding: 0;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-    }
-    
-    .user-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .application-card {
-        break-inside: avoid;
-        box-shadow: none;
-        border: 2px solid var(--border-color);
-    }
-}
-/* ---------------- FOOTER (Compact + Responsive) ---------------- */
-.main-footer {
-  background:#1e293b;
-  border-top:1px solid var(--border-color);
-  color:var(--text-secondary);
-  padding:20px 14px 14px;
-  margin-top:40px;
-}
-.footer-inner {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  flex-wrap:wrap;
-  max-width:1100px;
-  margin:0 auto;
-  gap:12px;
-}
-.footer-brand {
-  flex:1 1 200px;
-  text-align:center;
-}
-.footer-brand .logo-container {
-  justify-content:center;
-  transform:scale(0.9);
-}
-.footer-tagline {
-  font-size:0.8rem;
-  color:var(--text-tertiary);
-  margin-top:3px;
-}
-.footer-links {
-  flex:1 1 280px;
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:6px 12px;
-}
-.footer-links a {
-  color:var(--text-secondary);
-  font-size:0.82rem;
-  text-decoration:none;
-  transition:color 0.3s;
-}
-.footer-links a:hover {
-  color:var(--text-primary);
-}
-.footer-social {
-  flex:1 1 160px;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  gap:6px;
-}
-.social-btn {
-  width:24px;
-  height:24px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  border-radius:50%;
-  background:var(--surface-hover);
-  color:white;
-  font-size:12px;
-  transition:transform .25s ease, background .25s ease;
-}
-.social-btn:hover { transform:translateY(-2px); }
-.social-btn.linkedin:hover { background:#0077b5; }
-.social-btn.github:hover { background:#181717; }
-.social-btn.instagram:hover {
-  background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);
-}
-.social-btn.facebook:hover { background:#1877f2; }
-.social-btn.whatsapp:hover { background:#25D366; }
-
-.footer-bottom {
-  border-top:1px solid var(--border-color);
-  text-align:center;
-  padding-top:8px;
-  margin-top:8px;
-  font-size:0.75rem;
-  color:var(--text-tertiary);
-}
-
-/* ---------- Responsive (Ultra Compact for Mobile) ---------- */
-@media (max-width:768px){
-  .footer-inner{
-    flex-direction:column;
-    align-items:center;
-    gap:8px;
-  }
-  .logo-container{transform:scale(0.8);}
-  .footer-links{
-    order:3;
-    gap:4px 8px;
-    margin-top:2px;
-  }
-  .footer-social{
-    order:2;
-    gap:5px;
-  }
-  .social-btn{
-    width:22px;
-    height:22px;
-    font-size:11px;
-  }
-  .footer-tagline{
-    font-size:0.76rem;
-  }
-  .main-footer{
-    padding:12px 8px 8px;
-  }
-}
-@media (max-width:420px){
-  .footer-tagline{display:none;}
-  .footer-links a{font-size:0.78rem;}
-  .social-btn{width:20px;height:20px;font-size:10px;}
-  .main-footer{padding:10px 6px 6px;}
-}
-/* Premium Status Card Styles */
-.premium-status-card .stat-icon.premium {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.stat-trend.premium {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 0.2rem 0.6rem;
+.app-status.far-right .status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
     border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 
-.premium-expires {
-    display: block;
-    margin-top: 0.5rem;
-    color: #64748b;
-    font-size: 0.7rem;
+.email-status-small {
+    font-size: 10px;
+    opacity: 0.6;
+    margin: 0;
 }
 
-.upgrade-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 0.4rem 0.8rem;
-    border-radius: 15px;
-    text-decoration: none;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-top: 0.5rem;
-    transition: transform 0.2s ease;
+.empty-state.compact {
+    padding: 20px;
+    text-align: center;
 }
 
-.upgrade-link:hover {
-    transform: translateY(-2px);
-    color: white;
-    text-decoration: none;
+.empty-state.compact h4 {
+    font-size: 16px;
+    margin: 8px 0 4px 0;
+}
+
+.empty-state.compact p {
+    font-size: 13px;
+    margin: 0 0 12px 0;
+}
+
+.cta-button.compact {
+    font-size: 13px;
+    padding: 8px 16px;
 }
 </style>
 {% endblock %}

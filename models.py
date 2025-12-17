@@ -38,17 +38,14 @@ class User(UserMixin, db.Model):
     premium_activated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     premium_activated_at = db.Column(db.DateTime, nullable=True)
 
-    # Relationships
+    # Relationships - CLEANED (removed EmailApplication and LearnershipApplication)
     applications = db.relationship('Application', back_populates='user', lazy=True)
     documents = db.relationship('Document', backref='owner', lazy=True)
-    email_applications = db.relationship('EmailApplication', backref='user', lazy=True)
-    learnership_applications = db.relationship('LearnershipApplication', backref='user', lazy=True)
 
     # Daily limits constants
     FREE_DAILY_LIMIT = 24
     PREMIUM_DAILY_LIMIT = None  # Unlimited
 
-    # Add @property for is_admin
     @property
     def is_admin(self):
         return self.role == 'admin'
@@ -182,7 +179,7 @@ class PremiumTransaction(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    transaction_type = db.Column(db.String(50), nullable=False)  # 'admin_grant', 'admin_revoke', 'admin_extend', 'payment'
+    transaction_type = db.Column(db.String(50), nullable=False)
     amount = db.Column(db.Float, nullable=True)
     duration_days = db.Column(db.Integer, nullable=False)
     activated_by_admin = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
@@ -195,44 +192,24 @@ class PremiumTransaction(db.Model):
     def __repr__(self):
         return f'<PremiumTransaction {self.id}: {self.transaction_type} for User {self.user_id}>'
 
-class Learnership(db.Model):
-    __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    company = db.Column(db.String(100), nullable=False)
-    category = db.Column(db.String(50), nullable=False)
-    description = db.Column(db.Text)
-    requirements = db.Column(db.Text)
-    location = db.Column(db.String(100))
-    duration = db.Column(db.String(50))
-    stipend = db.Column(db.String(50))
-    closing_date = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_active = db.Column(db.Boolean, default=True)
-
-    applications = db.relationship('Application', backref='learnership', lazy=True)
-
-# UNIFIED EMAIL MODEL - Use this one only
+# LEARNERSHIP EMAIL MODEL - For company emails with domain checking
 class LearnershipEmail(db.Model):
-    __tablename__ = 'learnership_emails'
+    __tablename__ = 'learnership_email'
     __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     company_name = db.Column(db.String(255), nullable=False)
     email_address = db.Column(db.String(255), nullable=False)
     
-    # Email status tracking fields
-    is_reachable = db.Column(db.Boolean, default=None)
-    response_time = db.Column(db.Float, default=None)
-    last_checked = db.Column(db.DateTime, default=None)
-    check_count = db.Column(db.Integer, default=0)
+    # Domain checker results
+    is_reachable = db.Column(db.Boolean, default=None)  # True=reachable, False=unreachable, None=not checked
+    response_time = db.Column(db.Float, default=None)   # Response time in seconds
+    last_checked = db.Column(db.DateTime, default=None) # When was it last checked
+    check_count = db.Column(db.Integer, default=0)      # How many times checked
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-
-    # Relationships
-    applications = db.relationship('LearnershipApplication', backref='learnership_email', lazy=True)
 
     def __repr__(self):
         return f'<LearnershipEmail {self.company_name}: {self.email_address}>'
@@ -249,7 +226,7 @@ class LearnershipEmail(db.Model):
     
     @property
     def status(self):
-        """Convert is_reachable boolean to status string for API compatibility"""
+        """Convert is_reachable boolean to status string for display"""
         if self.is_reachable is None:
             return 'unknown'
         elif self.is_reachable:
@@ -267,37 +244,46 @@ class LearnershipEmail(db.Model):
         else: 
             self.is_reachable = None
 
-# FIXED: Corrected foreign key reference
-class LearnershipApplication(db.Model):
-    __tablename__ = 'learnership_applications'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    learnership_email_id = db.Column(db.Integer, db.ForeignKey('learnership_emails.id'), nullable=False)
-    
-    company_name = db.Column(db.String(255), nullable=False)
-    email_address = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(50), default='sent')
-    
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
-    response_received_at = db.Column(db.DateTime)
-    
-    # Note: Relationships are defined via backref in other models
+    def mark_as_checked(self, is_reachable, response_time=None):
+        """Update the domain check results"""
+        self.is_reachable = is_reachable
+        self.response_time = response_time
+        self.last_checked = datetime.utcnow()
+        self.check_count += 1
 
+    @classmethod
+    def get_reachable_opportunities(cls):
+        """Get only reachable opportunities for display"""
+        return cls.query.filter_by(
+            is_reachable=True, 
+            is_active=True
+        ).order_by(cls.company_name.asc()).all()
+
+    @classmethod
+    def get_unchecked_emails(cls):
+        """Get emails that haven't been domain checked yet"""
+        return cls.query.filter_by(
+            is_reachable=None, 
+            is_active=True
+        ).limit(50).all()
+
+# MAIN APPLICATION MODEL - This handles EVERYTHING!
 class Application(db.Model):
     __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    learnership_id = db.Column(db.Integer, db.ForeignKey('learnership.id'), nullable=True)
-    company_name = db.Column(db.String(255), nullable=True)
+    
+    # Company info (stored directly - no foreign keys needed)
+    company_name = db.Column(db.String(255), nullable=False)
+    company_email = db.Column(db.String(255), nullable=True)  # Store email directly
     _learnership_name = db.Column("learnership_name", db.String(255), nullable=True)
+    
     status = db.Column(db.String(50), default='pending')
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Gmail tracking fields
+    # Gmail tracking fields - ALL IN ONE TABLE!
     sent_at = db.Column(db.DateTime, nullable=True)
     gmail_message_id = db.Column(db.String(255), nullable=True)
     gmail_thread_id = db.Column(db.String(255), nullable=True)
@@ -313,10 +299,8 @@ class Application(db.Model):
     
     @property
     def learnership_name(self): 
-        """Return the stored learnership name or calculate it if not available"""
-        if self._learnership_name: 
-            return self._learnership_name
-        return self.learnership.title if self.learnership else self.company_name
+        """Return the stored learnership name or company name"""
+        return self._learnership_name or self.company_name
     
     @learnership_name.setter
     def learnership_name(self, value):
@@ -382,17 +366,6 @@ class Application(db.Model):
             return (datetime.utcnow() - self.sent_at).days <= days
         return False
 
-class EmailApplication(db.Model):
-    __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    learnership_email_id = db.Column(db.Integer, db.ForeignKey('learnership_emails.id'), nullable=False)
-    status = db.Column(db.String(50), default='sent')
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def __repr__(self):
-        return f'<EmailApplication {self.id}>'
-
 class Document(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
@@ -404,16 +377,6 @@ class Document(db.Model):
     file_size = db.Column(db.Integer)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-
-class ApplicationDocument(db.Model):
-    __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    application_id = db.Column(db.Integer, db.ForeignKey('application.id'), nullable=False)
-    document_id = db.Column(db.Integer, db.ForeignKey('document.id'), nullable=False)
-    learnership_name = db.Column(db.String(100))
-
-    document = db.relationship('Document', backref='application_links')
-    application = db.relationship('Application', backref='documents')
 
 class GoogleToken(db.Model):
     __table_args__ = {'extend_existing': True}

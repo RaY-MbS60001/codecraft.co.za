@@ -48,8 +48,8 @@ print(f"DEBUG: DATABASE_URL is '{DATABASE_URL}'")
 
 # Local imports
 from models import (
-    db, User, Learnership, Application, Document, LearnershipApplication,
-    ApplicationDocument, GoogleToken, LearnershipEmail, EmailApplication
+    db, User, Application, Document,
+    GoogleToken,LearnershipEmail
 )
 from forms import (
     AdminLoginForm, EditProfileForm, ChangePasswordForm,
@@ -974,93 +974,140 @@ def add_csp_headers(response):
 # =============================================================================
 # USER DASHBOARD
 # =============================================================================
-
 @app.route("/user/dashboard")
 @login_required
 def user_dashboard():
     try:
+        # Get recent applications - use submitted_at instead of created_at
         recent_apps = (
             Application.query.filter_by(user_id=current_user.id)
-            .order_by(Application.created_at.desc())
+            .order_by(Application.submitted_at.desc())  # Fixed: use submitted_at
             .limit(5)
             .all()
         )
 
+        # Get documents count
         doc_count = Document.query.filter_by(
             user_id=current_user.id, is_active=True
         ).count()
 
+        # Get application statistics
         total_apps = Application.query.filter_by(user_id=current_user.id).count()
         pending_apps = Application.query.filter_by(
             user_id=current_user.id, status="pending"
         ).count()
-        responded = Application.query.filter_by(
-            user_id=current_user.id, email_status="responded"
+        submitted_apps = Application.query.filter_by(
+            user_id=current_user.id, status="submitted"
         ).count()
+        responded = Application.query.filter_by(
+            user_id=current_user.id, has_response=True  # Fixed: use has_response instead of email_status
+        ).count()
+
+        # Calculate response rate
+        response_rate = round((responded / total_apps * 100) if total_apps > 0 else 0)
 
         stats = {
             "total": total_apps,
             "pending": pending_apps,
+            "submitted": submitted_apps,  # Added submitted count
             "responses": responded,
-            "response_rate": 0,
+            "response_rate": response_rate,  # Fixed: calculate actual rate
         }
 
         profile_completion = calculate_profile_completion(current_user)
 
+        # Debug output
+        print(f"📊 Dashboard Stats for user {current_user.id}:")
+        print(f"   Total Applications: {total_apps}")
+        print(f"   Pending: {pending_apps}")
+        print(f"   Submitted: {submitted_apps}")
+        print(f"   Responses: {responded}")
+        print(f"   Documents: {doc_count}")
+        print(f"   Profile Completion: {profile_completion}%")
+
+        # Enhanced applications - Fixed to work with your Application model
         enhanced = []
         for app_item in recent_apps:
-            if app_item.learnership:
-                company = app_item.learnership.company
-                title = app_item.learnership.title
-                logo = getattr(app_item.learnership, "company_logo", None)
-                location = app_item.learnership.location
-            else:
-                company = app_item.company_name
-                title = getattr(app_item, "position_title", None) or company
-                logo = getattr(app_item, "company_logo", None)
-                location = getattr(app_item, "location", None)
-
-            enhanced.append(
-                {
-                    "id": app_item.id,
-                    "company_name": company or "Unknown Company",
-                    "position_title": title or "Application",
-                    "company_logo": logo,
-                    "location": location,
-                    "status": app_item.status,
-                    "email_status": app_item.email_status,
-                    "created_at": app_item.created_at,
-                }
-            )
+            enhanced.append({
+                "id": app_item.id,
+                "company_name": app_item.company_name or "Unknown Company",
+                "position_title": app_item.learnership_name or "Email Application",
+                "company_logo": None,  # Your model doesn't have this field
+                "location": None,      # Your model doesn't have this field
+                "status": app_item.status,
+                "email_status": app_item.email_status,
+                "created_at": app_item.submitted_at,  # Use submitted_at
+                "submitted_at": app_item.submitted_at,
+            })
 
         return render_template(
-            "user_dashboard.html",
+            "user_dashboard.html",  # ✅ FIXED: Use correct template name
             user=current_user,
             recent_applications=enhanced,
             application_stats=stats,
             profile_completion=profile_completion,
             documents_count=doc_count,
+            current_year=datetime.now().year
         )
 
     except Exception as e:
-        print("Dashboard error:", e)
+        print(f"Dashboard error: {e}")
+        import traceback
+        traceback.print_exc()
 
         fallback_stats = {
             "total": 0,
             "pending": 0,
+            "submitted": 0,
             "responses": 0,
             "response_rate": 0,
         }
 
         return render_template(
-            "user_dashboard.html",
+            "user_dashboard.html",  # ✅ FIXED: Use correct template name
             user=current_user,
             recent_applications=[],
             application_stats=fallback_stats,
             profile_completion=calculate_profile_completion(current_user),
             documents_count=0,
+            current_year=datetime.now().year
         )
 
+
+def calculate_profile_completion(user):
+    """Calculate user profile completion percentage"""
+    try:
+        # Define the fields that make a complete profile
+        profile_fields = [
+            user.full_name,
+            user.email,
+            user.phone,
+            user.address,
+            user.profile_picture,
+        ]
+        
+        # Check if user has uploaded documents
+        has_documents = Document.query.filter_by(
+            user_id=user.id, 
+            is_active=True
+        ).count() > 0
+        
+        # Add document check to profile completion
+        profile_fields.append(has_documents)
+        
+        # Count completed fields
+        completed_fields = sum(1 for field in profile_fields if field)
+        total_fields = len(profile_fields)
+        
+        completion_percentage = round((completed_fields / total_fields) * 100)
+        
+        print(f"📋 Profile completion for {user.email}: {completed_fields}/{total_fields} = {completion_percentage}%")
+        
+        return completion_percentage
+    
+    except Exception as e:
+        print(f"Profile completion calculation error: {e}")
+        return 50  # Return reasonable defaultc
 
 # =============================================================================
 # PROFILE COMPLETION UTILITY
@@ -2038,7 +2085,7 @@ def apply_bulk_email():
 
         if not ids:
             flash("Please select at least one company.", "warning")
-            return redirect(url_for("learnership_emails"))
+            return redirect(url_for("learnerships"))  # Fixed redirect
 
         # Premium limit check for bulk applications
         if not current_user.is_premium_active():
@@ -2050,6 +2097,7 @@ def apply_bulk_email():
                 flash(f"You can only apply to {remaining} more companies today. Selected {len(ids)} companies. Upgrade to premium for unlimited applications!", "warning")
                 return redirect(url_for('upgrade_to_premium'))
 
+        # Get email entries from LearnershipEmail model
         email_entries = LearnershipEmail.query.filter(
             LearnershipEmail.id.in_(ids),
             LearnershipEmail.is_active == True,
@@ -2059,7 +2107,7 @@ def apply_bulk_email():
 
         if not email_entries:
             flash("No valid email addresses selected.", "error")
-            return redirect(url_for("learnership_emails"))
+            return redirect(url_for("learnerships"))
 
         successful = []
         failed = []
@@ -2072,10 +2120,10 @@ def apply_bulk_email():
             print(f"\n{'='*50}")
             print(f"📧 Processing: {entry.company_name} - {entry.email_address}")
             
-            # Check for existing applications
-            existing = LearnershipApplication.query.filter_by(
+            # Check if user already applied to this company using Application model
+            existing = Application.query.filter_by(
                 user_id=current_user.id, 
-                learnership_email_id=entry.id
+                company_email=entry.email_address
             ).first()
 
             if existing:
@@ -2102,56 +2150,43 @@ def apply_bulk_email():
                 else:
                     print(f"   ⚠️ No Gmail tracking data received!")
 
-                # Create learnership application record
-                learnership_app = LearnershipApplication(
-                    user_id=current_user.id,
-                    learnership_email_id=entry.id,
-                    company_name=entry.company_name,
-                    email_address=entry.email_address,
-                    status="sent" if success else "failed",
-                )
-                db.session.add(learnership_app)
-
-                # Also create the legacy EmailApplication record
-                email_app = EmailApplication(
-                    user_id=current_user.id,
-                    learnership_email_id=entry.id,
-                    status="sent" if success else "failed",
-                )
-                db.session.add(email_app)
-
-                # Create standard application record WITH Gmail tracking
-                standard_app = Application(
+                # Create ONLY Application record - no other models needed
+                application = Application(
                     user_id=current_user.id,
                     company_name=entry.company_name,
+                    company_email=entry.email_address,  # Store the email address
                     learnership_name="Email Application",
                     status="submitted" if success else "pending",
                 )
 
                 if success:
-                    standard_app.email_status = "sent"
-                    standard_app.sent_at = datetime.utcnow()
+                    application.email_status = "sent"
+                    application.sent_at = datetime.utcnow()
                     
-                    # CRITICAL: Save Gmail tracking IDs
-                    standard_app.gmail_message_id = gmail_data.get("id")
-                    standard_app.gmail_thread_id = gmail_data.get("threadId")
-                    standard_app.has_response = False
+                    # Save Gmail tracking IDs
+                    application.gmail_message_id = gmail_data.get("id")
+                    application.gmail_thread_id = gmail_data.get("threadId")
+                    application.has_response = False
                     
-                    # PREMIUM FEATURE: Track application usage
+                    # Track application usage for premium limits
                     current_user.use_application()
                     applications_sent += 1
                     
                     # Log what we're saving
                     print(f"   ✅ Saving Application with:")
-                    print(f"      gmail_message_id: {standard_app.gmail_message_id}")
-                    print(f"      gmail_thread_id: {standard_app.gmail_thread_id}")
+                    print(f"      company_name: {application.company_name}")
+                    print(f"      company_email: {application.company_email}")
+                    print(f"      gmail_message_id: {application.gmail_message_id}")
+                    print(f"      gmail_thread_id: {application.gmail_thread_id}")
                     print(f"   📊 Application #{applications_sent} counted for user")
                 else:
-                    standard_app.email_status = "failed"
+                    application.email_status = "failed"
                     print(f"   ❌ Email failed: {message}")
 
-                db.session.add(standard_app)
+                # Add to database
+                db.session.add(application)
 
+                # Track results
                 if success:
                     successful.append(entry.company_name)
                     if gmail_data.get("id"):
@@ -2165,6 +2200,7 @@ def apply_bulk_email():
                     else:
                         failed.append(entry.company_name)
 
+                # Commit each application individually for better error handling
                 db.session.commit()
                 print(f"   💾 Saved to database")
 
@@ -2245,7 +2281,7 @@ def apply_bulk_email():
         traceback.print_exc()
         db.session.rollback()
         flash("An error occurred while processing your applications. Please try again.", "error")
-        return redirect(url_for("learnership_emails"))
+        return redirect(url_for("learnerships"))
     
 
 # =============================================================================
@@ -2253,7 +2289,18 @@ def apply_bulk_email():
 # =============================================================================
 
 def bulk_send_job(app, user_id, learnerships, attachment_ids):
-    """Background job to send multiple applications with Gmail tracking."""
+    """
+    Background job to send multiple applications with Gmail tracking.
+    
+    This function is used for:
+    1. Asynchronous bulk email sending (prevents UI blocking)
+    2. Processing large batches of learnership applications
+    3. Handling document attachments for multiple applications
+    4. Gmail API integration with tracking capabilities
+    5. Background processing when users apply to multiple learnerships at once
+    """
+    import time
+    
     with app.app_context():
         try:
             from mailer import (
@@ -2261,7 +2308,7 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
                 create_message_with_attachments,
                 send_gmail_message,
             )
-            from models import User, Document, Application, ApplicationDocument, GoogleToken, db
+            from models import User, Document, Application, GoogleToken, db
 
             user = User.query.get(user_id)
             if not user:
@@ -2275,6 +2322,7 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
 
             credentials = build_credentials(token_row.token_json)
 
+            # Get user's documents for attachments
             docs = Document.query.filter(
                 Document.id.in_(attachment_ids),
                 Document.user_id == user.id,
@@ -2286,36 +2334,52 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
                 for d in docs
             ]
 
+            print(f"📦 Processing {len(learnerships)} learnerships for user {user.email}")
+            print(f"📎 Attaching {len(file_paths)} documents")
+
             for lr in learnerships:
                 try:
-                    print(f"\n📧 Processing: {lr.get('title')}")
+                    print(f"\n📧 Processing: {lr.get('title')} at {lr.get('company')}")
                     
+                    # Create Application record (using your current model structure)
                     new_app = Application(
                         user_id=user.id,
-                        status="processing",
-                        learnership_id=lr.get("id"),
-                        learnership_name=lr.get("title"),
                         company_name=lr.get("company"),
+                        company_email=lr.get("apply_email"),  # Store email directly
+                        learnership_name=lr.get("title"),
+                        status="processing",
                     )
 
                     db.session.add(new_app)
                     db.session.commit()
+                    
+                    print(f"   📝 Created Application ID: {new_app.id}")
 
-                    # Link documents
-                    for d in docs:
-                        db.session.add(
-                            ApplicationDocument(
-                                application_id=new_app.id,
-                                document_id=d.id,
-                            )
-                        )
-                    db.session.commit()
-
-                    # Send email
+                    # Send email with attachments
                     email = lr.get("apply_email")
-                    subject = f"Application for {lr.get('title')}"
-                    body = f"Dear {lr.get('company')}...\n\n{getattr(user, 'email_body', '')}"
+                    subject = f"Application for {lr.get('title')} - {user.full_name or user.email}"
+                    
+                    # Create email body
+                    body = f"""Dear {lr.get('company')} Hiring Team,
 
+I hope this email finds you well. I am writing to express my interest in the {lr.get('title')} position at your esteemed organization.
+
+Applicant Details:
+- Name: {user.full_name or 'Not provided'}
+- Email: {user.email}
+- Phone: {user.phone or 'Not provided'}
+
+{getattr(user, 'email_body', 'I am eager to contribute to your team and would welcome the opportunity to discuss my application further.')}
+
+Please find my CV and supporting documents attached for your consideration.
+
+Thank you for your time and consideration. I look forward to hearing from you.
+
+Kind regards,
+{user.full_name or user.email}
+"""
+
+                    # Create and send Gmail message
                     message = create_message_with_attachments(
                         user.email,
                         email, 
@@ -2324,41 +2388,60 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
                         file_paths
                     )
                     
-                    # ✅ FIX: Capture Gmail response with tracking IDs
+                    # Send via Gmail API and capture tracking data
                     sent_message = send_gmail_message(credentials, message)
                     
                     if sent_message:
+                        # Update application with successful send data
                         new_app.status = "submitted"
                         new_app.email_status = "sent"
                         new_app.sent_at = datetime.utcnow()
                         
-                        # ✅ SAVE GMAIL TRACKING IDs
+                        # Save Gmail tracking IDs for response monitoring
                         new_app.gmail_message_id = sent_message.get('id')
                         new_app.gmail_thread_id = sent_message.get('threadId')
                         new_app.has_response = False
                         
-                        print(f"   ✅ Sent! Gmail ID: {new_app.gmail_message_id}")
+                        # Track application usage for premium limits
+                        user.use_application()
+                        
+                        print(f"   ✅ Email sent successfully!")
+                        print(f"      Gmail Message ID: {new_app.gmail_message_id}")
+                        print(f"      Gmail Thread ID: {new_app.gmail_thread_id}")
                     else:
+                        # Update application with failed send data
                         new_app.status = "error"
                         new_app.email_status = "failed"
-                        print(f"   ❌ Failed to send")
+                        print(f"   ❌ Failed to send email")
                     
                     db.session.commit()
+                    print(f"   💾 Updated Application ID: {new_app.id}")
 
                 except Exception as e:
-                    print(f"Bulk job error: {e}")
+                    print(f"❌ Bulk job error for {lr.get('company', 'Unknown')}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+                    # Update application status to error if it exists
                     if 'new_app' in locals():
-                        new_app.status = "error"
-                        new_app.email_status = "failed"
-                        db.session.commit()
+                        try:
+                            new_app.status = "error"
+                            new_app.email_status = "failed"
+                            db.session.commit()
+                        except:
+                            db.session.rollback()
 
-                time.sleep(1)
+                # Rate limiting to avoid Gmail API quotas
+                time.sleep(2)  # 2 second delay between emails
+
+            print(f"\n✅ Bulk job completed for user {user.email}")
 
         except Exception as e:
-            print(f"Fatal bulk job error: {e}")
+            print(f"💥 Fatal bulk job error: {e}")
             import traceback
             traceback.print_exc()
-
+            db.session.rollback()
+ 
 # --------------------------------------------------------------------
 # USER PREMIUM FEATURES
 # --------------------------------------------------------------------
@@ -2540,8 +2623,8 @@ def premium_search():
 # --------------------------------------------------------------------
 # USER ANALYTICS DASHBOARD (REAL DATA)
 # --------------------------------------------------------------------
-
 from sqlalchemy import func
+from datetime import datetime, timedelta
 
 @app.route("/user/applications/analytics", endpoint="application_analytics")
 @login_required
@@ -2572,6 +2655,31 @@ def analytics_dashboard_user_live():
                 "failed": "#ef4444"
             }.get(s, "#94a3b8")
         })
+
+    # ✅ ADDED: CURRENT WEEK RESPONSES (Monday to Sunday) -----------
+    now = datetime.utcnow()
+    days_since_monday = now.weekday()
+    monday = now - timedelta(days=days_since_monday)
+    monday = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    current_week_responses = []
+    
+    for i in range(7):  # Monday (0) to Sunday (6)
+        day_start = monday + timedelta(days=i)
+        day_end = day_start + timedelta(days=1)
+        
+        # Count responses received on this day
+        daily_responses = (
+            db.session.query(func.count(Application.id))
+            .filter(
+                Application.user_id == user_id,
+                Application.response_received_at.isnot(None),
+                Application.response_received_at >= day_start,
+                Application.response_received_at < day_end
+            )
+            .scalar() or 0
+        )
+        current_week_responses.append(daily_responses)
 
     # --- WEEKLY RESPONSE TREND -------------------------------------
     ten_weeks_ago = datetime.utcnow() - timedelta(weeks=10)
@@ -2607,14 +2715,67 @@ def analytics_dashboard_user_live():
             "status": app_obj.email_status or "pending"
         })
 
+    # ✅ Debug output
+    print(f"📊 Current Week Responses (Mon-Sun): {current_week_responses}")
+    print(f"📅 Week starting: {monday.strftime('%Y-%m-%d')}")
+    print(f"📈 Status Summary: {[s['label'] + ': ' + str(s['value']) for s in status_summary]}")
+
     # --- RENDER TEMPLATE -------------------------------------------
     return render_template(
         "analytics_dashboard.html",
         status_summary=status_summary,
         response_trend=response_trend,
-        recent_list=recent_list
+        current_week_responses=current_week_responses,  # ✅ ADDED: Required for template
+        recent_list=recent_list,
+        current_year=datetime.now().year  # ✅ ADDED: For template compatibility
     )
 
+# ✅ ADDED: API endpoint for real-time updates
+@app.route('/api/current-week-responses')
+@login_required
+def get_current_week_responses():
+    """API endpoint for real-time current week responses data"""
+    try:
+        user_id = current_user.id
+        
+        # Get Monday of current week
+        now = datetime.utcnow()
+        days_since_monday = now.weekday()
+        monday = now - timedelta(days=days_since_monday)
+        monday = monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        current_week_responses = []
+        
+        for i in range(7):
+            day_start = monday + timedelta(days=i)
+            day_end = day_start + timedelta(days=1)
+            
+            daily_responses = (
+                db.session.query(func.count(Application.id))
+                .filter(
+                    Application.user_id == user_id,
+                    Application.response_received_at.isnot(None),
+                    Application.response_received_at >= day_start,
+                    Application.response_received_at < day_end
+                )
+                .scalar() or 0
+            )
+            current_week_responses.append(daily_responses)
+        
+        return jsonify({
+            'success': True,
+            'responses': current_week_responses,
+            'week_start': monday.strftime('%Y-%m-%d'),
+            'total_responses': sum(current_week_responses)
+        })
+        
+    except Exception as e:
+        print(f"❌ API error: {e}")
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'responses': [0, 0, 0, 0, 0, 0, 0]
+        })
 # =============================================================================
 # ADMIN DASHBOARD
 # =============================================================================
