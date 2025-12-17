@@ -131,8 +131,6 @@ def get_database_url_and_options():
     }
 
     return database_url, engine_options
-
-
 # =============================================================================
 # APPLY CONFIGURATION
 # =============================================================================
@@ -2619,12 +2617,23 @@ def premium_search():
     """Premium advanced search"""
     # Your premium search logic
     return render_template('premium_search.html')
-
 # --------------------------------------------------------------------
 # USER ANALYTICS DASHBOARD (REAL DATA)
 # --------------------------------------------------------------------
 from sqlalchemy import func
 from datetime import datetime, timedelta
+import os
+
+def get_week_format(date_column):
+    """Database-agnostic week formatting"""
+    database_url = os.environ.get("DATABASE_URL", "")
+    
+    if database_url.startswith(("postgresql://", "postgres://")):
+        # PostgreSQL version - returns YYYY-WW format
+        return func.to_char(date_column, 'YYYY-WW').label("week")
+    else:
+        # SQLite version
+        return func.strftime("%Y-%W", date_column).label("week")
 
 @app.route("/user/applications/analytics", endpoint="application_analytics")
 @login_required
@@ -2656,7 +2665,7 @@ def analytics_dashboard_user_live():
             }.get(s, "#94a3b8")
         })
 
-    # ✅ ADDED: CURRENT WEEK RESPONSES (Monday to Sunday) -----------
+    # ✅ CURRENT WEEK RESPONSES (Monday to Sunday) -----------
     now = datetime.utcnow()
     days_since_monday = now.weekday()
     monday = now - timedelta(days=days_since_monday)
@@ -2681,23 +2690,28 @@ def analytics_dashboard_user_live():
         )
         current_week_responses.append(daily_responses)
 
-    # --- WEEKLY RESPONSE TREND -------------------------------------
+    # --- WEEKLY RESPONSE TREND (FIXED) -------------------------------------
     ten_weeks_ago = datetime.utcnow() - timedelta(weeks=10)
-    weekly_responses = (
-        db.session.query(
-            func.strftime("%Y-%W", Application.response_received_at).label("week"),
-            func.count(Application.id)
+    
+    try:
+        weekly_responses = (
+            db.session.query(
+                get_week_format(Application.response_received_at),  # 🔧 FIXED: Database-agnostic
+                func.count(Application.id)
+            )
+            .filter(
+                Application.user_id == user_id,
+                Application.response_received_at.isnot(None),
+                Application.response_received_at >= ten_weeks_ago
+            )
+            .group_by(get_week_format(Application.response_received_at))  # 🔧 FIXED: Database-agnostic
+            .order_by(get_week_format(Application.response_received_at))  # 🔧 FIXED: Database-agnostic
+            .all()
         )
-        .filter(
-            Application.user_id == user_id,
-            Application.response_received_at.isnot(None),
-            Application.response_received_at >= ten_weeks_ago
-        )
-        .group_by("week")
-        .order_by("week")
-        .all()
-    )
-    response_trend = [r[1] for r in weekly_responses]
+        response_trend = [r[1] for r in weekly_responses]
+    except Exception as e:
+        print(f"❌ Weekly trend error: {e}")
+        response_trend = []  # Fallback to empty trend
 
     # --- RECENT APPLICATIONS ---------------------------------------
     recent_apps = (
@@ -2719,15 +2733,16 @@ def analytics_dashboard_user_live():
     print(f"📊 Current Week Responses (Mon-Sun): {current_week_responses}")
     print(f"📅 Week starting: {monday.strftime('%Y-%m-%d')}")
     print(f"📈 Status Summary: {[s['label'] + ': ' + str(s['value']) for s in status_summary]}")
+    print(f"📈 Response Trend: {response_trend}")
 
     # --- RENDER TEMPLATE -------------------------------------------
     return render_template(
         "analytics_dashboard.html",
         status_summary=status_summary,
         response_trend=response_trend,
-        current_week_responses=current_week_responses,  # ✅ ADDED: Required for template
+        current_week_responses=current_week_responses,
         recent_list=recent_list,
-        current_year=datetime.now().year  # ✅ ADDED: For template compatibility
+        current_year=datetime.now().year
     )
 
 # ✅ ADDED: API endpoint for real-time updates

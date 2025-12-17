@@ -193,6 +193,206 @@ def insert_data_no_duplicates(conn, table_name):
     return inserted, skipped
 
 
+def add_missing_column(conn):
+    """Add missing company_email column to application table"""
+    cursor = conn.cursor()
+    
+    print("\n🔧 ADD MISSING COLUMN TO APPLICATION TABLE")
+    print("=" * 60)
+    
+    # First check if the column already exists
+    cursor.execute("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'application' AND column_name = 'company_email';
+    """)
+    
+    existing_column = cursor.fetchone()
+    
+    if existing_column:
+        print("✅ Column 'company_email' already exists in 'application' table!")
+        return False
+    
+    print("📋 Current 'application' table structure:")
+    show_table_structure(conn, 'application')
+    
+    print("\n🎯 WILL ADD: company_email VARCHAR(255)")
+    print("\n⚠️  This will:")
+    print("   • Add 'company_email' column to all 2535+ existing records")
+    print("   • Set initial value to NULL for existing records")
+    print("   • This operation is SAFE and reversible")
+    
+    confirm = input("\nType 'ADD COLUMN' to proceed: ")
+    
+    if confirm != "ADD COLUMN":
+        print("❌ Aborted. No changes made.")
+        return False
+    
+    try:
+        # Add the column
+        cursor.execute("""
+            ALTER TABLE application 
+            ADD COLUMN company_email VARCHAR(255);
+        """)
+        
+        print("\n✅ Column 'company_email' successfully added!")
+        print("\n📋 Updated table structure:")
+        show_table_structure(conn, 'application')
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Failed to add column: {e}")
+        return False
+
+
+def rename_column(conn):
+    """Safely rename email to email_address in learnership_email table"""
+    cursor = conn.cursor()
+    
+    print("\n🔧 RENAME COLUMN: email → email_address")
+    print("=" * 60)
+    
+    # First check current structure
+    print("📋 Current 'learnership_email' table structure:")
+    show_table_structure(conn, 'learnership_email')
+    
+    # Check if email column exists and email_address doesn't
+    cursor.execute("""
+        SELECT 
+            COUNT(CASE WHEN column_name = 'email' THEN 1 END) as has_email,
+            COUNT(CASE WHEN column_name = 'email_address' THEN 1 END) as has_email_address
+        FROM information_schema.columns 
+        WHERE table_name = 'learnership_email';
+    """)
+    
+    has_email, has_email_address = cursor.fetchone()
+    
+    if has_email_address > 0:
+        print("✅ Column 'email_address' already exists!")
+        return False
+        
+    if has_email == 0:
+        print("❌ Column 'email' does not exist!")
+        return False
+    
+    # Show sample data that will be preserved
+    cursor.execute("SELECT id, company_name, email FROM learnership_email LIMIT 5;")
+    sample_data = cursor.fetchall()
+    
+    print(f"\n📄 SAMPLE DATA TO BE PRESERVED:")
+    print("-" * 50)
+    for row in sample_data:
+        print(f"  ID: {row[0]} | Company: {row[1]} | Email: {row[2]}")
+    print("-" * 50)
+    
+    print("\n⚠️  This will:")
+    print("   • Rename column 'email' to 'email_address'")
+    print("   • Preserve ALL existing data")
+    print("   • This operation is SAFE and reversible")
+    
+    confirm = input("\nType 'RENAME COLUMN' to proceed: ")
+    
+    if confirm != "RENAME COLUMN":
+        print("❌ Aborted. No changes made.")
+        return False
+    
+    try:
+        # PostgreSQL rename column syntax
+        cursor.execute("""
+            ALTER TABLE learnership_email 
+            RENAME COLUMN email TO email_address;
+        """)
+        
+        print("\n✅ Column successfully renamed: email → email_address")
+        print("\n📋 Updated table structure:")
+        show_table_structure(conn, 'learnership_email')
+        
+        # Verify data is intact
+        cursor.execute("SELECT COUNT(*) FROM learnership_email;")
+        count = cursor.fetchone()[0]
+        print(f"\n✅ Data verification: {count} rows preserved")
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Failed to rename column: {e}")
+        return False
+
+
+def add_missing_columns_to_learnership_email(conn):
+    """Add all missing columns to learnership_email table to match local schema"""
+    cursor = conn.cursor()
+    
+    print("\n🔧 ADD MISSING COLUMNS TO LEARNERSHIP_EMAIL TABLE")
+    print("=" * 60)
+    
+    # Define all the columns that should exist
+    required_columns = [
+        ("is_reachable", "BOOLEAN DEFAULT TRUE"),
+        ("response_time", "FLOAT"),
+        ("last_checked", "TIMESTAMP"),
+        ("check_count", "INTEGER DEFAULT 0"),
+        ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        ("updated_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+        ("is_active", "BOOLEAN DEFAULT TRUE")
+    ]
+    
+    # Check current structure
+    print("📋 Current 'learnership_email' table structure:")
+    show_table_structure(conn, 'learnership_email')
+    
+    # Check which columns are missing
+    cursor.execute("""
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'learnership_email';
+    """)
+    existing_columns = [row[0] for row in cursor.fetchall()]
+    
+    missing_columns = [(col, definition) for col, definition in required_columns 
+                      if col not in existing_columns]
+    
+    if not missing_columns:
+        print("\n✅ All columns already exist!")
+        return False
+    
+    print(f"\n🎯 WILL ADD {len(missing_columns)} MISSING COLUMNS:")
+    for col, definition in missing_columns:
+        print(f"   • {col} ({definition})")
+    
+    print("\n⚠️  This will:")
+    print(f"   • Add {len(missing_columns)} new columns to all existing records")
+    print("   • Set default values where specified")
+    print("   • This operation is SAFE and reversible")
+    
+    confirm = input("\nType 'ADD COLUMNS' to proceed: ")
+    
+    if confirm != "ADD COLUMNS":
+        print("❌ Aborted. No changes made.")
+        return False
+    
+    try:
+        added = 0
+        for col, definition in missing_columns:
+            cursor.execute(sql.SQL("""
+                ALTER TABLE learnership_email 
+                ADD COLUMN {} {};
+            """).format(sql.Identifier(col), sql.SQL(definition)))
+            print(f"  ✅ Added column: {col}")
+            added += 1
+        
+        print(f"\n✅ Successfully added {added} columns!")
+        print("\n📋 Updated table structure:")
+        show_table_structure(conn, 'learnership_email')
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Failed to add columns: {e}")
+        return False
+
+
 def delete_empty_tables(conn, empty_tables):
     """Delete all empty tables with confirmation"""
     cursor = conn.cursor()
@@ -322,9 +522,12 @@ def main():
             print("   5. 🗑️  Delete ALL empty tables")
             print("   6. 🗑️  Delete a specific table")
             print("   7. 📦 View data to be inserted")
-            print("   8. Exit")
+            print("   8. 🔧 Add company_email column to application")
+            print("   9. 🔧 Rename email → email_address in learnership_email")
+            print("   10. 🔧 Add missing columns to learnership_email")
+            print("   11. Exit")
             
-            choice = input("\nEnter choice (1-8): ")
+            choice = input("\nEnter choice (1-11): ")
             
             if choice == "1":
                 table = input("Enter table name: ")
@@ -383,11 +586,29 @@ def main():
                 show_data_to_insert()
                 
             elif choice == "8":
+                success = add_missing_column(conn)
+                if success:
+                    conn.commit()
+                    print("✅ Changes committed to database.")
+                
+            elif choice == "9":
+                success = rename_column(conn)
+                if success:
+                    conn.commit()
+                    print("✅ Changes committed to database.")
+                    
+            elif choice == "10":
+                success = add_missing_columns_to_learnership_email(conn)
+                if success:
+                    conn.commit()
+                    print("✅ Changes committed to database.")
+                
+            elif choice == "11":
                 print("\n👋 Goodbye!")
                 break
             
             else:
-                print("❌ Invalid choice. Please enter 1-8.")
+                print("❌ Invalid choice. Please enter 1-11.")
         
     except Exception as e:
         conn.rollback()
