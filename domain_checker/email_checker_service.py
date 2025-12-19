@@ -1,89 +1,60 @@
-# domain_checker/email_checker_service.py
+# email_checker_service.py
+import smtplib
+import socket
+import dns.resolver
 import threading
 import time
-from datetime import datetime
-import logging
+import schedule
+from datetime import datetime, timedelta
 from learnership_emails import learnership_email_data, update_email_status
+import logging
 
 class EmailReachabilityChecker:
     def __init__(self):
+        self.check_interval = 86400  # 24 hours in seconds
         self.is_running = False
+        self.checker_thread = None
         self.logger = logging.getLogger(__name__)
-        
-        # Set all emails as "reachable" initially for immediate display
-        self._set_default_status()
-        
-    def _set_default_status(self):
-        """Set all emails as reachable initially so users see data immediately"""
-        for item in learnership_email_data:
-            if item.get("status") == "checking" or not item.get("status"):
-                item["status"] = "reachable"  # Default to reachable
-                item["last_checked"] = datetime.utcnow()
-                item["response_time"] = 0.5
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    def start_24h_checker(self):
-        """Start background checker - non-blocking"""
-        if self.is_running:
-            return
-            
-        self.is_running = True
-        self.logger.info("Email checker started (background mode)")
-        
-        # Start background thread for real checking (won't block startup)
-        threading.Thread(target=self._background_check, daemon=True).start()
+    def check_mx_record(self, domain):
+        try: dns.resolver.resolve(domain, 'MX'); return True
+        except: return False
 
-    def _background_check(self):
-        """Run actual email checks in background"""
-        time.sleep(30)  # Wait 30 seconds after startup before checking
-        
-        self.logger.info("Starting background email verification...")
-        # For now, just update statuses periodically
-        # You can add real email checking here later
-        
-        for item in learnership_email_data:
-            # Simulate some emails being unreachable
-            if "test" in item["email"].lower():
-                update_email_status(item["email"], "reachable", 0.8)
-            else:
-                update_email_status(item["email"], "reachable", 1.2)  # Most emails reachable
-            
-            time.sleep(1)  # Small delay
-            
-        self.logger.info("Background email verification completed")
+    def check_smtp_connection(self, email):
+        domain = email.split('@')[1]; start_time = time.time()
+        try:
+            if not self.check_mx_record(domain): return {"email": email, "status": "unreachable", "reason": "No MX record", "response_time": time.time() - start_time}
+            mx_records = dns.resolver.resolve(domain, 'MX'); mx_record = str(mx_records[0].exchange).rstrip('.')
+            with smtplib.SMTP(timeout=10) as server:
+                server.connect(mx_record, 25); code, message = server.helo()
+                if code == 250: code, message = server.mail('test@example.com'); return {"email": email, "status": "reachable" if code == 250 else "unreachable", "reason": f"SMTP code: {code}", "response_time": time.time() - start_time}
+                return {"email": email, "status": "unreachable", "reason": f"HELO failed: {code}", "response_time": time.time() - start_time}
+        except Exception as e: return {"email": email, "status": "error", "reason": str(e), "response_time": time.time() - start_time}
 
     def check_all_emails(self):
-        """Manual check trigger"""
-        self.logger.info("Manual email check triggered")
-        # Set all as reachable for now
+        self.logger.info("Starting 24-hour email reachability check...")
         for item in learnership_email_data:
-            update_email_status(item["email"], "reachable", 1.0)
+            try:
+                result = self.check_smtp_connection(item["email"]); update_email_status(item["email"], result["status"], result["response_time"]); self.logger.info(f"Checked {item['email']}: {result['status']}"); time.sleep(2)
+            except Exception as e: self.logger.error(f"Error checking {item['email']}: {e}"); update_email_status(item["email"], "error", None)
+        self.logger.info("24-hour email check completed.")
 
-    def get_all_statuses(self):
-        """Return all email statuses"""
-        return learnership_email_data
-
-    def get_reachable_learnerships(self):
-        """Return only reachable emails"""
-        return [item for item in learnership_email_data if item.get("status") == "reachable"]
-
-    def get_stats(self):
-        """Return statistics"""
-        total = len(learnership_email_data)
-        reachable = len([item for item in learnership_email_data if item.get("status") == "reachable"])
-        unreachable = len([item for item in learnership_email_data if item.get("status") == "unreachable"])
-        checking = len([item for item in learnership_email_data if item.get("status") == "checking"])
-        
-        return {
-            "total": total,
-            "reachable": reachable, 
-            "unreachable": unreachable,
-            "checking": checking
-        }
+    def start_24h_checker(self):
+        if self.is_running: return
+        self.is_running = True; schedule.every(24).hours.do(self.check_all_emails); self.check_all_emails()
+        def run_scheduler():
+            while self.is_running: schedule.run_pending(); time.sleep(3600)
+        self.checker_thread = threading.Thread(target=run_scheduler, daemon=True); self.checker_thread.start(); self.logger.info("24-hour email checker started")
 
     def stop_checker(self):
-        """Stop the checker"""
-        self.is_running = False
-        self.logger.info("Email checker stopped")
+        self.is_running = False; schedule.clear(); self.logger.info("Email checker stopped")
 
-# Global instance
+    def get_reachable_learnerships(self):
+        return [item for item in learnership_email_data if item["status"] == "reachable"]
+
+    def get_stats(self):
+        total = len(learnership_email_data); reachable = len([item for item in learnership_email_data if item["status"] == "reachable"]); unreachable = len([item for item in learnership_email_data if item["status"] in ["unreachable", "error"]]); checking = len([item for item in learnership_email_data if item["status"] == "checking"])
+        return {"total": total, "reachable": reachable, "unreachable": unreachable, "checking": checking}
+
 email_checker = EmailReachabilityChecker()

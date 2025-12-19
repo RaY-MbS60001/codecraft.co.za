@@ -153,7 +153,7 @@
                     data-loading-description="Processing your bulk learnership applications" data-show-progress="true">
 
                     <!-- Scrollable Email List -->
-                    <div class="email-list-container">
+                    <div class="email-list-container" id="email-list-container">
                         <!-- Loading State -->
                         <div class="loading-state" id="loading-state">
                             <div class="loading-spinner"></div>
@@ -292,6 +292,45 @@
     --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
 }
 
+/* ================== MOBILE PERFORMANCE OPTIMIZATIONS ONLY ================== */
+/* Mobile Detection and Performance Boost */
+.mobile-optimized {
+    /* Reduce expensive effects on mobile */
+    --transition-fast: 0.1s ease;
+    --transition-normal: 0.15s ease;
+}
+
+.mobile-optimized * {
+    /* Faster animations on mobile */
+    animation-duration: 0.15s !important;
+    transition-duration: 0.1s !important;
+}
+
+.mobile-optimized .email-item {
+    /* GPU acceleration for scrolling */
+    contain: layout style;
+    will-change: background-color;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+.mobile-optimized .email-list-container {
+    /* Touch scrolling optimization */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    contain: layout style paint;
+    will-change: scroll-position;
+}
+
+/* Performance enhancement for mobile */
+@supports (contain: layout) {
+    .mobile-optimized .email-item {
+        contain: layout style paint;
+    }
+}
+
+/* ================== END MOBILE OPTIMIZATIONS ================== */
+
 /* Base Styles - Prevent horizontal scroll */
 * {
     margin: 0;
@@ -311,6 +350,7 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     width: 100%;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Glass effect matching your design system */
@@ -659,6 +699,11 @@ body {
     }
 }
 
+/* Disable animations on mobile for performance */
+.mobile-optimized .stat-dot {
+    animation: none;
+}
+
 /* Mobile-First Controls Bar */
 .controls-bar {
     display: flex;
@@ -848,7 +893,7 @@ body {
     text-overflow: ellipsis;
 }
 
-/* Enhanced Scrollable Email List Container */
+/* Enhanced Scrollable Email List Container - WITH MOBILE OPTIMIZATION */
 .email-list-container {
     flex: 1;
     overflow-y: auto;
@@ -960,6 +1005,14 @@ body {
             0 0 15px rgba(50, 215, 75, 0.2),
             0 0 30px rgba(50, 215, 75, 0.1);
     }
+}
+
+/* Disable glow animation on mobile for performance */
+.mobile-optimized .email-item.selected {
+    animation: none;
+    box-shadow: 
+        inset 0 0 0 1px rgba(50, 215, 75, 0.3),
+        0 0 8px rgba(50, 215, 75, 0.15);
 }
 
 /* Compact Checkbox */
@@ -1094,6 +1147,11 @@ body {
     }
 }
 
+/* Disable status animation on mobile for performance */
+.mobile-optimized .status-dot {
+    animation: none;
+}
+
 /* Loading & Empty States */
 .loading-state,
 .empty-state {
@@ -1125,6 +1183,11 @@ body {
     100% {
         transform: rotate(360deg);
     }
+}
+
+/* Faster spinner on mobile */
+.mobile-optimized .loading-spinner {
+    animation: spin 0.6s linear infinite;
 }
 
 .empty-icon {
@@ -1689,7 +1752,7 @@ body {
     }
 }
 
-/* Reduced Motion */
+/* Reduced Motion - DISABLE ANIMATIONS FOR BETTER PERFORMANCE */
 @media (prefers-reduced-motion: reduce) {
     * {
         animation-duration: 0.01ms !important;
@@ -1700,7 +1763,7 @@ body {
     .status-dot,
     .stat-dot {
         animation: none;
-    }
+            }
     
     .loading-spinner {
         animation: none;
@@ -1867,208 +1930,327 @@ body {
 </style>
 
 <script>
-    let emailStatuses = {};
-    let allEmails = {{ learnership_emails| tojson if learnership_emails else '[]' | safe }};
-    let onlineEmails = [];
+// =================== MOBILE PERFORMANCE OPTIMIZED JAVASCRIPT ===================
 
-    document.addEventListener('DOMContentLoaded', function () {
-        initializeEmailChecker();
-        setupUserMenu();
-        setupSearchAndInteractions();
-    });
+// Mobile Detection and Optimization
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+                     || window.innerWidth <= 768;
 
-    function initializeEmailChecker() {
-        showLoadingState();
-        fetchEmailStatuses();
-        // Check every 5 minutes
-        setInterval(fetchEmailStatuses, 300000);
+let emailStatuses = {};
+let allEmails = {{ learnership_emails| tojson if learnership_emails else '[]' | safe }};
+let onlineEmails = [];
+
+// Performance variables
+let renderQueue = [];
+let isRendering = false;
+const BATCH_SIZE = isMobileDevice ? 15 : 30; // Smaller batches on mobile
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Apply mobile optimizations immediately
+    if (isMobileDevice) {
+        document.documentElement.classList.add('mobile-optimized');
+        document.body.style.touchAction = 'manipulation';
+        
+        // Disable expensive effects on low-end devices
+        if (navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4) {
+            document.documentElement.style.setProperty('--transition-fast', '0.05s');
+            document.documentElement.style.setProperty('--transition-normal', '0.1s');
+        }
     }
+    
+    initializeEmailChecker();
+    setupUserMenu();
+    setupSearchAndInteractions();
+});
 
-    function fetchEmailStatuses() {
-        fetch('/api/email-status', {
-            credentials: 'same-origin',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
+function initializeEmailChecker() {
+    showLoadingState();
+    fetchEmailStatuses();
+    // Check every 5 minutes
+    setInterval(fetchEmailStatuses, 300000);
+}
+
+function fetchEmailStatuses() {
+    fetch('/api/email-status', {
+        credentials: 'same-origin',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => {
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Response is not JSON');
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            if (data) {
+                emailStatuses = data.emails || [];
+                updateEmailDisplay();
+                updateStatusSummary(data.stats || {});
             }
         })
-            .then(response => {
-                if (response.status === 401) {
-                    window.location.href = '/login';
-                    return;
-                }
+        .catch(error => {
+            console.error('Error fetching email statuses:', error);
+            showErrorState();
+        });
+}
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+function updateEmailDisplay() {
+    onlineEmails = Array.isArray(emailStatuses) ?
+        emailStatuses.filter(email => email.status === 'reachable') :
+        Object.values(emailStatuses).filter(email => email.status === 'reachable');
 
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Response is not JSON');
-                }
+    const emailList = document.getElementById('email-list');
+    const loadingState = document.getElementById('loading-state');
+    const emptyState = document.getElementById('empty-state');
 
-                return response.json();
-            })
-            .then(data => {
-                if (data) {
-                    emailStatuses = data.emails || [];
-                    updateEmailDisplay();
-                    updateStatusSummary(data.stats || {});
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching email statuses:', error);
-                showErrorState();
-            });
+    loadingState.style.display = 'none';
+
+    if (onlineEmails.length === 0) {
+        emailList.innerHTML = '';
+        emptyState.style.display = 'flex';
+    } else {
+        emptyState.style.display = 'none';
+        renderOnlineEmailsOptimized();
     }
 
-    function updateEmailDisplay() {
-        onlineEmails = Array.isArray(emailStatuses) ?
-            emailStatuses.filter(email => email.status === 'reachable') :
-            Object.values(emailStatuses).filter(email => email.status === 'reachable');
+    updateSearchResultsCount();
+}
 
-        const emailList = document.getElementById('email-list');
-        const loadingState = document.getElementById('loading-state');
-        const emptyState = document.getElementById('empty-state');
+// OPTIMIZED RENDERING FUNCTION WITH BATCH PROCESSING
+function renderOnlineEmailsOptimized() {
+    const emailList = document.getElementById('email-list');
+    emailList.innerHTML = '';
+    
+    if (onlineEmails.length === 0) return;
+    
+    // Reset render queue
+    renderQueue = [...onlineEmails];
+    isRendering = false;
+    
+    // Start batch rendering
+    requestAnimationFrame(renderBatch);
+}
 
-        loadingState.style.display = 'none';
-
-        if (onlineEmails.length === 0) {
-            emailList.innerHTML = '';
-            emptyState.style.display = 'flex';
-        } else {
-            emptyState.style.display = 'none';
-            renderOnlineEmails();
-        }
-
-        updateSearchResultsCount();
-    }
-
-    function renderOnlineEmails() {
-        const emailList = document.getElementById('email-list');
-
-        emailList.innerHTML = onlineEmails.map(email => `
-        <div class="email-item online" data-company-name="${email.company_name.toLowerCase()}" data-email="${email.email_address.toLowerCase()}">
-            <div class="email-checkbox">
-                <input type="checkbox" name="selected_emails" value="${email.id}" 
-                       class="email-checkbox-input" id="email-${email.id}">
-                <label for="email-${email.id}" class="checkbox-label" aria-label="Select ${email.company_name}"></label>
-            </div>
-            <div class="email-details">
-                <div class="company-name">${email.company_name}</div>
-                <div class="email-address">${email.email_address}</div>
-            </div>
-            <div class="status-indicator online">
-                <span class="status-dot"></span>
-                <span class="status-text">Online</span>
-                ${email.response_time ? `<span class="response-time">${Math.round(email.response_time * 1000)}ms</span>` : ''}
-            </div>
-        </div>
-    `).join('');
-
+function renderBatch() {
+    if (isRendering || renderQueue.length === 0) return;
+    
+    isRendering = true;
+    const emailList = document.getElementById('email-list');
+    const batchEmails = renderQueue.splice(0, BATCH_SIZE);
+    
+    // Create document fragment for efficient DOM manipulation
+    const fragment = document.createDocumentFragment();
+    
+    batchEmails.forEach(email => {
+        const emailItem = createOptimizedEmailItem(email);
+        fragment.appendChild(emailItem);
+    });
+    
+    emailList.appendChild(fragment);
+    
+    // Continue rendering if more items exist
+    if (renderQueue.length > 0) {
+        isRendering = false;
+        requestAnimationFrame(renderBatch);
+    } else {
+        isRendering = false;
         setupCheckboxListeners();
     }
+}
 
-    function updateStatusSummary(stats) {
-        document.getElementById('online-count').textContent = stats.reachable || 0;
-        document.getElementById('total-count').textContent = stats.total || allEmails.length;
-    }
+function createOptimizedEmailItem(email) {
+    const item = document.createElement('div');
+    item.className = 'email-item online';
+    item.setAttribute('data-company-name', email.company_name.toLowerCase());
+    item.setAttribute('data-email', email.email_address.toLowerCase());
+    
+    // Optimized HTML structure
+    item.innerHTML = `
+        <div class="email-checkbox">
+            <input type="checkbox" name="selected_emails" value="${email.id}" 
+                   class="email-checkbox-input" id="email-${email.id}">
+            <label for="email-${email.id}" class="checkbox-label" aria-label="Select ${escapeHtml(email.company_name)}"></label>
+        </div>
+        <div class="email-details">
+            <div class="company-name">${escapeHtml(email.company_name)}</div>
+            <div class="email-address">${escapeHtml(email.email_address)}</div>
+        </div>
+        <div class="status-indicator online">
+            <span class="status-dot"></span>
+            <span class="status-text">Online</span>
+            ${email.response_time && !isMobileDevice ? `<span class="response-time">${Math.round(email.response_time * 1000)}ms</span>` : ''}
+        </div>
+    `;
+    
+    return item;
+}
 
-    function showLoadingState() {
-        document.getElementById('loading-state').style.display = 'flex';
-        document.getElementById('email-list').innerHTML = '';
-        document.getElementById('empty-state').style.display = 'none';
-        document.getElementById('no-results').style.display = 'none';
-    }
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-    function showErrorState() {
-        document.getElementById('loading-state').style.display = 'none';
-        document.getElementById('empty-state').style.display = 'flex';
-        document.querySelector('#empty-state h4').textContent = 'Error loading companies';
-        document.querySelector('#empty-state p').textContent = 'Please refresh the page to try again.';
-    }
+function updateStatusSummary(stats) {
+    document.getElementById('online-count').textContent = stats.reachable || 0;
+    document.getElementById('total-count').textContent = stats.total || allEmails.length;
+}
 
-    function refreshEmailStatus() {
-        showLoadingState();
-        fetchEmailStatuses();
-    }
+function showLoadingState() {
+    document.getElementById('loading-state').style.display = 'flex';
+    document.getElementById('email-list').innerHTML = '';
+    document.getElementById('empty-state').style.display = 'none';
+    document.getElementById('no-results').style.display = 'none';
+}
 
-    function setupUserMenu() {
-        const menuTrigger = document.querySelector('.user-menu-trigger');
-        const menuDropdown = document.querySelector('.user-menu-dropdown');
+function showErrorState() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'flex';
+    document.querySelector('#empty-state h4').textContent = 'Error loading companies';
+    document.querySelector('#empty-state p').textContent = 'Please refresh the page to try again.';
+}
 
-        if (menuTrigger && menuDropdown) {
-            menuTrigger.addEventListener('click', function () {
-                const isExpanded = this.getAttribute('aria-expanded') === 'true';
-                this.setAttribute('aria-expanded', !isExpanded);
-                menuDropdown.classList.toggle('active');
-            });
+function refreshEmailStatus() {
+    showLoadingState();
+    fetchEmailStatuses();
+}
 
-            document.addEventListener('click', function (event) {
-                if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
-                    menuTrigger.setAttribute('aria-expanded', 'false');
-                    menuDropdown.classList.remove('active');
-                }
-            });
-        }
-    }
+function setupUserMenu() {
+    const menuTrigger = document.querySelector('.user-menu-trigger');
+    const menuDropdown = document.querySelector('.user-menu-dropdown');
 
-    function setupSearchAndInteractions() {
-        const searchInput = document.getElementById('search-input');
-        const clearSearchBtn = document.getElementById('clear-search');
-        const selectAllVisibleBtn = document.getElementById('select-all-visible');
-        const refreshBtn = document.getElementById('refresh-status');
-        const clearSelectionBtn = document.getElementById('clear-selection');
-
-        let searchTimeout;
-        searchInput.addEventListener('input', function () {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(performSearch, 300);
+    if (menuTrigger && menuDropdown) {
+        menuTrigger.addEventListener('click', function () {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            menuDropdown.classList.toggle('active');
         });
 
-        clearSearchBtn.addEventListener('click', function () {
-            searchInput.value = '';
-            performSearch();
-            searchInput.focus();
+        document.addEventListener('click', function (event) {
+            if (!menuTrigger.contains(event.target) && !menuDropdown.contains(event.target)) {
+                menuTrigger.setAttribute('aria-expanded', 'false');
+                menuDropdown.classList.remove('active');
+            }
         });
-
-        selectAllVisibleBtn.addEventListener('click', function () {
-            const visibleCheckboxes = getVisibleCheckboxes();
-            const selectedVisible = visibleCheckboxes.filter(cb => cb.checked).length;
-            const shouldSelect = selectedVisible < visibleCheckboxes.length;
-
-            visibleCheckboxes.forEach(checkbox => {
-                checkbox.checked = shouldSelect;
-            });
-
-            updateSelection();
-        });
-
-        refreshBtn.addEventListener('click', refreshEmailStatus);
-
-        clearSelectionBtn.addEventListener('click', function () {
-            document.querySelectorAll('.email-checkbox-input').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            updateSelection();
-        });
-
-        setupFormSubmission();
-        setupKeyboardShortcuts();
     }
+}
 
-    function setupCheckboxListeners() {
+function setupSearchAndInteractions() {
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const selectAllVisibleBtn = document.getElementById('select-all-visible');
+    const refreshBtn = document.getElementById('refresh-status');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+
+    let searchTimeout;
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performSearch, isMobileDevice ? 500 : 300);
+    });
+
+    clearSearchBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        performSearch();
+        searchInput.focus();
+    });
+
+    selectAllVisibleBtn.addEventListener('click', function () {
+        const visibleCheckboxes = getVisibleCheckboxes();
+        const selectedVisible = visibleCheckboxes.filter(cb => cb.checked).length;
+        const shouldSelect = selectedVisible < visibleCheckboxes.length;
+
+        visibleCheckboxes.forEach(checkbox => {
+            checkbox.checked = shouldSelect;
+        });
+
+        updateSelection();
+    });
+
+    refreshBtn.addEventListener('click', refreshEmailStatus);
+
+    clearSelectionBtn.addEventListener('click', function () {
         document.querySelectorAll('.email-checkbox-input').forEach(checkbox => {
-            checkbox.addEventListener('change', updateSelection);
+            checkbox.checked = false;
         });
+        updateSelection();
+    });
+
+    setupFormSubmission();
+    setupKeyboardShortcuts();
+    
+    // Mobile-specific touch optimizations
+    if (isMobileDevice) {
+        setupTouchOptimizations();
     }
+}
 
-    function performSearch() {
-        const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
-        const emailItems = document.querySelectorAll('.email-item');
-        const noResults = document.getElementById('no-results');
-        let visibleCount = 0;
+function setupTouchOptimizations() {
+    const emailContainer = document.getElementById('email-list-container');
+    if (!emailContainer) return;
+    
+    let touchStartY = 0;
+    let touchStartTime = 0;
+    let isScrolling = false;
+    
+    emailContainer.addEventListener('touchstart', function(e) {
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+        isScrolling = false;
+    }, { passive: true });
+    
+    emailContainer.addEventListener('touchmove', function(e) {
+        if (Math.abs(e.touches[0].clientY - touchStartY) > 10) {
+            isScrolling = true;
+        }
+    }, { passive: true });
+    
+    emailContainer.addEventListener('touchend', function(e) {
+        const touchEndTime = Date.now();
+        const touchDuration = touchEndTime - touchStartTime;
+        
+        // Only handle taps (not scrolls or long presses)
+        if (!isScrolling && touchDuration < 300) {
+            const emailItem = e.target.closest('.email-item');
+            if (emailItem) {
+                const checkbox = emailItem.querySelector('.email-checkbox-input');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    updateSelection();
+                }
+            }
+        }
+    }, { passive: true });
+}
 
+function setupCheckboxListeners() {
+    document.querySelectorAll('.email-checkbox-input').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+}
+
+// OPTIMIZED SEARCH WITH THROTTLING
+function performSearch() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+    const emailItems = document.querySelectorAll('.email-item');
+    const noResults = document.getElementById('no-results');
+    let visibleCount = 0;
+
+    // Use requestAnimationFrame for smooth updates
+    requestAnimationFrame(() => {
         emailItems.forEach(item => {
             const companyName = item.getAttribute('data-company-name');
             const email = item.getAttribute('data-email');
@@ -2095,48 +2277,50 @@ body {
         }
 
         updateSelection();
+    });
+}
+
+function updateSearchResultsCount(searchTerm = '', visibleCount = null) {
+    const searchResultsCount = document.getElementById('search-results-count');
+    const totalOnline = onlineEmails.length;
+
+    if (visibleCount === null) {
+        visibleCount = document.querySelectorAll('.email-item[style*="flex"], .email-item:not([style*="none"])').length;
     }
 
-    function updateSearchResultsCount(searchTerm = '', visibleCount = null) {
-        const searchResultsCount = document.getElementById('search-results-count');
-        const totalOnline = onlineEmails.length;
+    if (searchTerm) {
+        searchResultsCount.textContent = `${visibleCount} found`;
+    } else {
+        searchResultsCount.textContent = `${totalOnline} companies`;
+    }
+}
 
-        if (visibleCount === null) {
-            visibleCount = document.querySelectorAll('.email-item[style*="flex"], .email-item:not([style*="none"])').length;
-        }
+function getVisibleCheckboxes() {
+    return Array.from(document.querySelectorAll('.email-checkbox-input')).filter(checkbox =>
+        checkbox.closest('.email-item').style.display !== 'none'
+    );
+}
 
-        if (searchTerm) {
-            searchResultsCount.textContent = `${visibleCount} found`;
-        } else {
-            searchResultsCount.textContent = `${totalOnline} companies`;
-        }
+function updateSelection() {
+    const totalSelected = document.querySelectorAll('.email-checkbox-input:checked').length;
+
+    document.getElementById('selection-count').textContent = `${totalSelected} selected`;
+
+    const selectionDetail = document.getElementById('selection-detail');
+    if (totalSelected === 0) {
+        selectionDetail.textContent = 'Select companies to apply';
+    } else {
+        selectionDetail.textContent = `Ready to send ${totalSelected} application${totalSelected > 1 ? 's' : ''}`;
     }
 
-    function getVisibleCheckboxes() {
-        return Array.from(document.querySelectorAll('.email-checkbox-input')).filter(checkbox =>
-            checkbox.closest('.email-item').style.display !== 'none'
-        );
-    }
+    const applyBtn = document.getElementById('apply-btn');
+    const clearSelectionBtn = document.getElementById('clear-selection');
 
-    function updateSelection() {
-        const totalSelected = document.querySelectorAll('.email-checkbox-input:checked').length;
+    applyBtn.disabled = totalSelected === 0;
+    clearSelectionBtn.disabled = totalSelected === 0;
 
-        document.getElementById('selection-count').textContent = `${totalSelected} selected`;
-
-        const selectionDetail = document.getElementById('selection-detail');
-        if (totalSelected === 0) {
-            selectionDetail.textContent = 'Select companies to apply';
-        } else {
-            selectionDetail.textContent = `Ready to send ${totalSelected} application${totalSelected > 1 ? 's' : ''}`;
-        }
-
-        const applyBtn = document.getElementById('apply-btn');
-        const clearSelectionBtn = document.getElementById('clear-selection');
-
-        applyBtn.disabled = totalSelected === 0;
-        clearSelectionBtn.disabled = totalSelected === 0;
-
-        // Update visual states
+    // Update visual states efficiently
+    requestAnimationFrame(() => {
         document.querySelectorAll('.email-checkbox-input').forEach(checkbox => {
             const item = checkbox.closest('.email-item');
             if (checkbox.checked) {
@@ -2145,61 +2329,76 @@ body {
                 item.classList.remove('selected');
             }
         });
-    }
+    });
+}
 
-    function setupFormSubmission() {
-        const bulkForm = document.getElementById('bulk-application-form');
+function setupFormSubmission() {
+    const bulkForm = document.getElementById('bulk-application-form');
 
-        if (bulkForm) {
-            bulkForm.addEventListener('submit', function (e) {
-                const selectedEmails = document.querySelectorAll('.email-checkbox-input:checked');
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', function (e) {
+            const selectedEmails = document.querySelectorAll('.email-checkbox-input:checked');
 
-                if (selectedEmails.length === 0) {
-                    e.preventDefault();
-                    alert('Please select at least one company.');
-                    return;
-                }
-
-                const confirmMessage = `Send applications to ${selectedEmails.length} companies?`;
-                if (!confirm(confirmMessage)) {
-                    e.preventDefault();
-                    return;
-                }
-            });
-        }
-    }
-
-    function setupKeyboardShortcuts() {
-        document.addEventListener('keydown', function (e) {
-            // Ctrl/Cmd + F to focus search
-            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            if (selectedEmails.length === 0) {
                 e.preventDefault();
-                document.getElementById('search-input').focus();
+                alert('Please select at least one company.');
+                return;
             }
 
-            // Escape to clear search
-            if (e.key === 'Escape') {
-                const searchInput = document.getElementById('search-input');
-                if (document.activeElement === searchInput) {
-                    searchInput.value = '';
-                    performSearch();
-                    searchInput.blur();
-                }
-            }
-
-            // Ctrl/Cmd + A to select all visible
-            if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement !== document.getElementById('search-input')) {
+            const confirmMessage = `Send applications to ${selectedEmails.length} companies?`;
+            if (!confirm(confirmMessage)) {
                 e.preventDefault();
-                document.getElementById('select-all-visible').click();
-            }
-
-            // F5 to refresh
-            if (e.key === 'F5') {
-                e.preventDefault();
-                refreshEmailStatus();
+                return;
             }
         });
     }
+}
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function (e) {
+        // Ctrl/Cmd + F to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            document.getElementById('search-input').focus();
+        }
+
+        // Escape to clear search
+        if (e.key === 'Escape') {
+            const searchInput = document.getElementById('search-input');
+            if (document.activeElement === searchInput) {
+                searchInput.value = '';
+                performSearch();
+                searchInput.blur();
+            }
+        }
+
+        // Ctrl/Cmd + A to select all visible
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a' && document.activeElement !== document.getElementById('search-input')) {
+            e.preventDefault();
+            document.getElementById('select-all-visible').click();
+        }
+
+        // F5 to refresh
+        if (e.key === 'F5') {
+            e.preventDefault();
+            refreshEmailStatus();
+        }
+    });
+}
+
+// Performance monitoring (optional)
+if ('performance' in window && 'mark' in performance) {
+    performance.mark('app-start');
+    window.addEventListener('load', () => {
+        performance.mark('app-loaded');
+        performance.measure('app-load-time', 'app-start', 'app-loaded');
+        
+        const measure = performance.getEntriesByName('app-load-time')[0];
+        if (measure) {
+            console.log(`App loaded in ${measure.duration.toFixed(2)}ms`);
+        }
+    });
+}
 
 </script>
 

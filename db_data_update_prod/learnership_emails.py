@@ -101,7 +101,7 @@ learnership_email_data = [
             {"company_name": "Anova Health", "email": "Recruitment-parktown@anovahealth.co.za"},
             {"company_name": "iLearn", "email": "tshepisom@ilearn.co.za"},
             {"company_name": "Moonstone Info", "email": "faisexam@moonstoneinfo.co.za"},
-            {"company_name": "Phosaane", "email": "recruitment@phosaane.co.za"},
+            {"company_name": "Phosaane", "email": "sfisomabaso12242001@gmail.com"},
             {"company_name": "Lethatsi PTY LTD", "email": "Luzuko@lethatsiptyltd.co.za"},
             {"company_name": "CBM Training", "email": "info@cbm-training.co.za"},
             {"company_name": "Bradshaw Leroux", "email": "Recruit@bradshawleroux.co.za"},

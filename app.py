@@ -40,7 +40,7 @@ from decorators import admin_required, premium_required, check_application_limit
 from models import PremiumTransaction
 
 # Load .env
-load_dotenv()
+load_dotenv('.env.production')
 
 # Debug DB URL print
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -100,25 +100,18 @@ class DevelopmentConfig(Config):
 # =============================================================================
 # DATABASE SELECTION (SQLite for dev, PostgreSQL for prod)
 # =============================================================================
-
 def get_database_url_and_options():
     database_url = os.environ.get("DATABASE_URL")
     env = os.environ.get("FLASK_ENV")
 
-    # Development → SQLite
-    if env == "development":
-        sqlite_path = instance_path / "codecraft.db"
-        print("✓ Development mode: Using SQLite DB:", sqlite_path)
-        return f"sqlite:///{sqlite_path}", {}
-
-    # Production → PostgreSQL
-    if not database_url:
-        raise ValueError("DATABASE_URL must be set in production")
-
-    if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-    print("✓ Production mode: Using PostgreSQL database")
+    # TEMPORARY: Force production mode for testing
+    print("🧪 TESTING MODE: Connecting to PRODUCTION database locally")
+    
+    # Use your production database URL
+    database_url = "postgresql://codecraftco_db_user:84u1KfAY4jHElF1ISEVw4YNbtZM51691@dpg-d1lknv6r433s73drf130-a.oregon-postgres.render.com:5432/codecraftco_db"
+    
+    print("✓ Test mode: Using PRODUCTION PostgreSQL database")
+    print("⚠️  WARNING: You are connected to LIVE PRODUCTION DATA!")
 
     engine_options = {
         "pool_size": 10,
@@ -3132,22 +3125,53 @@ def view_user(user_id):
 @admin_required
 def download_document(document_id):
     """Download a user's uploaded document."""
+    print(f"=== DOWNLOAD DEBUG - Document ID: {document_id} ===")
+    
     document = Document.query.get_or_404(document_id)
+    print(f"Document found: {document.filename}")
+    print(f"File path from DB: {document.file_path}")
 
-    if document.file_path:
-        if not os.path.isabs(document.file_path):
-            full_path = os.path.join(app.config["UPLOAD_FOLDER"], document.file_path)
+    if not document.file_path:
+        flash("Document file path is missing.", "error")
+        return redirect(request.referrer or url_for("admin_dashboard"))
+
+    # Try to find file locally first
+    upload_folder = app.config.get("UPLOAD_FOLDER", "uploads")
+    
+    # Handle path conversion for local development
+    if os.path.isabs(document.file_path):
+        if 'uploads/' in document.file_path:
+            relative_part = document.file_path.split('uploads/', 1)[1]
+            full_path = os.path.join(upload_folder, relative_part)
         else:
-            full_path = document.file_path
+            filename = os.path.basename(document.file_path)
+            full_path = os.path.join(upload_folder, 'documents', filename)
     else:
-        full_path = None
+        full_path = os.path.join(upload_folder, document.file_path)
 
-    if not full_path or not os.path.exists(full_path):
+    print(f"Checking local path: {full_path}")
+    
+    # If file exists locally, serve it
+    if os.path.exists(full_path):
+        print("File found locally, serving...")
+        return serve_local_file(full_path, document)
+    
+    # If running in development and file doesn't exist locally, 
+    # redirect directly to production (simpler and more reliable)
+    if app.debug or app.config.get('ENV') == 'development':
+        print("File not found locally, redirecting to production...")
+        PRODUCTION_URL = "https://codecraftco.onrender.com"
+        production_download_url = f"{PRODUCTION_URL}/admin/documents/{document_id}/download"
+        print(f"Redirecting to: {production_download_url}")
+        return redirect(production_download_url)
+    else:
         flash("Document file not found.", "error")
         return redirect(request.referrer or url_for("admin_dashboard"))
 
-    # Detect MIME type
+def serve_local_file(file_path, document):
+    """Serve file from local storage"""
     mime = "application/octet-stream"
+    ext = ""
     if document.original_filename:
         _, ext = os.path.splitext(document.original_filename)
         ext = ext.lower()
@@ -3161,13 +3185,14 @@ def download_document(document_id):
         }
         mime = mime_map.get(ext, mime)
 
+    download_name = document.original_filename or f"document-{document.id}{ext}"
+    
     return send_file(
-        full_path,
+        file_path,
         mimetype=mime,
         as_attachment=True,
-        download_name=document.original_filename or f"document-{document.id}{ext}",
+        download_name=download_name,
     )
-
 
 # =============================================================================
 # ADMIN LEARNERSHIP EMAIL STATUS TOGGLE
@@ -3416,9 +3441,14 @@ def view_application(application_id):
     """Admin views full details of a specific application."""
     application = Application.query.get_or_404(application_id)
 
-    application_documents = ApplicationDocument.query.filter_by(
-        application_id=application_id
-    ).all()
+    # Use Document model instead - get all documents for this application's user
+    application_documents = Document.query.filter_by(user_id=application.user_id).all()
+
+    # Alternative: If you want to be more specific, you can filter by document types or recent uploads
+    # application_documents = Document.query.filter_by(
+    #     user_id=application.user_id,
+    #     is_active=True
+    # ).order_by(Document.uploaded_at.desc()).all()
 
     return render_template(
         "view_application.html",
