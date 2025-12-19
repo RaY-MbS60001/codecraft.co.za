@@ -101,18 +101,21 @@ class DevelopmentConfig(Config):
 # DATABASE SELECTION (SQLite for dev, PostgreSQL for prod)
 # =============================================================================
 def get_database_url_and_options():
+    env = os.environ.get("FLASK_ENV", "development")
+    instance_path = Path(__file__).parent / "instance"
+    instance_path.mkdir(exist_ok=True)
+
+    if env == "development":
+        sqlite_path = instance_path / "codecraft.db"
+        print("✓ Development mode: Using SQLite DB:", sqlite_path)
+        return f"sqlite:///{sqlite_path}", {}
+
+    # Production → PostgreSQL
     database_url = os.environ.get("DATABASE_URL")
-    env = os.environ.get("FLASK_ENV")
-
-    # TEMPORARY: Force production mode for testing
-    print("🧪 TESTING MODE: Connecting to PRODUCTION database locally")
-    
-    # Use your production database URL
-    database_url = "postgresql://codecraftco_db_user:84u1KfAY4jHElF1ISEVw4YNbtZM51691@dpg-d1lknv6r433s73drf130-a.oregon-postgres.render.com:5432/codecraftco_db"
-    
-    print("✓ Test mode: Using PRODUCTION PostgreSQL database")
-    print("⚠️  WARNING: You are connected to LIVE PRODUCTION DATA!")
-
+    if not database_url:
+        raise ValueError("DATABASE_URL must be set in production")
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
     engine_options = {
         "pool_size": 10,
         "pool_recycle": 3600,
@@ -122,8 +125,8 @@ def get_database_url_and_options():
             "connect_timeout": 10
         }
     }
-
     return database_url, engine_options
+
 # =============================================================================
 # APPLY CONFIGURATION
 # =============================================================================
