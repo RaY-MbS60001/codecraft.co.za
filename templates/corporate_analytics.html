@@ -1,0 +1,1047 @@
+{% extends "base.html" %}
+{% block title %}Corporate Analytics - CodeCraftCo{% endblock %}
+
+{% block content %}
+<div class="analytics-container">
+  <!-- NAVIGATION -->
+  <nav class="dashboard-nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-left">
+      <h2 class="nav-logo">
+        <a href="{{ url_for('corporate_dashboard') }}" aria-label="CodeCraftCo Corporate Dashboard">
+          <div class="logo-container">
+            <div class="word">
+              <div class="letter-box red">
+                <div class="letter">C</div>
+              </div>
+              <div class="word-text">ode</div>
+            </div>
+            <div class="word">
+              <div class="letter-box blue">
+                <div class="letter">C</div>
+              </div>
+              <div class="word-text">raft</div>
+            </div>
+            <div class="word">
+              <div class="letter-box orange">
+                <div class="letter">C</div>
+              </div>
+              <div class="word-text">o</div>
+            </div>
+          </div>
+        </a>
+      </h2>
+    </div>
+
+    <div class="nav-right">
+      <a href="{{ url_for('corporate_dashboard') }}" class="nav-dashboard-link" aria-label="Go to Dashboard">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"
+          class="dash-icon">
+          <path d="M3 9.75 12 3l9 6.75V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.75Z" />
+        </svg>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="{{ url_for('corporate_calendar') }}" class="nav-dashboard-link" aria-label="Calendar">
+        <i class="fas fa-calendar"></i>
+        <span>Calendar</span>
+      </a>
+
+      <!-- Corporate User Menu -->
+      <div class="user-menu">
+        <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
+          <div class="user-avatar-small">
+            {% if current_user.profile_picture %}
+            <img src="{{ current_user.profile_picture }}" alt="">
+            {% else %}
+            <span>{{ (current_user.company_name or current_user.full_name or current_user.email)[0].upper() }}</span>
+            {% endif %}
+          </div>
+          <span class="user-name">{{ current_user.company_name or current_user.full_name or current_user.email }}</span>
+          <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0
+                           111.414 1.414l-4 4a1 1 0 01-1.414
+                           0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div class="user-menu-dropdown" role="menu">
+          <a href="{{ url_for('corporate_opportunities') }}" class="menu-item" role="menuitem">My Opportunities</a>
+          <a href="{{ url_for('corporate_applications') }}" class="menu-item" role="menuitem">Applications</a>
+          <div class="menu-divider"></div>
+          <a href="{{ url_for('logout') }}" class="menu-item logout" role="menuitem">Logout</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ANALYTICS BODY -->
+  <main class="analytics-content">
+    <section class="welcome-section">
+      <h1>{{ current_user.company_name }} Analytics</h1>
+      <p>Performance insights for your learnership opportunities and recruitment process</p>
+    </section>
+
+    <!-- Corporate Metrics Cards -->
+    <div class="corporate-metrics">
+      <div class="metric-card">
+        <div class="metric-value">{{ total_opportunities }}</div>
+        <div class="metric-label">Total Opportunities Posted</div>
+        <div class="metric-change change-positive">
+          <i class="fas fa-arrow-up"></i>
+          +{{ new_opportunities_this_month }} this month
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-value">{{ total_applications }}</div>
+        <div class="metric-label">Total Applications Received</div>
+        <div class="metric-change change-positive">
+          <i class="fas fa-arrow-up"></i>
+          +{{ applications_this_week }} this week
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-value">{{ interviews_scheduled }}</div>
+        <div class="metric-label">Interviews Scheduled</div>
+        <div class="metric-change change-neutral">
+          <i class="fas fa-calendar"></i>
+          {{ upcoming_interviews }} upcoming
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-value">{{ candidates_hired }}</div>
+        <div class="metric-label">Candidates Hired</div>
+        <div class="metric-change change-positive">
+          <i class="fas fa-user-check"></i>
+          {{ hire_rate }}% success rate
+        </div>
+      </div>
+    </div>
+
+    <!-- Application Status Distribution -->
+    <section class="chart-card glass-effect">
+      <div class="chart-head">Application Status Distribution</div>
+      <div class="chart-container bar-container">
+        <div class="y-axis-label axis-label">Applications</div>
+        <div class="bar-wrapper" id="applicationChart"></div>
+        <div class="x-axis-label axis-label">Application Stages</div>
+      </div>
+    </section>
+
+    <!-- Weekly Application Trends -->
+    <section class="chart-card glass-effect">
+      <div class="chart-head">Weekly Application Trends</div>
+      <div class="chart-container line-container">
+        <div class="y-axis-label axis-label">Applications per Day</div>
+        <svg id="trendChart" class="line-svg"></svg>
+        <div class="x-axis-label axis-label">Days of Week</div>
+      </div>
+    </section>
+
+    <!-- Opportunity Performance -->
+    <section class="chart-card glass-effect">
+      <div class="chart-head">Opportunity Performance Breakdown</div>
+      <div class="pie-wrap">
+        <svg id="performanceChart" class="pie-svg" viewBox="0 0 200 200"></svg>
+        <div id="performanceLegend" class="legend"></div>
+      </div>
+    </section>
+  </main>
+  
+  <!-- ======= FOOTER ======= -->
+  <footer class="main-footer">
+    <div class="footer-inner">
+      <!-- Brand -->
+      <div class="footer-brand">
+        <div class="logo-container">
+          <div class="word">
+            <div class="letter-box red"><div class="letter">C</div></div>
+            <div class="word-text">ode</div>
+          </div>
+          <div class="word">
+            <div class="letter-box blue"><div class="letter">C</div></div>
+            <div class="word-text">raft</div>
+          </div>
+          <div class="word">
+            <div class="letter-box orange"><div class="letter">C</div></div>
+            <div class="word-text">o</div>
+          </div>
+        </div>
+        <p class="footer-tagline">Empowering developers with smart tools.</p>
+      </div>
+
+      <!-- Links -->
+      <div class="footer-links">
+        <a href="{{ url_for('corporate_dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('corporate_opportunities') }}">Opportunities</a>
+        <a href="#">Contact</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+
+      <!-- Social -->
+      <div class="footer-social">
+        <a href="#" aria-label="LinkedIn" class="social-btn linkedin"><i class="fa-brands fa-linkedin-in"></i></a>
+        <a href="#" aria-label="GitHub" class="social-btn github"><i class="fa-brands fa-github"></i></a>
+        <a href="#" aria-label="Instagram" class="social-btn instagram"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" aria-label="Facebook" class="social-btn facebook"><i class="fa-brands fa-facebook-f"></i></a>
+        <a href="#" aria-label="WhatsApp" class="social-btn whatsapp"><i class="fa-brands fa-whatsapp"></i></a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© {{ current_year or 2024 }} <strong>CodeCraftCo</strong>. All rights reserved.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Corporate analytics data from backend
+const applicationStages = {{ application_stages|tojson }};
+const weeklyTrends = {{ weekly_trends|tojson }};
+const opportunityPerformance = {{ opportunity_performance|tojson }};
+
+const colorScheme = ["#22c55e", "#3b82f6", "#f97316", "#eab308", "#ef4444", "#a855f7", "#06b6d4"];
+
+function renderApplicationChart() {
+    const container = document.getElementById('applicationChart');
+    container.innerHTML = '';
+    
+    if (!applicationStages || applicationStages.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 2rem;">No data available</div>';
+        return;
+    }
+    
+    const max = Math.max(...applicationStages.map(s => s.value || 0), 1);
+    const containerHeight = 270;
+    
+    applicationStages.forEach((stage, i) => {
+        const calculatedHeight = (stage.value / max) * (containerHeight * 0.8);
+        const height = stage.value === 0 ? 8 : Math.max(calculatedHeight, 8);
+        const color = colorScheme[i % colorScheme.length];
+        
+        const barDiv = document.createElement('div');
+        barDiv.className = 'bar';
+        
+        if (stage.value === 0) {
+            barDiv.innerHTML = `
+                <div class="barcol zero-bar" style="height:${height}px;background:${color}20;border:2px dashed ${color}60;">
+                    <div class="barval zero-value" style="color:${color};">${stage.value}</div>
+                </div>
+                <div class="barlabel">${stage.label}</div>
+            `;
+        } else {
+            barDiv.innerHTML = `
+                <div class="barcol" style="height:${height}px;background:linear-gradient(180deg,${color} 0%,${color}bb 100%)">
+                    <div class="barval">${stage.value}</div>
+                </div>
+                <div class="barlabel">${stage.label}</div>
+            `;
+        }
+        
+        container.appendChild(barDiv);
+    });
+}
+
+function renderTrendChart() {
+    const svg = document.getElementById('trendChart');
+    const container = svg.parentElement;
+    const width = container.clientWidth || 580;
+    const height = 240;
+    const padding = 45;
+    
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.innerHTML = '';
+    
+    if (!weeklyTrends || weeklyTrends.length === 0) return;
+    
+    const max = Math.max(...weeklyTrends, 1);
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    // Calculate points
+    const points = weeklyTrends.map((value, i) => {
+        const x = padding + (i / (weeklyTrends.length - 1 || 1)) * (width - 2 * padding);
+        const y = height - padding - (value / max) * (height - 2 * padding);
+        return [x, y];
+    });
+    
+    const createElement = (tag, attrs) => {
+        const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (let key in attrs) el.setAttribute(key, attrs[key]);
+        return el;
+    };
+    
+    // Draw axes
+    svg.appendChild(createElement("line", {
+        x1: padding, y1: height - padding,
+        x2: width - padding, y2: height - padding,
+        stroke: "#475569", "stroke-width": "1"
+    }));
+    
+    svg.appendChild(createElement("line", {
+        x1: padding, y1: padding,
+        x2: padding, y2: height - padding,
+        stroke: "#475569", "stroke-width": "1"
+    }));
+    
+    // Draw line
+    const pathData = points.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
+    svg.appendChild(createElement("path", {
+        d: pathData,
+        stroke: "#06b6d4",
+        fill: "none",
+        "stroke-width": "3",
+        "stroke-linecap": "round"
+    }));
+    
+    // Add points and labels
+    points.forEach((point, i) => {
+        // Data point
+        svg.appendChild(createElement("circle", {
+            cx: point[0], cy: point[1], r: 5,
+            stroke: "#06b6d4", fill: "#22c55e", "stroke-width": "2"
+        }));
+        
+        // Day label
+        const label = createElement("text", {
+            x: point[0], y: height - padding + 18,
+            fill: "#cbd5e1", "font-size": "12",
+            "text-anchor": "middle", "font-family": "Inter, Arial, sans-serif"
+        });
+        label.textContent = dayLabels[i];
+        svg.appendChild(label);
+        
+        // Value label
+        if (weeklyTrends[i] > 0) {
+            const valueLabel = createElement("text", {
+                x: point[0], y: point[1] - 15,
+                fill: "#22c55e", "font-size": "13",
+                "text-anchor": "middle", "font-weight": "600",
+                "font-family": "Inter, Arial, sans-serif"
+            });
+            valueLabel.textContent = weeklyTrends[i];
+            svg.appendChild(valueLabel);
+        }
+    });
+}
+
+function renderPerformanceChart() {
+    const svg = document.getElementById('performanceChart');
+    const legend = document.getElementById('performanceLegend');
+    svg.innerHTML = '';
+    legend.innerHTML = '';
+    
+    if (!opportunityPerformance || opportunityPerformance.length === 0) return;
+    
+    const cx = 100, cy = 100, r = 80;
+    const total = opportunityPerformance.reduce((sum, item) => sum + item.value, 0) || 1;
+    let currentAngle = 0;
+    
+    opportunityPerformance.forEach((item, i) => {
+        const angle = (item.value / total) * 2 * Math.PI;
+        const endAngle = currentAngle + angle;
+        
+        const x1 = cx + r * Math.cos(currentAngle);
+        const y1 = cy + r * Math.sin(currentAngle);
+        const x2 = cx + r * Math.cos(endAngle);
+        const y2 = cy + r * Math.sin(endAngle);
+        
+        const largeArc = angle > Math.PI ? 1 : 0;
+        const pathData = `M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z`;
+        
+        const color = colorScheme[i % colorScheme.length];
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathData);
+        path.setAttribute("fill", color);
+        svg.appendChild(path);
+        
+        currentAngle = endAngle;
+        
+        // Legend item
+        const legendItem = document.createElement("div");
+        legendItem.className = "legend-item";
+        legendItem.innerHTML = `
+            <div class="legend-dot" style="background:${color}"></div>
+            <div class="legend-text">${item.label}</div>
+            <div class="legend-val">${item.value}</div>
+        `;
+        legend.appendChild(legendItem);
+    });
+}
+
+function renderAllCharts() {
+    renderApplicationChart();
+    renderTrendChart();
+    renderPerformanceChart();
+}
+
+// Auto-refresh data every 10 minutes
+setInterval(() => {
+    fetch('/corporate/analytics/data')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update data and re-render charts
+                applicationStages.splice(0, applicationStages.length, ...data.application_stages);
+                weeklyTrends.splice(0, weeklyTrends.length, ...data.weekly_trends);
+                opportunityPerformance.splice(0, opportunityPerformance.length, ...data.opportunity_performance);
+                renderAllCharts();
+            }
+        })
+        .catch(error => console.log('Analytics refresh error:', error));
+}, 600000); // 10 minutes
+
+window.addEventListener('resize', renderAllCharts);
+window.addEventListener('load', renderAllCharts);
+</script>
+
+<style>
+  /* Use all the existing styles from your reference page */
+  :root {
+    --background: #1e293b;
+    --surface: #334155;
+    --surface-hover: #475569;
+    --border-color: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: Inter, Arial, sans-serif;
+    margin: 0;
+  }
+
+  /* Corporate-specific metric cards */
+  .corporate-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .metric-card {
+    background: linear-gradient(135deg, #334155, #475569);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  .metric-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #06b6d4;
+    margin-bottom: 0.5rem;
+  }
+
+  .metric-label {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .metric-change {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  .change-positive { color: #10b981; }
+  .change-negative { color: #ef4444; }
+  .change-neutral { color: #64748b; }
+
+  /* Copy all other styles from your reference analytics.html page */
+  /* ... (include all the existing styles from your reference page) ... */
+    :root {
+    --background: #1e293b;
+    --surface: #334155;
+    --surface-hover: #475569;
+    --border-color: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: Inter, Arial, sans-serif;
+    margin: 0;
+  }
+
+  .dashboard-nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+  }
+
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Logo styles */
+  .nav-logo {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .nav-logo a {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .logo-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    transform: translateY(16px);
+  }
+
+  .word {
+    display: flex;
+    align-items: center;
+  }
+
+.letter-box {
+    width: 35px;
+    height: 35px;
+    background-color: rgba(51, 51, 51, 0.9);
+    border: 2px solid #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.letter-box.red {
+    box-shadow: 0 0 12px #ff0000, 0 0 24px #ff0000;
+}
+
+.letter-box.blue {
+    box-shadow: 0 0 12px #0099ff, 0 0 24px #0099ff;
+}
+
+.letter-box.orange {
+    box-shadow: 0 0 12px #ff8800, 0 0 24px #ff8800;
+}
+
+.letter {
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    text-align: center;
+    font-family: 'Arial', sans-serif;
+    line-height: 1;
+}
+
+.word-text {
+    font-size: 20px;
+    font-weight: normal;
+    color: #fff;
+    margin-left: 3px;
+    font-family: 'Arial', sans-serif;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+    line-height: 1;
+}
+  .nav-dashboard-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: white;
+    background: var(--surface-hover);
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: all .3s;
+  }
+
+  .nav-dashboard-link:hover {
+    background: #64748b;
+  }
+
+  .user-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .user-menu-trigger {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .user-avatar-small img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .user-avatar-small span {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--surface-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+  }
+
+  .user-name {
+    font-size: 0.9rem;
+    color: white;
+  }
+
+  .user-menu-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 44px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    min-width: 160px;
+    z-index: 10;
+  }
+
+  .user-menu-trigger:hover+.user-menu-dropdown,
+  .user-menu-dropdown:hover {
+    display: block;
+  }
+
+  .menu-item {
+    display: block;
+    padding: 10px 14px;
+    color: white;
+    text-decoration: none;
+  }
+
+  .menu-item:hover {
+    background: var(--surface-hover);
+  }
+
+  .menu-divider {
+    height: 1px;
+    background: var(--border-color);
+  }
+
+  .logout {
+    color: #ef4444;
+  }
+
+  .analytics-content {
+    max-width: 1100px;
+    margin: 50px auto 30px;
+    padding: 0 20px;
+  }
+
+  .welcome-section h1 {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+  }
+
+  .welcome-section p {
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+    font-size: 0.9rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .chart-card.glass-effect {
+    background-color: rgba(51, 65, 85, 0.85);
+    backdrop-filter: blur(6px);
+  }
+
+  .chart-head {
+    font-weight: 600;
+    margin-bottom: 14px;
+    font-size: 1rem;
+  }
+
+  .bar-wrapper {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-evenly;
+    height: 270px;
+    border-left: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .bar {
+    text-align: center;
+    flex: 1;
+    max-width: 90px;
+  }
+
+  .barcol {
+    width: 50%;
+    min-width: 20px;
+    margin: 0 auto;
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: transform .3s;
+    min-height: 8px;
+  }
+
+  .barcol.zero-bar {
+    opacity: 0.7;
+  }
+
+  .barcol:hover {
+    transform: translateY(-5px);
+  }
+
+  .barval {
+    font-size: 0.8rem;
+    position: relative;
+    top: -18px;
+    color: white;
+    font-weight: 600;
+  }
+
+  .barval.zero-value {
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .barlabel {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 5px;
+  }
+
+  /* ✅ ENHANCED LINE CHART STYLING - LARGER LABELS */
+  .line-svg {
+    width: 100%;
+    height: 240px; /* ✅ Increased height for larger labels */
+  }
+
+  .line-container {
+    position: relative;
+    padding: 5px; /* ✅ Added padding for larger labels */
+  }
+
+  #lineChart path {
+    filter: drop-shadow(0 0 4px #60a5fa80);
+  }
+
+  #lineChart .data-point {
+    transition: r 0.3s ease;
+  }
+
+  /* ✅ AXIS LABELS - Same size as bar chart */
+  .axis-label {
+    color: var(--text-secondary);
+    font-size: 12px; /* ✅ Same as bar chart labels */
+    font-weight: 400;
+    position: absolute;
+    font-family: Inter, Arial, sans-serif;
+  }
+
+  .x-axis-label {
+    bottom: -2px; /* ✅ Adjusted for larger labels */
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .y-axis-label {
+    left: -25px; /* ✅ More space for larger labels */
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+  }
+
+  .pie-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-block: 8px 10px;
+  }
+
+  .pie-svg {
+    width: clamp(140px, 22vw, 200px);
+    height: clamp(140px, 22vw, 200px);
+  }
+
+  #pieChart path {
+    stroke: #1e293b;
+    stroke-width: 1px;
+    transition: transform .25s;
+  }
+
+  #pieChart path:hover {
+    transform: scale(1.05);
+    transform-origin: center;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 6px;
+    gap: 8px;
+    max-width: 360px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.8rem;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ✅ RESPONSIVE ADJUSTMENTS FOR LARGER LABELS */
+  @media (max-width:768px) {
+    .bar-wrapper {
+      height: 210px;
+    }
+
+    .pie-svg {
+      width: 160px;
+      height: 160px;
+    }
+
+    .line-svg {
+      height: 200px; /* ✅ Adequate space for mobile */
+    }
+
+    .axis-label {
+      font-size: 11px; /* ✅ Slightly smaller on mobile */
+    }
+  }
+
+  @media (max-width:480px) {
+    .bar-wrapper {
+      height: 160px;
+    }
+
+    .barlabel {
+      font-size: 0.7rem;
+    }
+
+    .pie-svg {
+      width: 140px;
+      height: 140px;
+    }
+
+    .line-svg {
+      height: 180px; /* ✅ Compact for small screens */
+    }
+
+    .axis-label {
+      font-size: 10px; /* ✅ Small but readable */
+    }
+  }
+
+  
+  /* ---------- FOOTER (final compact layout) ---------- */
+.main-footer {
+  background:#1e293b;
+  border-top:1px solid var(--border-color);
+  color:var(--text-secondary);
+  padding:20px 12px 12px;
+  margin-top:36px;
+}
+
+.footer-inner {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  max-width:1100px;
+  margin:0 auto;
+  gap:8px;
+}
+
+/* Brand */
+.footer-brand {
+  flex:1 1 180px;
+  text-align:center;
+}
+.footer-brand .logo-container {
+  justify-content:center;
+  transform:scale(0.9);
+}
+.footer-tagline {
+  font-size:0.78rem;
+  color:var(--text-tertiary);
+  margin-top:3px;
+}
+
+/* Links */
+.footer-links {
+  flex:1 1 260px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px 10px;
+}
+.footer-links a {
+  color:var(--text-secondary);
+  font-size:0.8rem;
+  text-decoration:none;
+  transition:color 0.3s;
+}
+.footer-links a:hover { color:var(--text-primary); }
+
+/* Socials */
+.footer-social {
+  flex:1 1 140px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:6px;
+  margin-top:2px;
+}
+.social-btn {
+  width:22px;
+  height:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:var(--surface-hover);
+  color:white;
+  font-size:11px;
+  transition:transform .25s ease, background .25s ease;
+}
+.social-btn:hover { transform:translateY(-2px); }
+.social-btn.linkedin:hover { background:#0077b5; }
+.social-btn.github:hover { background:#181717; }
+.social-btn.instagram:hover { 
+  background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fd5949 45%,#d6249f 60%,#285AEB 90%);
+}
+.social-btn.facebook:hover { background:#1877f2; }
+.social-btn.whatsapp:hover { background:#25D366; }
+
+/* Bottom */
+.footer-bottom {
+  border-top:1px solid var(--border-color);
+  text-align:center;
+  padding-top:6px;
+  margin-top:6px;
+  font-size:0.72rem;
+  color:var(--text-tertiary);
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width:768px){
+  .main-footer {
+    padding:8px 6px 8px !important;
+  }
+
+  .footer-inner {
+    flex-direction:column;
+    align-items:center;
+    gap:2px !important;
+  }
+
+  .footer-brand { margin-bottom:0 !important; }
+  .footer-tagline {
+    margin-top:2px;
+    font-size:0.74rem;
+  }
+
+  .footer-links {
+    order:3;
+    margin-top:2px !important;
+    gap:3px 6px !important;
+  }
+
+  .footer-social {
+    order:2;
+    margin-top:0 !important;
+    gap:4px !important;
+  }
+
+  .social-btn {
+    width:20px;
+    height:20px;
+    font-size:10px;
+  }
+}
+
+@media (max-width:420px){
+  .footer-tagline { display:none; }
+
+  .footer-inner { gap:1px !important; }
+
+  .footer-links a { font-size:0.75rem; }
+
+  .social-btn {
+    width:18px;
+    height:18px;
+    font-size:9.5px;
+  }
+
+  .main-footer {
+    padding:6px 4px 4px !important;
+  }
+}
+.nav-admin-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  color: white;
+  background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all .3s;
+  margin-right: 10px;
+}
+
+.nav-admin-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+  color: white;
+}
+
+.nav-admin-link .badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+</style>
+{% endblock %}

@@ -31,6 +31,11 @@ from werkzeug.utils import secure_filename
 from wtforms import TextAreaField, SubmitField, SelectMultipleField, widgets
 from wtforms.validators import Optional
 
+
+# ADD THESE IMPORTS at the top of app.py:
+from decorators import corporate_required, verified_corporate_required, admin_or_corporate_required
+import uuid
+
 # Third-party imports
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
@@ -49,7 +54,9 @@ print(f"DEBUG: DATABASE_URL is '{DATABASE_URL}'")
 # Local imports
 from models import (
     db, User, Application, Document,
-    GoogleToken,LearnershipEmail
+    GoogleToken,LearnershipEmail,
+    CalendarEvent, ApplicationMessage,
+    Conversation, ConversationMessage 
 )
 from forms import (
     AdminLoginForm, EditProfileForm, ChangePasswordForm,
@@ -405,22 +412,31 @@ def login():
 # =============================================================================
 # LOGIN ROUTE (ADMIN)
 # =============================================================================
-
 @app.route("/admin-login", methods=["GET", "POST"])
 def admin_login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        # Redirect based on current user role
+        if current_user.role == "admin":
+            return redirect(url_for("admin_dashboard"))
+        elif current_user.role == "corporate":
+            return redirect(url_for("corporate_dashboard"))
+        else:
+            return redirect(url_for("index"))
 
     form = AdminLoginForm()
 
     if form.validate_on_submit():
-
-        user = User.query.filter_by(
-            username=form.username.data,
-            role="admin"
+        # Check for both admin and corporate users
+        user = User.query.filter_by(username=form.username.data).filter(
+            User.role.in_(["admin", "corporate"])
         ).first()
 
         if user and user.check_password(form.password.data):
+            
+            # Check if corporate user is verified
+            if user.role == "corporate" and not user.is_verified:
+                flash("Your corporate account is pending admin verification. Please wait for approval.", "warning")
+                return render_template("admin_login.html", form=form)
 
             client_ip = request.environ.get("HTTP_X_REAL_IP", request.remote_addr)
             user_agent = request.headers.get("User-Agent", "")
@@ -437,12 +453,24 @@ def admin_login():
             session["session_token"] = session_token
             session.permanent = True
 
+            # Set role-specific session data
+            if user.role == "corporate":
+                session['company_name'] = user.company_name or user.full_name
+                session['is_verified'] = user.is_verified
+                session['is_premium'] = user.is_premium_active()
+
             user.last_login = datetime.utcnow()
             db.session.commit()
 
-            flash("Welcome back, Admin!", "success")
-            return redirect(url_for("admin_dashboard"))
+            # Role-based welcome message and redirect
+            if user.role == "admin":
+                flash("Welcome back, Admin!", "success")
+                return redirect(url_for("admin_dashboard"))
+            elif user.role == "corporate":
+                flash(f"Welcome back, {user.company_name or user.full_name}!", "success")
+                return redirect(url_for("corporate_dashboard"))
 
+        # Generic error message for security
         flash("Invalid username or password", "error")
 
     return render_template("admin_login.html", form=form)
@@ -1102,6 +1130,1002 @@ def calculate_profile_completion(user):
     except Exception as e:
         print(f"Profile completion calculation error: {e}")
         return 50  # Return reasonable defaultc
+
+# =============================================================================
+#filter inbox to codecraft having signature email
+# =============================================================================
+# When sending emails from your corporate interface, automatically add signature
+def send_corporate_email_with_signature(to_email, subject, body, corporate_user):
+    """Send email with CodeCraftCo signature"""
+    
+    signature = f"""
+
+---
+Best regards,
+CodeCraftCo Team
+{corporate_user.company_name}
+{corporate_user.company_email}
+
+This email was sent from CodeCraftCo - Empowering careers through technology
+Visit us: https://codecraft.co.za
+"""
+    
+    # Add signature to email body
+    email_body_with_signature = body + signature
+    
+    # Send email with signature
+    # Your existing email sending logic here
+    pass
+
+
+@app.route('/corporate/inbox/sync')
+@corporate_required
+def sync_filtered_inbox():
+    """Manually sync inbox with Gmail - only CodeCraftCo signature emails"""
+    try:
+        # Get Gmail service - you'll need to implement this
+        gmail_service = get_gmail_service_for_user(current_user)
+        filtered_inbox = FilteredInboxService(gmail_service)
+        
+        synced_count = filtered_inbox.sync_codecraftco_conversations_only(current_user.id)
+        
+        flash(f'Synced {synced_count} CodeCraftCo conversations from Gmail', 'success')
+        
+    except Exception as e:
+        print(f"Error syncing filtered inbox: {e}")
+        flash('Error syncing with Gmail', 'error')
+    
+    return redirect(url_for('corporate_inbox'))
+
+def has_codecraftco_signature_check(message_body):
+    """Helper function to check for CodeCraftCo signature"""
+    if not message_body:
+        return False
+    
+    codecraftco_signatures = [
+        'codecraftco',
+        'codecraft',
+        'code craft',
+        'codecraft.co.za',
+        '@codecraftco',
+        'best regards,\ncodecraftco',
+        'kind regards,\ncodecraftco',
+        'sent from codecraftco',
+        'codecraftco team'
+    ]
+    
+    message_lower = message_body.lower()
+    return any(signature.lower() in message_lower for signature in codecraftco_signatures)
+
+def get_gmail_service_for_user(user):
+    """Get Gmail service for specific user - implement based on your OAuth setup"""
+    try:
+        # This depends on how you store OAuth tokens
+        # You'll need to adapt this to your OAuth implementation
+        token = GoogleToken.query.filter_by(user_id=user.id).first()
+        if not token:
+            return None
+        
+        # Reconstruct credentials and return service
+        # Implementation depends on your OAuth setup
+        pass
+    except Exception as e:
+        print(f"Error getting Gmail service: {e}")
+        return None
+# =============================================================================
+# filtering inbox to codecraft having signature email
+# =============================================================================
+
+# Add these functions to your gmail_service.py or create a new file
+
+class FilteredInboxService:
+    def __init__(self, gmail_service):
+        self.service = gmail_service
+        self.codecraftco_signatures = [
+            'codecraftco',
+            'codecraft',
+            'code craft',
+            'codecraft.co.za',
+            '@codecraftco',
+            'best regards,\ncodecraftco',
+            'kind regards,\ncodecraftco'
+        ]
+    
+    def has_codecraftco_signature(self, message_body):
+        """Check if email contains CodeCraftCo signature"""
+        if not message_body:
+            return False
+        
+        message_lower = message_body.lower()
+        return any(signature.lower() in message_lower for signature in self.codecraftco_signatures)
+    
+    def get_filtered_thread_messages(self, thread_id):
+        """Get only messages with CodeCraftCo signature from a thread"""
+        try:
+            thread = self.service.users().threads().get(
+                userId='me', 
+                id=thread_id,
+                format='full'
+            ).execute()
+            
+            filtered_messages = []
+            for msg in thread.get('messages', []):
+                message_data = self.parse_message(msg)
+                
+                # Only include if has CodeCraftCo signature
+                if self.has_codecraftco_signature(message_data.get('body', '')):
+                    filtered_messages.append(message_data)
+            
+            return filtered_messages
+        except Exception as e:
+            print(f"Error getting filtered thread messages: {e}")
+            return []
+    
+    def sync_codecraftco_conversations_only(self, corporate_user_id):
+        """Sync only conversations that contain CodeCraftCo signature"""
+        try:
+            # Get applications for this corporate user
+            applications = Application.query.filter_by(
+                company_email=current_user.company_email
+            ).filter(Application.gmail_thread_id.isnot(None)).all()
+            
+            synced_count = 0
+            for app in applications:
+                if app.gmail_thread_id:
+                    # Get thread messages
+                    thread_messages = self.get_filtered_thread_messages(app.gmail_thread_id)
+                    
+                    # Only proceed if thread has CodeCraftCo signature messages
+                    if thread_messages:
+                        conversation = self.create_or_update_conversation(
+                            app.gmail_thread_id,
+                            app.id,
+                            thread_messages,
+                            corporate_user_id
+                        )
+                        if conversation:
+                            synced_count += 1
+            
+            return synced_count
+            
+        except Exception as e:
+            print(f"Error syncing CodeCraftCo conversations: {e}")
+            return 0
+    
+    def create_or_update_conversation(self, thread_id, application_id, messages, corporate_user_id):
+        """Create or update conversation with filtered messages"""
+        try:
+            # Get or create conversation
+            conversation = Conversation.query.filter_by(
+                gmail_thread_id=thread_id
+            ).first()
+            
+            if not conversation:
+                application = Application.query.get(application_id)
+                if not application:
+                    return None
+                
+                conversation = Conversation(
+                    application_id=application_id,
+                    gmail_thread_id=thread_id,
+                    subject=messages[0]['subject'] if messages else 'No Subject',
+                    corporate_user_id=corporate_user_id,
+                    applicant_user_id=application.user_id
+                )
+                db.session.add(conversation)
+                db.session.flush()
+            
+            # Add only CodeCraftCo signature messages
+            codecraftco_message_count = 0
+            for msg in messages:
+                existing_msg = ConversationMessage.query.filter_by(
+                    gmail_message_id=msg['id']
+                ).first()
+                
+                if not existing_msg:
+                    sender_type = self.determine_sender_type(msg['from'], conversation)
+                    sender_id = self.get_sender_id(msg['from'], conversation)
+                    
+                    conv_message = ConversationMessage(
+                        conversation_id=conversation.id,
+                        gmail_message_id=msg['id'],
+                        sender_id=sender_id,
+                        sender_type=sender_type,
+                        subject=msg['subject'],
+                        body=msg['body'],
+                        html_body=msg['html_body'],
+                        gmail_timestamp=msg['timestamp'],
+                        has_attachments=msg['has_attachments']
+                    )
+                    
+                    db.session.add(conv_message)
+                    codecraftco_message_count += 1
+            
+            # Update conversation metadata only if we have CodeCraftCo messages
+            if codecraftco_message_count > 0:
+                conversation.last_message_at = max(msg['timestamp'] for msg in messages)
+                conversation.updated_at = datetime.utcnow()
+                db.session.commit()
+                return conversation
+            else:
+                # If no CodeCraftCo messages, don't create/keep conversation
+                if conversation.id:
+                    db.session.delete(conversation)
+                    db.session.commit()
+                return None
+                
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error creating filtered conversation: {e}")
+            return None
+    
+    def parse_message(self, message):
+        """Parse Gmail message into structured data"""
+        headers = {h['name']: h['value'] for h in message['payload'].get('headers', [])}
+        
+        # Get message body
+        body = self.extract_message_body(message['payload'])
+        
+        return {
+            'id': message['id'],
+            'thread_id': message['threadId'],
+            'subject': headers.get('Subject', ''),
+            'from': headers.get('From', ''),
+            'to': headers.get('To', ''),
+            'date': headers.get('Date', ''),
+            'timestamp': self.parse_gmail_date(headers.get('Date', '')),
+            'body': body.get('text', ''),
+            'html_body': body.get('html', ''),
+            'snippet': message.get('snippet', ''),
+            'has_attachments': self.has_attachments(message['payload'])
+        }
+    
+    def extract_message_body(self, payload):
+        """Extract text and HTML body from message payload"""
+        body = {'text': '', 'html': ''}
+        
+        if payload.get('body', {}).get('data'):
+            # Simple message
+            data = payload['body']['data']
+            text = base64.urlsafe_b64decode(data).decode('utf-8')
+            body['text'] = text
+        elif payload.get('parts'):
+            # Multipart message
+            for part in payload['parts']:
+                mime_type = part.get('mimeType', '')
+                if mime_type == 'text/plain' and part.get('body', {}).get('data'):
+                    data = part['body']['data']
+                    body['text'] = base64.urlsafe_b64decode(data).decode('utf-8')
+                elif mime_type == 'text/html' and part.get('body', {}).get('data'):
+                    data = part['body']['data']
+                    body['html'] = base64.urlsafe_b64decode(data).decode('utf-8')
+        
+        return body
+    
+    def has_attachments(self, payload):
+        """Check if message has attachments"""
+        if payload.get('parts'):
+            for part in payload['parts']:
+                if part.get('filename') and part['filename'] != '':
+                    return True
+        return False
+    
+    def parse_gmail_date(self, date_str):
+        """Parse Gmail date string to datetime"""
+        try:
+            from email.utils import parsedate_to_datetime
+            return parsedate_to_datetime(date_str)
+        except:
+            return datetime.utcnow()
+    
+    def determine_sender_type(self, from_email, conversation):
+        """Determine if sender is corporate or applicant"""
+        corporate_user = User.query.get(conversation.corporate_user_id)
+        if corporate_user and corporate_user.company_email in from_email:
+            return 'corporate'
+        return 'applicant'
+    
+    def get_sender_id(self, from_email, conversation):
+        """Get sender user ID"""
+        corporate_user = User.query.get(conversation.corporate_user_id)
+        if corporate_user and corporate_user.company_email in from_email:
+            return conversation.corporate_user_id
+        return conversation.applicant_user_id
+# =============================================================================
+# CORPORATE CALENDAR & ANALYTICS ROUTES
+# =============================================================================
+
+@app.route('/corporate/calendar')
+@corporate_required
+def corporate_calendar():
+    # Get all calendar events for this corporate user
+    events = CalendarEvent.query.join(Application).filter(
+        Application.company_email == current_user.company_email,
+        CalendarEvent.start_datetime >= datetime.utcnow() - timedelta(days=30)
+    ).order_by(CalendarEvent.start_datetime.asc()).all()
+    
+    # Convert to dict for JSON serialization
+    events_data = []
+    for event in events:
+        events_data.append({
+            'id': event.id,
+            'title': event.title,
+            'start_datetime': event.start_datetime.isoformat(),
+            'end_datetime': event.end_datetime.isoformat(),
+            'event_type': event.event_type,
+            'location': event.location,
+            'application_id': event.application_id,
+            'description': event.description
+        })
+    
+    return render_template('corporate_calendar.html', events=events_data)
+
+@app.route('/corporate/calendar/event/<int:event_id>/complete', methods=['POST'])
+@verified_corporate_required
+def complete_calendar_event(event_id):
+    event = CalendarEvent.query.filter_by(
+        id=event_id,
+        corporate_user_id=current_user.id
+    ).first_or_404()
+    
+    try:
+        event.status = 'completed'
+        
+        # Update related application
+        if event.application:
+            event.application.application_stage = 'interview_completed'
+            event.application.last_corporate_action = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return {'success': True, 'message': 'Event marked as completed'}
+    
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': 'Error updating event'}, 500
+
+@app.route('/corporate/analytics')
+@corporate_required
+def corporate_analytics():
+    # Calculate analytics data for this corporate user
+    applications = Application.query.filter_by(
+        company_email=current_user.company_email
+    ).all()
+    
+    # Application stages distribution
+    stage_counts = {}
+    for app in applications:
+        stage = app.application_stage or 'applied'
+        stage_counts[stage] = stage_counts.get(stage, 0) + 1
+    
+    application_stages = [
+        {'label': 'Applied', 'value': stage_counts.get('applied', 0)},
+        {'label': 'Reviewed', 'value': stage_counts.get('reviewed', 0)},
+        {'label': 'Interview', 'value': stage_counts.get('interview_scheduled', 0)},
+        {'label': 'Completed', 'value': stage_counts.get('interview_completed', 0)},
+        {'label': 'Accepted', 'value': stage_counts.get('accepted', 0)},
+        {'label': 'Rejected', 'value': stage_counts.get('rejected', 0)},
+    ]
+    
+    # Weekly trends (last 7 days)
+    weekly_trends = []
+    for i in range(7):
+        day = datetime.utcnow() - timedelta(days=6-i)
+        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        
+        day_count = len([app for app in applications if 
+                        app.created_at and day_start <= app.created_at < day_end])
+        weekly_trends.append(day_count)
+    
+    # Opportunity performance
+    opportunities = LearnearshipOpportunity.query.filter_by(
+        company_id=current_user.id
+    ).all()
+    
+    active_ops = len([op for op in opportunities if op.is_active])
+    inactive_ops = len([op for op in opportunities if not op.is_active])
+    expired_ops = len([op for op in opportunities if op.is_expired()])
+    
+    opportunity_performance = [
+        {'label': 'Active', 'value': active_ops},
+        {'label': 'Inactive', 'value': inactive_ops},
+        {'label': 'Expired', 'value': expired_ops}
+    ]
+    
+    # Calculate metrics
+    total_opportunities = len(opportunities)
+    total_applications = len(applications)
+    interviews_scheduled = len([app for app in applications if app.application_stage == 'interview_scheduled'])
+    candidates_hired = len([app for app in applications if app.application_stage == 'hired'])
+    
+    # Calculate changes
+    this_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    new_opportunities_this_month = len([op for op in opportunities if 
+                                      op.created_at and op.created_at >= this_month])
+    
+    this_week = datetime.utcnow() - timedelta(days=7)
+    applications_this_week = len([app for app in applications if 
+                                 app.created_at and app.created_at >= this_week])
+    
+    upcoming_interviews = CalendarEvent.query.filter(
+        CalendarEvent.corporate_user_id == current_user.id,
+        CalendarEvent.start_datetime > datetime.utcnow(),
+        CalendarEvent.event_type == 'interview'
+    ).count()
+    
+    hire_rate = round((candidates_hired / max(total_applications, 1)) * 100, 1)
+    
+    return render_template('corporate_analytics.html',
+                         application_stages=application_stages,
+                         weekly_trends=weekly_trends,
+                         opportunity_performance=opportunity_performance,
+                         total_opportunities=total_opportunities,
+                         total_applications=total_applications,
+                         interviews_scheduled=interviews_scheduled,
+                         candidates_hired=candidates_hired,
+                         new_opportunities_this_month=new_opportunities_this_month,
+                         applications_this_week=applications_this_week,
+                         upcoming_interviews=upcoming_interviews,
+                         hire_rate=hire_rate)
+
+@app.route('/corporate/analytics/data')
+@corporate_required
+def corporate_analytics_data():
+    """API endpoint for real-time analytics data"""
+    # Same calculation as above, return JSON
+    # This allows for auto-refresh without page reload
+    # ... implement similar logic as corporate_analytics route
+    return {
+        'success': True,
+        'application_stages': [],  # calculated data
+        'weekly_trends': [],       # calculated data  
+        'opportunity_performance': []  # calculated data
+    }
+
+
+
+# =============================================================================
+# ENHANCED EMAIL WORKFLOW ROUTES
+# =============================================================================
+
+@app.route('/corporate/application/<int:app_id>/schedule-interview', methods=['POST'])
+@verified_corporate_required
+def schedule_interview(app_id):
+    application = Application.query.filter_by(
+        id=app_id,
+        company_email=current_user.company_email
+    ).first_or_404()
+    
+    try:
+        from datetime import datetime as dt
+        
+        # Get form data
+        interview_date_str = request.form.get('interview_date')
+        interview_time_str = request.form.get('interview_time')
+        interview_type = request.form.get('interview_type')
+        interview_location = request.form.get('interview_location')
+        interview_notes = request.form.get('interview_notes')
+        
+        # Combine date and time
+        interview_datetime = dt.strptime(
+            f"{interview_date_str} {interview_time_str}", 
+            "%Y-%m-%d %H:%M"
+        )
+        
+        # Update application
+        application.interview_date = interview_datetime
+        application.interview_time = interview_time_str
+        application.interview_type = interview_type
+        application.interview_location = interview_location
+        application.interview_notes = interview_notes
+        application.application_stage = 'interview_scheduled'
+        application.last_corporate_action = datetime.utcnow()
+        application.corporate_user_id = current_user.id
+        
+        # Create calendar event
+        calendar_event = CalendarEvent(
+            application_id=application.id,
+            corporate_user_id=current_user.id,
+            applicant_user_id=application.user_id,
+            title=f"Interview: {application.full_name} - {current_user.company_name}",
+            description=f"Interview for {application.company_name} learnership position",
+            start_datetime=interview_datetime,
+            end_datetime=interview_datetime + timedelta(hours=1),  # Default 1 hour
+            location=interview_location,
+            event_type='interview'
+        )
+        
+        db.session.add(calendar_event)
+        db.session.commit()
+        
+        # Send interview notification email
+        send_interview_notification_email(application, interview_datetime, interview_type, interview_location, interview_notes)
+        
+        flash('Interview scheduled successfully! Notification sent to applicant.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error scheduling interview: {e}")
+        flash('Error scheduling interview. Please try again.', 'error')
+    
+    return redirect(url_for('corporate_application_detail', app_id=app_id))
+
+@app.route('/corporate/application/<int:app_id>/send-message', methods=['POST'])
+@verified_corporate_required
+def send_application_message(app_id):
+    application = Application.query.filter_by(
+        id=app_id,
+        company_email=current_user.company_email
+    ).first_or_404()
+    
+    try:
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        
+        # Create message record
+        app_message = ApplicationMessage(
+            application_id=application.id,
+            sender_id=current_user.id,
+            sender_type='corporate',
+            subject=subject,
+            message=message,
+            message_type='general'
+        )
+        
+        db.session.add(app_message)
+        
+        # Send email via Gmail API
+        gmail_message_id = send_corporate_message_email(
+            application, 
+            subject, 
+            message, 
+            current_user
+        )
+        
+        if gmail_message_id:
+            app_message.gmail_message_id = gmail_message_id
+        
+        application.last_corporate_action = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Message sent successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error sending message: {e}")
+        flash('Error sending message. Please try again.', 'error')
+    
+    return redirect(url_for('corporate_application_detail', app_id=app_id))
+
+@app.route('/corporate/application/<int:app_id>/update-stage', methods=['POST'])
+@verified_corporate_required
+def update_application_stage(app_id):
+    application = Application.query.filter_by(
+        id=app_id,
+        company_email=current_user.company_email
+    ).first_or_404()
+    
+    try:
+        data = request.get_json()
+        new_stage = data.get('stage')
+        
+        if new_stage not in ['applied', 'reviewed', 'interview_scheduled', 'interview_completed', 'accepted', 'rejected', 'hired']:
+            return {'success': False, 'message': 'Invalid stage'}, 400
+        
+        old_stage = application.application_stage
+        application.update_stage(new_stage, current_user.id)
+        
+        # Send notification email based on stage
+        if new_stage == 'accepted':
+            send_acceptance_email(application, current_user)
+        elif new_stage == 'rejected':
+            send_rejection_email(application, current_user)
+        elif new_stage == 'reviewed':
+            send_status_update_email(application, 'under review', current_user)
+        
+        return {
+            'success': True, 
+            'message': f'Application updated from {old_stage} to {new_stage}'
+        }
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating stage: {e}")
+        return {'success': False, 'message': 'Error updating stage'}, 500
+
+@app.route('/corporate/application/<int:app_id>/update-notes', methods=['POST'])
+@verified_corporate_required
+def update_application_notes(app_id):
+    application = Application.query.filter_by(
+        id=app_id,
+        company_email=current_user.company_email
+    ).first_or_404()
+    
+    try:
+        notes = request.form.get('corporate_notes')
+        application.corporate_notes = notes
+        application.last_corporate_action = datetime.utcnow()
+        db.session.commit()
+        
+        flash('Notes updated successfully!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating notes: {e}")
+        flash('Error updating notes. Please try again.', 'error')
+    
+    return redirect(url_for('corporate_application_detail', app_id=app_id))
+
+
+@app.route('/corporate/calendar/events')
+@corporate_required
+def get_calendar_events():
+    # API endpoint for calendar widget
+    events = CalendarEvent.query.join(Application).filter(
+        Application.company_email == current_user.company_email,
+        CalendarEvent.start_datetime >= datetime.utcnow() - timedelta(days=30),
+        CalendarEvent.start_datetime <= datetime.utcnow() + timedelta(days=90)
+    ).all()
+    
+    events_data = [event.to_dict() for event in events]
+    return {'events': events_data}
+
+
+# =============================================================================
+# COPORATE !!!!!!!!!!!!!!!!!!!!
+# =============================================================================
+
+
+# Add these routes to your app.py
+
+@app.route('/corporate/inbox')
+@corporate_required
+def corporate_inbox():
+    """Corporate inbox showing only CodeCraftCo conversations"""
+    conversations = Conversation.query.filter_by(
+        corporate_user_id=current_user.id,
+        is_active=True
+    ).order_by(Conversation.last_message_at.desc()).all()
+    
+    # Filter to only show conversations with CodeCraftCo signature
+    filtered_conversations = []
+    for conv in conversations:
+        # Check if conversation has any CodeCraftCo messages
+        codecraftco_messages = ConversationMessage.query.filter_by(
+            conversation_id=conv.id
+        ).all()
+        
+        has_codecraftco_signature = False
+        for msg in codecraftco_messages:
+            if has_codecraftco_signature_check(msg.body):
+                has_codecraftco_signature = True
+                break
+        
+        if has_codecraftco_signature:
+            filtered_conversations.append(conv)
+    
+    return render_template('corporate/inbox.html', conversations=filtered_conversations)
+
+
+
+@app.route('/corporate/inbox/conversation/<int:conversation_id>')
+@corporate_required
+def view_conversation(conversation_id):
+    """View specific conversation"""
+    conversation = Conversation.query.filter_by(
+        id=conversation_id,
+        corporate_user_id=current_user.id
+    ).first_or_404()
+    
+    # Mark messages as read by corporate
+    unread_messages = ConversationMessage.query.filter_by(
+        conversation_id=conversation_id,
+        is_read_by_corporate=False
+    ).filter(ConversationMessage.sender_type == 'applicant').all()
+    
+    for msg in unread_messages:
+        msg.mark_as_read('corporate')
+    
+    # Reset corporate unread count
+    conversation.corporate_unread_count = 0
+    db.session.commit()
+    
+    messages = ConversationMessage.query.filter_by(
+        conversation_id=conversation_id
+    ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+    
+    return render_template('corporate/conversation.html', 
+                         conversation=conversation, 
+                         messages=messages)
+
+@app.route('/corporate/inbox/conversation/<int:conversation_id>/reply', methods=['POST'])
+@corporate_required
+def send_conversation_reply(conversation_id):
+    """Send reply in conversation"""
+    conversation = Conversation.query.filter_by(
+        id=conversation_id,
+        corporate_user_id=current_user.id
+    ).first_or_404()
+    
+    try:
+        body = request.form.get('message')
+        if not body:
+            flash('Message cannot be empty', 'error')
+            return redirect(url_for('view_conversation', conversation_id=conversation_id))
+        
+        # Get Gmail service
+        gmail_service = get_gmail_service(current_user)
+        conv_service = ConversationService(gmail_service)
+        
+        # Send reply via Gmail
+        applicant = User.query.get(conversation.applicant_user_id)
+        result = conv_service.send_reply(
+            thread_id=conversation.gmail_thread_id,
+            to_email=applicant.email,
+            subject=conversation.subject,
+            body=body,
+            from_email=current_user.company_email
+        )
+        
+        if result:
+            # Sync the conversation to get the new message
+            conv_service.sync_conversation_from_thread(
+                conversation.gmail_thread_id,
+                conversation.application_id
+            )
+            
+            flash('Reply sent successfully!', 'success')
+        else:
+            flash('Failed to send reply', 'error')
+            
+    except Exception as e:
+        print(f"Error sending reply: {e}")
+        flash('Error sending reply', 'error')
+    
+    return redirect(url_for('view_conversation', conversation_id=conversation_id))
+
+@app.route('/corporate/inbox/sync')
+@corporate_required
+def sync_inbox():
+    """Manually sync inbox with Gmail"""
+    try:
+        # Get all applications for this corporate user
+        applications = Application.query.filter_by(
+            company_email=current_user.company_email
+        ).filter(Application.gmail_thread_id.isnot(None)).all()
+        
+        gmail_service = get_gmail_service(current_user)
+        conv_service = ConversationService(gmail_service)
+        
+        synced_count = 0
+        for app in applications:
+            if app.gmail_thread_id:
+                conversation = conv_service.sync_conversation_from_thread(
+                    app.gmail_thread_id,
+                    app.id
+                )
+                if conversation:
+                    synced_count += 1
+        
+        flash(f'Synced {synced_count} conversations from Gmail', 'success')
+        
+    except Exception as e:
+        print(f"Error syncing inbox: {e}")
+        flash('Error syncing with Gmail', 'error')
+    
+    return redirect(url_for('corporate_inbox'))
+
+@app.route('/api/corporate/inbox/unread-count')
+@corporate_required
+def get_unread_count():
+    """API endpoint for unread message count"""
+    total_unread = db.session.query(func.sum(Conversation.corporate_unread_count)).filter_by(
+        corporate_user_id=current_user.id,
+        is_active=True
+    ).scalar() or 0
+    
+    return {'unread_count': total_unread}
+# ADD THESE ROUTES to your app.py:
+
+from models import LearnearshipOpportunity
+
+@app.route('/corporate/application/<int:app_id>/status', methods=['POST'])
+@corporate_required
+def update_application_status(app_id):
+    application = Application.query.filter_by(
+        id=app_id,
+        company_email=current_user.company_email
+    ).first_or_404()
+    
+    data = request.get_json()
+    new_status = data.get('status')
+    
+    if new_status in ['new', 'reviewed', 'accepted', 'rejected']:
+        application.status = new_status
+        db.session.commit()
+        return {'success': True, 'message': f'Application marked as {new_status}'}
+    
+    return {'success': False, 'message': 'Invalid status'}, 400
+
+@app.route('/corporate/opportunity/<int:opp_id>/delete', methods=['DELETE'])
+@verified_corporate_required
+def delete_opportunity(opp_id):
+    opportunity = LearnearshipOpportunity.query.filter_by(
+        id=opp_id,
+        company_id=current_user.id
+    ).first_or_404()
+    
+    db.session.delete(opportunity)
+    db.session.commit()
+    
+    flash(f'Opportunity "{opportunity.title}" has been deleted.', 'success')
+    return {'success': True}
+
+    
+@app.route('/corporate/register', methods=['GET', 'POST'])
+def corporate_register():
+    if request.method == 'POST':
+        data = request.form
+        
+        # Check if email exists
+        existing_user = User.query.filter_by(email=data['company_email']).first()
+        if existing_user:
+            flash('Email already registered. Please use a different email.', 'error')
+            return render_template('corporate_register.html')
+        
+        # Create corporate user
+        corporate_user = User(
+            email=data['company_email'],
+            full_name=data['contact_person'],
+            username=data['company_email'].split('@')[0] + '_' + str(uuid.uuid4())[:8],
+            role='corporate',
+            company_name=data['company_name'],
+            company_email=data['company_email'],
+            contact_person=data['contact_person'],
+            company_phone=data.get('phone'),
+            company_website=data.get('website'),
+            company_address=data.get('company_address'),
+            is_verified=False,
+            auth_method='corporate_form'
+        )
+        
+        # Set a temporary password (they'll change it on first login)
+        corporate_user.set_password('temp_' + str(uuid.uuid4())[:12])
+        
+        db.session.add(corporate_user)
+        db.session.commit()
+        
+        flash('Registration successful! Your username is: ' + corporate_user.username + '. An admin will verify your account soon.', 'success')
+        return redirect(url_for('admin_login'))
+    
+    return render_template('corporate_register.html')
+
+@app.route('/corporate/dashboard')
+@corporate_required
+def corporate_dashboard():
+    stats = current_user.get_corporate_stats()
+    
+    # Get recent applications to company
+    recent_applications = Application.query.filter_by(
+        company_email=current_user.company_email
+    ).order_by(Application.created_at.desc()).limit(5).all() if current_user.company_email else []
+    
+    # Get upcoming interviews count
+    upcoming_interviews = 0
+    if hasattr(current_user, 'id'):
+        try:
+            from models import CalendarEvent
+            upcoming_interviews = CalendarEvent.query.filter(
+                CalendarEvent.corporate_user_id == current_user.id,
+                CalendarEvent.start_datetime > datetime.utcnow(),
+                CalendarEvent.event_type == 'interview'
+            ).count()
+        except:
+            upcoming_interviews = 0
+    
+    return render_template('corporate_dashboard.html',
+                         corporate_user=current_user,
+                         active_posts=stats.get('opportunities', 0),
+                         total_applications=stats.get('applications', 0),
+                         total_views=stats.get('views', 0),
+                         upcoming_interviews=upcoming_interviews,
+                         recent_applications=recent_applications)
+
+
+@app.route('/corporate/post-opportunity', methods=['GET', 'POST'])
+@verified_corporate_required
+def post_opportunity():
+    if request.method == 'POST':
+        data = request.form
+        
+        opportunity = LearnearshipOpportunity(
+            company_id=current_user.id,
+            title=data['title'],
+            description=data['description'],
+            requirements=data.get('requirements'),
+            benefits=data.get('benefits'),
+            location=data['location'],
+            duration=data.get('duration'),
+            stipend=data.get('stipend'),
+            application_email=data['application_email'],
+            expire_date=datetime.strptime(data['expire_date'], '%Y-%m-%d'),
+            is_recurring=bool(data.get('is_recurring')),
+            recurring_frequency=data.get('recurring_frequency')
+        )
+        
+        if data.get('deadline'):
+            opportunity.application_deadline = datetime.strptime(data['deadline'], '%Y-%m-%d')
+        
+        if data.get('max_applicants'):
+            opportunity.max_applicants = int(data['max_applicants'])
+        
+        db.session.add(opportunity)
+        db.session.commit()
+        
+        flash('Learnership opportunity posted successfully!', 'success')
+        return redirect(url_for('corporate_dashboard'))
+    
+    # ADD THIS LINE - pass corporate_user to template
+    return render_template('corporate_post_opportunity.html', corporate_user=current_user)
+
+@app.route('/corporate/applications')
+@corporate_required
+def corporate_applications():
+    try:
+        # Ensure we have a valid corporate user
+        if not current_user.is_corporate or not current_user.company_email:
+            flash('Corporate profile incomplete. Please update your company information.', 'warning')
+            return redirect(url_for('corporate_dashboard'))
+        
+        # Get applications sent to this company
+        applications = Application.query.filter_by(
+            company_email=current_user.company_email
+        ).order_by(Application.created_at.desc()).all()
+        
+        return render_template('corporate_applications.html', 
+                             applications=applications,
+                             corporate_user=current_user)
+    except Exception as e:
+        flash(f'Error loading applications: {str(e)}', 'error')
+        return redirect(url_for('corporate_dashboard'))
+
+@app.route('/corporate/application/<int:app_id>')
+@corporate_required
+def corporate_application_detail(app_id):
+    application = Application.query.filter_by(
+        id=app_id,
+        company_email=current_user.company_email
+    ).first_or_404()
+    
+    return render_template('corporate_application_detail_enhanced.html', 
+                         application=application)
+
+@app.route('/corporate/opportunities')
+@corporate_required
+def corporate_opportunities():
+    opportunities = LearnearshipOpportunity.query.filter_by(
+        company_id=current_user.id
+    ).order_by(LearnearshipOpportunity.created_at.desc()).all()
+    
+    return render_template('corporate_opportunities.html',
+                         opportunities=opportunities)
+
+@app.route('/corporate/opportunity/<int:opp_id>/toggle')
+@verified_corporate_required
+def toggle_opportunity(opp_id):
+    opportunity = LearnearshipOpportunity.query.filter_by(
+        id=opp_id,
+        company_id=current_user.id
+    ).first_or_404()
+    
+    opportunity.is_active = not opportunity.is_active
+    db.session.commit()
+    
+    status = "activated" if opportunity.is_active else "deactivated"
+    flash(f'Opportunity "{opportunity.title}" has been {status}.', 'success')
+    
+    return redirect(url_for('corporate_opportunities'))
 
 # =============================================================================
 # PROFILE COMPLETION UTILITY
@@ -2302,7 +3326,7 @@ def bulk_send_job(app, user_id, learnerships, attachment_ids):
                 create_message_with_attachments,
                 send_gmail_message,
             )
-            from models import User, Document, Application, GoogleToken, db
+            from models import User, Document, Application, GoogleToken, db, LearnearshipOpportunity
 
             user = User.query.get(user_id)
             if not user:

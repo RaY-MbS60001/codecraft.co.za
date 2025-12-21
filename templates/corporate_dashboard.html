@@ -1,0 +1,1429 @@
+{% extends "base.html" %}
+{% block title %}Corporate Dashboard - CodeCraftCo{% endblock %}
+
+{% block additional_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+    :root {
+        --background: #1e293b;
+        --surface: #334155;
+        --surface-hover: #475569;
+        --surface-alt: #64748b;
+        --border-color: #475569;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --primary-light: rgba(59, 130, 246, 0.15);
+        --success-color: #10b981;
+        --success-hover: #059669;
+        --success-light: rgba(16, 185, 129, 0.15);
+        --warning-color: #f59e0b;
+        --warning-hover: #d97706;
+        --warning-light: rgba(245, 158, 11, 0.15);
+        --danger-color: #ef4444;
+        --danger-hover: #dc2626;
+        --danger-light: rgba(239, 68, 68, 0.15);
+        --info-color: #06b6d4;
+        --info-light: rgba(6, 182, 212, 0.15);
+        --premium: #f093fb;
+        --premium-secondary: #f5576c;
+        --premium-light: rgba(240, 147, 251, 0.15);
+        --purple: #8b5cf6;
+        --purple-hover: #7c3aed;
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-full: 50%;
+        --transition-fast: 0.15s ease;
+        --transition-normal: 0.3s ease;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+        --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
+
+    body {
+        background: var(--background);
+        color: var(--text-primary);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+    }
+
+    /* Navigation */
+    .dashboard-nav {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: var(--shadow);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .nav-left .nav-logo {
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transform: translateY(16px);
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(10px);
+        transition: all var(--transition-normal);
+    }
+
+    .letter-box:hover {
+        transform: scale(1.05) rotate(-3deg);
+    }
+
+    .letter-box.red {
+        box-shadow: 0 0 12px #ff0000, 0 0 24px rgba(255, 0, 0, 0.4);
+    }
+
+    .letter-box.blue {
+        box-shadow: 0 0 12px #0099ff, 0 0 24px rgba(0, 153, 255, 0.4);
+    }
+
+    .letter-box.orange {
+        box-shadow: 0 0 12px #ff8800, 0 0 24px rgba(255, 136, 0, 0.4);
+    }
+
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
+
+    .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nav-corporate-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-normal);
+        font-weight: 500;
+        position: relative;
+    }
+
+    .nav-corporate-link.dashboard {
+        background: linear-gradient(45deg, var(--info-color) 0%, #0891b2 100%);
+        box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+    }
+
+    .nav-corporate-link.inbox {
+        background: linear-gradient(45deg, var(--purple) 0%, var(--purple-hover) 100%);
+        box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+    }
+
+    .nav-corporate-link.calendar {
+        background: linear-gradient(45deg, #10b981 0%, #059669 100%);
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .nav-corporate-link.analytics {
+        background: linear-gradient(45deg, #f59e0b 0%, #d97706 100%);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+
+    .nav-corporate-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Inbox Badge */
+    .inbox-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        border: 2px solid var(--surface);
+        animation: pulse-notification 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-notification {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        50% {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+    }
+
+    .user-menu {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .user-menu-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: white;
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-normal);
+    }
+
+    .user-menu-trigger:hover {
+        background: var(--surface-hover);
+    }
+
+    .user-avatar-small span {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        border: 2px solid var(--border-color);
+    }
+
+    .user-name {
+        font-size: 0.9rem;
+        color: white;
+        font-weight: 500;
+    }
+
+    .chevron-icon {
+        transition: transform var(--transition-normal);
+        color: var(--text-secondary);
+    }
+
+    .user-menu-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 48px;
+        background: var(--surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        min-width: 200px;
+        z-index: 1001;
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(10px);
+    }
+
+    .user-menu-trigger:hover+.user-menu-dropdown,
+    .user-menu-dropdown:hover {
+        display: block;
+    }
+
+    .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        color: white;
+        text-decoration: none;
+        transition: background var(--transition-fast);
+        font-size: 0.9rem;
+        position: relative;
+    }
+
+    .menu-item:hover {
+        background: var(--surface-hover);
+        color: white;
+        text-decoration: none;
+    }
+
+    .menu-item i {
+        width: 16px;
+    }
+
+    .menu-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 0;
+    }
+
+    .menu-item.logout {
+        color: var(--danger-color) !important;
+    }
+
+    .menu-item.logout:hover {
+        background: var(--danger-light) !important;
+        color: var(--danger-color) !important;
+    }
+
+    /* Menu Badge */
+    .menu-badge {
+        margin-left: auto;
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    /* Main Content */
+    .main-content {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .dashboard-header {
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .dashboard-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(45deg, var(--text-primary), var(--info-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .dashboard-header p {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    /* Verification Alert */
+    .verification-alert {
+        background: linear-gradient(45deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+        border: 1px solid var(--warning-color);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        animation: pulse-warning 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-warning {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+        }
+        50% {
+            transform: scale(1.02);
+            box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+        }
+    }
+
+    .verification-alert i {
+        font-size: 2rem;
+        color: var(--warning-color);
+        flex-shrink: 0;
+    }
+
+    .verification-alert div h4 {
+        margin: 0 0 0.5rem 0;
+        color: var(--warning-color);
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .verification-alert div p {
+        margin: 0;
+        color: var(--text-primary);
+        line-height: 1.5;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+
+    .stat-card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        display: flex;
+        align-items: center;
+        box-shadow: var(--shadow);
+        transition: all var(--transition-normal);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.1), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .stat-card:hover::before {
+        left: 100%;
+    }
+
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1.5rem;
+        flex-shrink: 0;
+        font-size: 1.5rem;
+    }
+
+    .stat-icon.opportunities {
+        background: linear-gradient(45deg, var(--info-color), #0891b2);
+        color: white;
+    }
+
+    .stat-icon.applications {
+        background: linear-gradient(45deg, var(--success-color), var(--success-hover));
+        color: white;
+    }
+
+    .stat-icon.inbox {
+        background: linear-gradient(45deg, var(--purple), var(--purple-hover));
+        color: white;
+    }
+
+    .stat-icon.interviews {
+        background: linear-gradient(45deg, #10b981, #059669);
+        color: white;
+    }
+
+    .stat-icon.premium {
+        background: linear-gradient(45deg, var(--premium), var(--premium-secondary));
+        color: white;
+    }
+
+    .stat-content {
+        flex-grow: 1;
+    }
+
+    .stat-content h3 {
+        font-size: 2rem;
+        margin: 0 0 0.5rem 0;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .stat-content p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .stat-meta {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        margin-top: 0.25rem;
+    }
+
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+
+    .actions-card,
+    .applications-card {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        box-shadow: var(--shadow);
+        border: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .card-header i {
+        font-size: 1.5rem;
+        color: var(--info-color);
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all var(--transition-normal);
+        text-decoration: none;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .action-btn:hover::before {
+        left: 100%;
+    }
+
+    .action-btn.primary {
+        background: linear-gradient(45deg, var(--primary-color), var(--primary-hover));
+        color: white;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .action-btn.primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .action-btn.inbox {
+        background: linear-gradient(45deg, var(--purple), var(--purple-hover));
+        color: white;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        position: relative;
+    }
+
+    .action-btn.inbox:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .action-btn.success {
+        background: linear-gradient(45deg, var(--success-color), var(--success-hover));
+        color: white;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .action-btn.success:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .action-btn.warning {
+        background: linear-gradient(45deg, var(--warning-color), var(--warning-hover));
+        color: white;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+
+    .action-btn.warning:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .action-btn.info {
+        background: linear-gradient(45deg, var(--info-color), #0891b2);
+        color: white;
+        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .action-btn.info:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(6, 182, 212, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .action-btn.analytics {
+        background: linear-gradient(45deg, #8b5cf6, #7c3aed);
+        color: white;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+    }
+
+    .action-btn.analytics:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Action Badge */
+    .action-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Recent Applications */
+    .applications-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .application-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all var(--transition-fast);
+    }
+
+    .application-item:last-child {
+        border-bottom: none;
+    }
+
+    .application-item:hover {
+        background-color: var(--surface-hover);
+        margin: 0 -1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        border-radius: var(--radius-md);
+    }
+
+    .application-info h4 {
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+
+    .application-info p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .application-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-small {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: var(--surface-hover);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        font-size: 0.9rem;
+    }
+
+    .btn-small:hover {
+        background: var(--primary-light);
+        color: var(--primary-color);
+        transform: translateY(-2px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-tertiary);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+        opacity: 0.5;
+    }
+
+    .view-all-link {
+        color: var(--info-color);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all var(--transition-fast);
+    }
+
+    .view-all-link:hover {
+        color: #0891b2;
+        text-decoration: underline;
+        transform: translateX(3px);
+    }
+
+    /* Footer */
+    .main-footer {
+        background: #1e293b;
+        border-top: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 20px 14px 14px;
+        margin-top: 40px;
+    }
+
+    .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        max-width: 1100px;
+        margin: 0 auto;
+        gap: 12px;
+    }
+
+    .footer-brand {
+        flex: 1 1 200px;
+        text-align: center;
+    }
+
+    .footer-brand .logo-container {
+        justify-content: center;
+        transform: scale(0.9);
+        margin-bottom: 8px;
+    }
+
+    .footer-tagline {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        margin-top: 3px;
+    }
+
+    .footer-links {
+        flex: 1 1 280px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 12px;
+    }
+
+    .footer-links a {
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: color 0.3s;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    .footer-links a:hover {
+        color: var(--text-primary);
+        background: rgba(248, 250, 252, 0.1);
+    }
+
+    .footer-social {
+        flex: 1 1 160px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+    }
+
+    .social-btn {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        color: white;
+        font-size: 12px;
+        text-decoration: none;
+        transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .social-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .social-btn.linkedin:hover {
+        background: #0077b5;
+    }
+
+    .social-btn.github:hover {
+        background: #181717;
+    }
+
+    .social-btn.instagram:hover {
+        background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+    }
+
+    .social-btn.facebook:hover {
+        background: #1877f2;
+    }
+
+    .social-btn.whatsapp:hover {
+        background: #25D366;
+    }
+
+    .footer-bottom {
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+        padding-top: 8px;
+        margin-top: 8px;
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .dashboard-nav {
+            padding: 0.5rem 1rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-right {
+            gap: 0.75rem;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-corporate-link span {
+            display: none;
+        }
+
+        .nav-corporate-link {
+            padding: 8px;
+            min-width: 40px;
+            justify-content: center;
+        }
+
+        .inbox-badge {
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            top: -6px;
+            right: -6px;
+        }
+
+        .action-badge {
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            top: 6px;
+            right: 6px;
+        }
+
+        .user-name {
+            display: none;
+        }
+
+        .main-content {
+            padding: 1rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+        }
+
+        .quick-actions-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .actions-card,
+        .applications-card {
+            padding: 1.5rem;
+        }
+
+        .application-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .verification-alert {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .footer-inner {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-header h1 {
+            font-size: 1.6rem;
+        }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .action-btn {
+            padding: 0.875rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .actions-card,
+        .applications-card {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<!-- Enhanced Navigation with Calendar & Analytics & Inbox -->
+<nav class="dashboard-nav">
+    <div class="nav-left">
+        <div class="nav-logo">
+            <a href="{{ url_for('index') }}">
+                <div class="logo-container">
+                    <div class="word">
+                        <div class="letter-box red">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">ode</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box blue">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">raft</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box orange">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">o</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="nav-right">
+        <a href="{{ url_for('corporate_dashboard') }}" class="nav-corporate-link dashboard">
+            <i class="fas fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <!-- Add Inbox Link -->
+        <a href="{{ url_for('corporate_inbox') }}" class="nav-corporate-link inbox" id="inboxNavLink">
+            <i class="fas fa-envelope"></i>
+            <span>Inbox</span>
+            <span class="inbox-badge" id="navInboxBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- Add Calendar Link -->
+        <a href="{{ url_for('corporate_calendar') }}" class="nav-corporate-link calendar">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Calendar</span>
+        </a>
+
+        <!-- Add Analytics Link -->
+        <a href="{{ url_for('corporate_analytics') }}" class="nav-corporate-link analytics">
+            <i class="fas fa-chart-bar"></i>
+            <span>Analytics</span>
+        </a>
+
+        <div class="user-menu">
+            <button class="user-menu-trigger" onclick="toggleUserMenu()">
+                <div class="user-avatar-small">
+                    <span>{{ corporate_user.company_name[0].upper() if corporate_user.company_name else 'C' }}</span>
+                </div>
+                <span class="user-name">{{ corporate_user.company_name[:20] if corporate_user.company_name else
+                    'Corporate User' }}</span>
+                <svg class="chevron-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M4.646 6.646a.5.5 0 01.708 0L8 9.293l2.646-2.647a.5.5 0 01.708.708l-3 3a.5.5 0 01-.708 0l-3-3a.5.5 0 010-.708z" />
+                </svg>
+            </button>
+            <div class="user-menu-dropdown" id="userMenuDropdown">
+                <a href="{{ url_for('corporate_opportunities') }}" class="menu-item">
+                    <i class="fas fa-briefcase"></i> My Opportunities
+                </a>
+                <a href="{{ url_for('corporate_applications') }}" class="menu-item">
+                    <i class="fas fa-inbox"></i> Applications
+                </a>
+                <a href="{{ url_for('corporate_inbox') }}" class="menu-item">
+                    <i class="fas fa-envelope"></i> Inbox
+                    <span class="menu-badge" id="menuInboxBadge" style="display: none;">0</span>
+                </a>
+                <a href="{{ url_for('corporate_calendar') }}" class="menu-item">
+                    <i class="fas fa-calendar-alt"></i> Calendar
+                </a>
+                <a href="{{ url_for('corporate_analytics') }}" class="menu-item">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </a>
+                <a href="#" class="menu-item">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+                <hr class="menu-divider">
+                <a href="{{ url_for('logout') }}" class="menu-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="main-content">
+    <div class="dashboard-header">
+        <h1>Welcome Back, {{ corporate_user.company_name or 'Corporate Partner' }}</h1>
+        <p>Manage your learnership opportunities and connect with talented candidates</p>
+    </div>
+
+    <!-- Verification Alert -->
+    {% if not corporate_user.is_verified %}
+    <div class="verification-alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <h4>Account Pending Verification</h4>
+            <p>Your corporate account is awaiting admin verification. You'll be able to post opportunities and access
+                all features once verified. This typically takes 24-48 hours.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats Grid -->
+    <!-- Enhanced Stats Grid with Inbox -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon opportunities">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ active_posts }}</h3>
+                <p>Active Opportunities</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon applications">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_applications }}</h3>
+                <p>Total Applications</p>
+            </div>
+        </div>
+
+        <!-- Add Inbox Stats -->
+        <div class="stat-card" onclick="window.location.href='{{ url_for('corporate_inbox') }}'">
+            <div class="stat-icon inbox">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <div class="stat-content">
+                <h3 id="inboxStatsCount">{{ total_conversations or '0' }}</h3>
+                <p>Inbox Conversations</p>
+                <div class="stat-meta" id="inboxStatsMeta">Active communications</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon interviews">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ upcoming_interviews or '0' }}</h3>
+                <p>Upcoming Interviews</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions and Recent Applications -->
+    <div class="quick-actions-grid">
+        <!-- Enhanced Quick Actions with Inbox -->
+        <div class="actions-card">
+            <div class="card-header">
+                <i class="fas fa-bolt"></i>
+                <h3>Quick Actions</h3>
+            </div>
+            <div class="action-buttons">
+                <a href="{{ url_for('post_opportunity') }}" class="action-btn primary">
+                    <i class="fas fa-plus"></i>
+                    Post New Opportunity
+                </a>
+                
+                <!-- Add Inbox Action -->
+                <a href="{{ url_for('corporate_inbox') }}" class="action-btn inbox" id="inboxActionBtn">
+                    <i class="fas fa-envelope"></i>
+                    Manage Inbox
+                    <span class="action-badge" id="inboxActionBadge" style="display: none;">0</span>
+                </a>
+                
+                <a href="{{ url_for('corporate_applications') }}" class="action-btn success">
+                    <i class="fas fa-inbox"></i>
+                    Manage Applications
+                </a>
+                <a href="{{ url_for('corporate_opportunities') }}" class="action-btn info">
+                    <i class="fas fa-list"></i>
+                    View All Posts
+                </a>
+                <a href="{{ url_for('corporate_calendar') }}" class="action-btn warning">
+                    <i class="fas fa-calendar-alt"></i>
+                    Interview Calendar
+                </a>
+                <a href="{{ url_for('corporate_analytics') }}" class="action-btn analytics">
+                    <i class="fas fa-chart-bar"></i>
+                    Analytics Report
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Applications -->
+        <div class="applications-card">
+            <div class="card-header">
+                <i class="fas fa-inbox"></i>
+                <h3>Recent Applications</h3>
+            </div>
+
+            {% if recent_applications %}
+            <ul class="applications-list">
+                {% for application in recent_applications %}
+                <li class="application-item">
+                    <div class="application-info">
+                        <h4>{{ application.user.full_name or application.user.email }}</h4>
+                        <p>{{ application.company_name }} • {{ application.created_at.strftime('%d %b %Y') }}</p>
+                    </div>
+                    <div class="application-actions">
+                        <button class="btn-small"
+                            onclick="window.location.href='{{ url_for('corporate_application_detail', app_id=application.id) }}'">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-small">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="{{ url_for('corporate_applications') }}" class="view-all-link">
+                    View All Applications <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-inbox"></i>
+                <p>No applications yet. Start posting opportunities to receive applications!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="main-footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <div class="logo-container">
+                <div class="word">
+                    <div class="letter-box red">
+                        <div class="letter">C</div>
+                    </div>
+                    <div class="word-text">ode</div>
+                </div>
+                <div class="word">
+                    <div class="letter-box blue">
+                        <div class="letter">C</div>
+                    </div>
+                    <div class="word-text">raft</div>
+                </div>
+                <div class="word">
+                    <div class="letter-box orange">
+                        <div class="letter">C</div>
+                    </div>
+                    <div class="word-text">o</div>
+                </div>
+            </div>
+            <div class="footer-tagline">Empowering careers through technology</div>
+        </div>
+
+        <div class="footer-links">
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('contact_us') }}">Contact</a>
+            <a href="{{ url_for('privacy_policy') }}">Privacy</a>
+            <a href="{{ url_for('terms_of_service') }}">Terms</a>
+            <a href="{{ url_for('help_center') }}">Help</a>
+        </div>
+
+        <div class="footer-social">
+            <a href="#" class="social-btn linkedin"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" class="social-btn github"><i class="fab fa-github"></i></a>
+            <a href="#" class="social-btn instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-btn facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="social-btn whatsapp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        © 2024 CodeCraftCo. All rights reserved. | Built with ❤️ for South African learners
+    </div>
+</footer>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    function toggleUserMenu() {
+        const dropdown = document.getElementById('userMenuDropdown');
+        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (event) {
+        const userMenu = document.querySelector('.user-menu');
+        const dropdown = document.getElementById('userMenuDropdown');
+
+        if (!userMenu.contains(event.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Real-time inbox updates
+    function updateInboxCounts() {
+        fetch('/api/corporate/inbox/unread-count')
+            .then(response => response.json())
+            .then(data => {
+                const unreadCount = data.unread_count || 0;
+                const totalCount = data.total_conversations || 0;
+                
+                // Update all inbox elements
+                updateInboxBadges(unreadCount);
+                updateInboxStats(totalCount, unreadCount);
+                updatePageTitle(unreadCount);
+            })
+            .catch(error => console.log('Inbox update error:', error));
+    }
+
+    function updateInboxBadges(unreadCount) {
+        const badges = [
+            document.getElementById('navInboxBadge'),
+            document.getElementById('inboxActionBadge'),
+            document.getElementById('menuInboxBadge')
+        ];
+
+        badges.forEach(badge => {
+            if (badge) {
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    function updateInboxStats(totalCount, unreadCount) {
+        const statsCount = document.getElementById('inboxStatsCount');
+        const statsMeta = document.getElementById('inboxStatsMeta');
+        
+        if (statsCount) {
+            statsCount.textContent = totalCount;
+        }
+        
+        if (statsMeta) {
+            if (unreadCount > 0) {
+                statsMeta.textContent = `${unreadCount} unread message${unreadCount > 1 ? 's' : ''}`;
+                statsMeta.style.color = 'var(--danger-color)';
+            } else {
+                statsMeta.textContent = 'All messages read';
+                statsMeta.style.color = 'var(--text-tertiary)';
+            }
+        }
+    }
+
+    function updatePageTitle(unreadCount) {
+        if (unreadCount > 0) {
+            document.title = `(${unreadCount}) Corporate Dashboard - CodeCraftCo`;
+        } else {
+            document.title = 'Corporate Dashboard - CodeCraftCo';
+        }
+    }
+
+    // Add loading states to buttons
+    document.querySelectorAll('.action-btn, .btn-small, .stat-card[onclick]').forEach(button => {
+        button.addEventListener('click', function (e) {
+            if (this.href || this.onclick) {
+                // Show loading overlay with custom message
+                if (window.showCustomLoading) {
+                    let message = 'Loading...';
+                    let description = 'Please wait';
+
+                    if (this.textContent.includes('Post New')) {
+                        message = 'Loading Opportunity Form';
+                        description = 'Setting up your posting interface';
+                    } else if (this.textContent.includes('Inbox')) {
+                        message = 'Loading Inbox';
+                        description = 'Fetching your conversations';
+                    } else if (this.textContent.includes('Applications')) {
+                        message = 'Loading Applications';
+                        description = 'Fetching your applications data';
+                    } else if (this.textContent.includes('View All')) {
+                        message = 'Loading Opportunities';
+                        description = 'Retrieving your posted opportunities';
+                    }
+
+                    window.showCustomLoading(message, description);
+                }
+            }
+        });
+    });
+
+    // Auto-hide flash messages after 5 seconds
+    setTimeout(function () {
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(function (message) {
+            message.style.opacity = '0';
+            message.style.transform = 'translateY(-20px)';
+            setTimeout(function () {
+                message.remove();
+            }, 300);
+        });
+    }, 5000);
+
+    // Initialize inbox updates
+    document.addEventListener('DOMContentLoaded', function() {
+        updateInboxCounts();
+        setInterval(updateInboxCounts, 30000); // Update every 30 seconds
+    });
+</script>
+{% endblock %}

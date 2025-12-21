@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+{% block title %}Application Detail - {{ application.full_name }} - CodeCraftCo{% endblock %}
+
+{% block additional_css %}
+<style>
+    body {
+        background: #1e293b;
+        color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+    }
+
+    .application-detail-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+
+    .application-header {
+        background: linear-gradient(135deg, #334155, #475569);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .applicant-info {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .applicant-avatar {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(45deg, #3b82f6, #06b6d4);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .applicant-details h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .applicant-meta {
+        display: flex;
+        gap: 2rem;
+        color: #cbd5e1;
+        font-size: 0.9rem;
+    }
+
+    .stage-indicator {
+        padding: 0.75rem 1.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .stage-applied { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .stage-reviewed { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .stage-interview { background: rgba(6, 182, 212, 0.2); color: #06b6d4; }
+    .stage-accepted { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .stage-rejected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+    .main-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    .content-section {
+        background: #334155;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #f8fafc;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #475569;
+    }
+
+    .action-buttons {
+        display: grid;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-btn {
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        text-decoration: none;
+    }
+
+    .btn-primary { background: linear-gradient(45deg, #3b82f6, #2563eb); color: white; }
+    .btn-success { background: linear-gradient(45deg, #10b981, #059669); color: white; }
+    .btn-warning { background: linear-gradient(45deg, #f59e0b, #d97706); color: white; }
+    .btn-danger { background: linear-gradient(45deg, #ef4444, #dc2626); color: white; }
+    .btn-info { background: linear-gradient(45deg, #06b6d4, #0891b2); color: white; }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    .quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .interview-form, .message-form {
+        background: #475569;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        display: none;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #f8fafc;
+    }
+
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background: #334155;
+        border: 1px solid #64748b;
+        border-radius: 6px;
+        color: #f8fafc;
+        font-size: 0.9rem;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.75rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #64748b;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 0.25rem;
+        width: 10px;
+        height: 10px;
+        background: #3b82f6;
+        border-radius: 50%;
+        border: 2px solid #1e293b;
+    }
+
+    .timeline-content {
+        background: #475569;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-left: 1rem;
+    }
+
+    .messages-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #64748b;
+        border-radius: 8px;
+        background: #475569;
+    }
+
+    .message-item {
+        padding: 1rem;
+        border-bottom: 1px solid #64748b;
+    }
+
+    .message-item:last-child {
+        border-bottom: none;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+        color: #cbd5e1;
+    }
+
+    @media (max-width: 768px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+        
+        .applicant-info {
+            grid-template-columns: 1fr;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="application-detail-container">
+    <!-- Application Header -->
+    <div class="application-header">
+        <div class="applicant-info">
+            <div class="applicant-avatar">
+                {{ application.full_name[0].upper() if application.full_name else 'A' }}
+            </div>
+            
+            <div class="applicant-details">
+                <h1>{{ application.full_name or 'No Name Provided' }}</h1>
+                <div class="applicant-meta">
+                    <span><i class="fas fa-envelope"></i> {{ application.email }}</span>
+                    <span><i class="fas fa-phone"></i> {{ application.phone_number or 'Not provided' }}</span>
+                    <span><i class="fas fa-calendar"></i> Applied {{ application.created_at.strftime('%d %b %Y') if application.created_at else 'Unknown' }}</span>
+                </div>
+            </div>
+            
+            <div class="stage-indicator stage-{{ application.get_stage_display().class.split('-')[1] }}">
+                {{ application.get_stage_display().icon }}
+                {{ application.get_stage_display().text }}
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Left Column: Application Details & Actions -->
+        <div>
+            <!-- Quick Actions -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-bolt"></i>
+                    Quick Actions
+                </h3>
+                
+                <div class="quick-actions">
+                    <button class="action-btn btn-success" onclick="toggleForm('interview-form')">
+                        <i class="fas fa-calendar-plus"></i>
+                        Schedule Interview
+                    </button>
+                    <button class="action-btn btn-info" onclick="toggleForm('message-form')">
+                        <i class="fas fa-envelope"></i>
+                        Send Message
+                    </button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-btn btn-warning" onclick="updateStage('reviewed')">
+                        <i class="fas fa-eye"></i>
+                        Mark as Reviewed
+                    </button>
+                    <button class="action-btn btn-success" onclick="updateStage('accepted')">
+                        <i class="fas fa-check"></i>
+                        Accept Application
+                    </button>
+                    <button class="action-btn btn-danger" onclick="updateStage('rejected')">
+                        <i class="fas fa-times"></i>
+                        Reject Application
+                    </button>
+                </div>
+
+                <!-- Interview Scheduling Form -->
+                <div id="interview-form" class="interview-form">
+                    <h4>Schedule Interview</h4>
+                    <form method="POST" action="/corporate/application/{{ application.id }}/schedule-interview">
+                        <div class="form-group">
+                            <label class="form-label">Interview Date</label>
+                            <input type="date" name="interview_date" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Interview Time</label>
+                            <input type="time" name="interview_time" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Interview Type</label>
+                            <select name="interview_type" class="form-select" required>
+                                <option value="virtual">Virtual (Video Call)</option>
+                                <option value="in-person">In-Person</option>
+                                <option value="phone">Phone Call</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Location/Meeting Link</label>
+                            <input type="text" name="interview_location" class="form-input" 
+                                   placeholder="Office address or meeting link">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notes</label>
+                            <textarea name="interview_notes" class="form-textarea" rows="3"
+                                      placeholder="Additional notes for the interview"></textarea>
+                        </div>
+                        <button type="submit" class="action-btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-calendar-check"></i>
+                            Schedule Interview
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Message Form -->
+                <div id="message-form" class="message-form">
+                    <h4>Send Message to Applicant</h4>
+                    <form method="POST" action="/corporate/application/{{ application.id }}/send-message">
+                        <div class="form-group">
+                            <label class="form-label">Subject</label>
+                            <input type="text" name="subject" class="form-input" 
+                                   placeholder="Message subject" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Message</label>
+                            <textarea name="message" class="form-textarea" rows="6"
+                                      placeholder="Your message to the applicant..." required></textarea>
+                        </div>
+                        <button type="submit" class="action-btn btn-info" style="width: 100%;">
+                            <i class="fas fa-paper-plane"></i>
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Application Timeline -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-history"></i>
+                    Application Timeline
+                </h3>
+                
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <strong>Application Submitted</strong>
+                            <br><small>{{ application.created_at.strftime('%d %b %Y at %H:%M') if application.created_at else 'Unknown date' }}</small>
+                            <p>Initial application received from {{ application.full_name }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if application.last_corporate_action %}
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <strong>Last Corporate Action</strong>
+                            <br><small>{{ application.last_corporate_action.strftime('%d %b %Y at %H:%M') }}</small>
+                            <p>Status updated to: {{ application.get_stage_display().text }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if application.interview_date %}
+                    <div class="timeline-item">
+                        <div class="timeline-content">
+                            <strong>Interview Scheduled</strong>
+                            <br><small>{{ application.interview_date.strftime('%d %b %Y at %H:%M') }}</small>
+                            <p>{{ application.interview_type|title }} interview scheduled</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Messages & Notes -->
+        <div>
+            <!-- Messages -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-comments"></i>
+                    Messages
+                    <span style="margin-left: auto; background: #3b82f6; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem;">
+                        {{ application.messages|length }}
+                    </span>
+                </h3>
+                
+                <div class="messages-container">
+                    {% if application.messages %}
+                        {% for message in application.messages %}
+                        <div class="message-item">
+                            <div class="message-header">
+                                <strong>
+                                    {% if message.sender_type == 'corporate' %}
+                                        <i class="fas fa-building"></i> Corporate
+                                    {% else %}
+                                        <i class="fas fa-user"></i> Applicant
+                                    {% endif %}
+                                </strong>
+                                <span>{{ message.sent_at.strftime('%d %b %Y at %H:%M') if message.sent_at else 'Unknown date' }}</span>
+                            </div>
+                            <strong>{{ message.subject }}</strong>
+                            <p>{{ message.message }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="message-item">
+                            <p style="text-align: center; color: #94a3b8; font-style: italic;">
+                                No messages yet. Start a conversation with the applicant!
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Corporate Notes -->
+            <div class="content-section">
+                <h3 class="section-title">
+                    <i class="fas fa-sticky-note"></i>
+                    Internal Notes
+                </h3>
+                
+                <form method="POST" action="/corporate/application/{{ application.id }}/update-notes">
+                    <textarea name="corporate_notes" class="form-textarea" rows="6"
+                              placeholder="Internal notes about this application (visible only to your team)">{{ application.corporate_notes or '' }}</textarea>
+                    <button type="submit" class="action-btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        <i class="fas fa-save"></i>
+                        Save Notes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+function toggleForm(formId) {
+    const form = document.getElementById(formId);
+    if (form.style.display === 'none' || form.style.display === '') {
+        form.style.display = 'block';
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        form.style.display = 'none';
+    }
+}
+
+function updateStage(newStage) {
+    if (confirm(`Are you sure you want to mark this application as ${newStage}?`)) {
+        fetch(`/corporate/application/{{ application.id }}/update-stage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ stage: newStage })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to update application stage');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating application stage');
+        });
+    }
+}
+
+// Auto-hide forms when clicking outside
+document.addEventListener('click', function(event) {
+    const forms = ['interview-form', 'message-form'];
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form && form.style.display === 'block') {
+            if (!form.contains(event.target) && !event.target.closest(`[onclick*="${formId}"]`)) {
+                form.style.display = 'none';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

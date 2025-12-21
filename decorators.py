@@ -81,3 +81,51 @@ def premium_feature_required(feature_name):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+# ADD THESE NEW DECORATORS to your existing decorators.py:
+
+def corporate_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access the corporate dashboard.', 'error')
+            return redirect(url_for('admin_login'))
+        
+        if current_user.role != 'corporate':
+            flash('Access denied. Corporate account required.', 'error')
+            return redirect(url_for('admin_login'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def verified_corporate_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            flash('Please log in to access this feature.', 'error')
+            return redirect(url_for('admin_login'))
+        
+        if current_user.role != 'corporate':
+            flash('Access denied. Corporate account required.', 'error')
+            return redirect(url_for('admin_login'))
+        
+        if not current_user.is_verified:
+            flash('Your corporate account is pending verification. Please wait for admin approval.', 'warning')
+            return redirect(url_for('corporate_dashboard'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_or_corporate_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('admin_login'))
+        
+        if current_user.role not in ['admin', 'corporate']:
+            flash('Access denied. Administrative privileges required.', 'error')
+            return redirect(url_for('admin_login'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
