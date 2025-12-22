@@ -1052,7 +1052,7 @@
         </div>
     </div>
 
-    <!-- Upcoming Events List -->
+      <!-- Upcoming Events List -->
     <div class="upcoming-events">
         <h3>
             <i class="fas fa-calendar-alt"></i>
@@ -1062,7 +1062,6 @@
         <div class="event-list" id="eventList">
             {% if events %}
                 {% for event in events %}
-                    {% if event.start_datetime >= moment().utc() %}
                     <div class="event-card {{ event.event_type }}">
                         <div class="event-header">
                             <div>
@@ -1098,7 +1097,6 @@
                             </button>
                         </div>
                     </div>
-                    {% endif %}
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
@@ -1109,7 +1107,6 @@
             {% endif %}
         </div>
     </div>
-</div>
 
 <!-- Footer -->
 <footer class="main-footer">
@@ -1213,8 +1210,7 @@ function updateInboxCounts() {
 }
 
 // Calendar data from backend
-const calendarEvents = {{ events|tojson|safe }};
-
+const calendarEvents = {{ events_json|safe }};
 let currentDate = new Date();
 let currentView = 'month';
 

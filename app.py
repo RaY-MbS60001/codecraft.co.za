@@ -42,7 +42,6 @@ from dotenv import load_dotenv
 
 # Add these imports at the top of your app.py file (around line 10-20)
 from decorators import admin_required, premium_required, check_application_limit, track_application_usage
-from models import PremiumTransaction
 
 # Load .env
 load_dotenv('.env.production')
@@ -56,7 +55,7 @@ from models import (
     db, User, Application, Document,
     GoogleToken,LearnershipEmail,
     CalendarEvent, ApplicationMessage,
-    Conversation, ConversationMessage 
+    Conversation, ConversationMessage,PremiumTransaction
 )
 from forms import (
     AdminLoginForm, EditProfileForm, ChangePasswordForm,
@@ -1434,20 +1433,23 @@ class FilteredInboxService:
 # =============================================================================
 # CORPORATE CALENDAR & ANALYTICS ROUTES
 # =============================================================================
-
 @app.route('/corporate/calendar')
 @corporate_required
 def corporate_calendar():
-    # Get all calendar events for this corporate user
-    events = CalendarEvent.query.join(Application).filter(
-        Application.company_email == current_user.company_email,
-        CalendarEvent.start_datetime >= datetime.utcnow() - timedelta(days=30)
+    """Get all calendar events for this corporate user"""
+    from datetime import datetime
+    import json
+    
+    # Get only UPCOMING events
+    events = CalendarEvent.query.filter(
+        CalendarEvent.corporate_user_id == current_user.id,
+        CalendarEvent.start_datetime >= datetime.utcnow()
     ).order_by(CalendarEvent.start_datetime.asc()).all()
     
     # Convert to dict for JSON serialization
-    events_data = []
+    events_json = []
     for event in events:
-        events_data.append({
+        events_json.append({
             'id': event.id,
             'title': event.title,
             'start_datetime': event.start_datetime.isoformat(),
@@ -1458,7 +1460,12 @@ def corporate_calendar():
             'description': event.description
         })
     
-    return render_template('corporate_calendar.html', events=events_data)
+    upcoming_count = len(events_json)
+    
+    return render_template('corporate_calendar.html', 
+                         events=events,  # For template display
+                         events_json=json.dumps(events_json),  # For JavaScript
+                         upcoming_count=upcoming_count)
 
 @app.route('/corporate/calendar/event/<int:event_id>/complete', methods=['POST'])
 @verified_corporate_required
@@ -1487,9 +1494,10 @@ def complete_calendar_event(event_id):
 @app.route('/corporate/analytics')
 @corporate_required
 def corporate_analytics():
-    # Calculate analytics data for this corporate user
+    """Calculate analytics data for this corporate user"""
+    # Get applications managed by this corporate user
     applications = Application.query.filter_by(
-        company_email=current_user.company_email
+        corporate_user_id=current_user.id
     ).all()
     
     # Application stages distribution
@@ -1515,7 +1523,7 @@ def corporate_analytics():
         day_end = day_start + timedelta(days=1)
         
         day_count = len([app for app in applications if 
-                        app.created_at and day_start <= app.created_at < day_end])
+                        app.submitted_at and day_start <= app.submitted_at < day_end])
         weekly_trends.append(day_count)
     
     # Opportunity performance
@@ -1546,7 +1554,7 @@ def corporate_analytics():
     
     this_week = datetime.utcnow() - timedelta(days=7)
     applications_this_week = len([app for app in applications if 
-                                 app.created_at and app.created_at >= this_week])
+                                 app.submitted_at and app.submitted_at >= this_week])
     
     upcoming_interviews = CalendarEvent.query.filter(
         CalendarEvent.corporate_user_id == current_user.id,
@@ -2072,34 +2080,33 @@ def post_opportunity():
 @app.route('/corporate/applications')
 @corporate_required
 def corporate_applications():
+    """Get all applications for this corporate user"""
     try:
-        # Ensure we have a valid corporate user
-        if not current_user.is_corporate or not current_user.company_email:
-            flash('Corporate profile incomplete. Please update your company information.', 'warning')
-            return redirect(url_for('corporate_dashboard'))
-        
-        # Get applications sent to this company
+        # Get applications managed by this corporate user
         applications = Application.query.filter_by(
-            company_email=current_user.company_email
-        ).order_by(Application.created_at.desc()).all()
+            corporate_user_id=current_user.id
+        ).order_by(Application.submitted_at.desc()).all()
         
         return render_template('corporate_applications.html', 
                              applications=applications,
                              corporate_user=current_user)
     except Exception as e:
+        print(f"Error: {e}")
         flash(f'Error loading applications: {str(e)}', 'error')
         return redirect(url_for('corporate_dashboard'))
 
 @app.route('/corporate/application/<int:app_id>')
 @corporate_required
 def corporate_application_detail(app_id):
+    """View detailed application"""
     application = Application.query.filter_by(
         id=app_id,
-        company_email=current_user.company_email
+        corporate_user_id=current_user.id
     ).first_or_404()
     
     return render_template('corporate_application_detail_enhanced.html', 
                          application=application)
+
 
 @app.route('/corporate/opportunities')
 @corporate_required
