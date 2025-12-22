@@ -1,199 +1,201 @@
-# Add to your gmail_service.py or create a new conversations_service.py
-
-import base64
-import email
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+# conversations_service.py
 from datetime import datetime
+from email.utils import parsedate_to_datetime
+
+from models import db, Application, Conversation, ConversationMessage
+
+# --- Utility: very simple HTML strip (or reuse your own) ---
+import re
+TAG_RE = re.compile(r'<[^>]+>')
+
+def strip_tags(html):
+    if not html:
+        return ''
+    return TAG_RE.sub('', html)
+
+
+# ========== OUTGOING (APPLICANT SENDS FROM APP) ==========
+
+def sync_outgoing_application_message(application, email_result, subject, body_html, attachments=None):
+    """
+    Call this right after a Gmail send succeeds for an Application.
+    - application: Application model instance
+    - email_result: dict with email_result["gmail_data"] = {"id": ..., "threadId": ...}
+    - subject: string used in the email
+    - body_html: HTML body you sent
+    - attachments: list or None
+    """
+    attachments = attachments or []
+
+    gmail_data = email_result.get("gmail_data") or {}
+    gmail_message_id = gmail_data.get("id")
+    gmail_thread_id = gmail_data.get("threadId")
+
+    if not gmail_message_id or not gmail_thread_id:
+        return  # nothing to sync
+
+    # Update application Gmail tracking
+    application.gmail_message_id = gmail_message_id
+    application.gmail_thread_id = gmail_thread_id
+    application.sent_at = datetime.utcnow()
+    application.email_status = 'sent'
+
+    # Get or create conversation for this application/thread
+    convo = Conversation.query.filter_by(gmail_thread_id=gmail_thread_id).first()
+    if not convo:
+        convo = Conversation(
+            application_id=application.id,
+            gmail_thread_id=gmail_thread_id,
+            subject=subject or application.learnership_name,
+            # We don't care about corporate side here; if column is non‑nullable,
+            # you can set a default corporate_user_id or map from company_email.
+            corporate_user_id=application.corporate_user_id,
+            applicant_user_id=application.user_id,
+            last_message_at=application.sent_at,
+            corporate_unread_count=0,
+            applicant_unread_count=0,
+        )
+        db.session.add(convo)
+        db.session.flush()  # gets convo.id
+
+    # Create outgoing message from applicant
+    msg = ConversationMessage(
+        conversation_id=convo.id,
+        gmail_message_id=gmail_message_id,
+        sender_id=application.user_id,
+        sender_type='applicant',
+        subject=subject,
+        body=strip_tags(body_html),
+        html_body=body_html,
+        gmail_timestamp=application.sent_at,
+        has_attachments=bool(attachments),
+        is_read_by_applicant=True,
+        is_read_by_applicant=True,
+        is_read_by_corporate=False,
+    )
+
+    convo.last_message_at = application.sent_at
+
+    db.session.add(msg)
+    db.session.commit()
+
+
+# ========== INCOMING (COMPANY REPLIES VIA GMAIL) ==========
+# conversations_service.py
+from datetime import datetime
+from email.utils import parsedate_to_datetime
+from models import db, Application, Conversation, ConversationMessage
 import re
 
-class ConversationService:
-    def __init__(self, gmail_service):
-        self.service = gmail_service
-    
-    def get_thread_messages(self, thread_id):
-        """Get all messages in a Gmail thread"""
-        try:
-            thread = self.service.users().threads().get(
-                userId='me', 
-                id=thread_id,
-                format='full'
-            ).execute()
-            
-            messages = []
-            for msg in thread.get('messages', []):
-                message_data = self.parse_message(msg)
-                messages.append(message_data)
-            
-            return messages
-        except Exception as e:
-            print(f"Error getting thread messages: {e}")
-            return []
-    
-    def parse_message(self, message):
-        """Parse Gmail message into structured data"""
-        headers = {h['name']: h['value'] for h in message['payload'].get('headers', [])}
-        
-        # Get message body
-        body = self.extract_message_body(message['payload'])
-        
-        return {
-            'id': message['id'],
-            'thread_id': message['threadId'],
-            'subject': headers.get('Subject', ''),
-            'from': headers.get('From', ''),
-            'to': headers.get('To', ''),
-            'date': headers.get('Date', ''),
-            'timestamp': self.parse_gmail_date(headers.get('Date', '')),
-            'body': body.get('text', ''),
-            'html_body': body.get('html', ''),
-            'snippet': message.get('snippet', ''),
-            'has_attachments': self.has_attachments(message['payload'])
-        }
-    
-    def extract_message_body(self, payload):
-        """Extract text and HTML body from message payload"""
-        body = {'text': '', 'html': ''}
-        
-        if payload.get('body', {}).get('data'):
-            # Simple message
-            data = payload['body']['data']
-            text = base64.urlsafe_b64decode(data).decode('utf-8')
-            body['text'] = text
-        elif payload.get('parts'):
-            # Multipart message
-            for part in payload['parts']:
-                mime_type = part.get('mimeType', '')
-                if mime_type == 'text/plain' and part.get('body', {}).get('data'):
-                    data = part['body']['data']
-                    body['text'] = base64.urlsafe_b64decode(data).decode('utf-8')
-                elif mime_type == 'text/html' and part.get('body', {}).get('data'):
-                    data = part['body']['data']
-                    body['html'] = base64.urlsafe_b64decode(data).decode('utf-8')
-        
-        return body
-    
-    def has_attachments(self, payload):
-        """Check if message has attachments"""
+TAG_RE = re.compile(r'<[^>]+>')
+
+def strip_tags(html):
+    if not html:
+        return ''
+    return TAG_RE.sub('', html)
+
+def extract_text_and_html_from_gmail_message(gmail_msg):
+    payload = gmail_msg.get('payload', {})
+    body_text = ''
+    body_html = ''
+
+    def _walk(part):
+        nonlocal body_text, body_html
+        mime_type = part.get('mimeType', '')
+        body_data = part.get('body', {}).get('data')
+        if body_data:
+            import base64
+            decoded = base64.urlsafe_b64decode(body_data.encode('utf-8')).decode('utf-8', errors='ignore')
+            if mime_type == 'text/plain':
+                body_text += decoded
+            elif mime_type == 'text/html':
+                body_html += decoded
+        for p in part.get('parts', []) or []:
+            _walk(p)
+
+    if payload:
         if payload.get('parts'):
-            for part in payload['parts']:
-                if part.get('filename') and part['filename'] != '':
-                    return True
-        return False
-    
-    def parse_gmail_date(self, date_str):
-        """Parse Gmail date string to datetime"""
-        try:
-            from email.utils import parsedate_to_datetime
-            return parsedate_to_datetime(date_str)
-        except:
-            return datetime.utcnow()
-    
-    def send_reply(self, thread_id, to_email, subject, body, from_email):
-        """Send a reply to an existing thread"""
-        try:
-            message = MIMEText(body)
-            message['to'] = to_email
-            message['subject'] = f"Re: {subject}" if not subject.startswith('Re:') else subject
-            message['from'] = from_email
-            
-            # Add thread reference headers
-            message['In-Reply-To'] = thread_id
-            message['References'] = thread_id
-            
-            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-            
-            send_message = {
-                'raw': raw_message,
-                'threadId': thread_id
-            }
-            
-            result = self.service.users().messages().send(
-                userId='me',
-                body=send_message
-            ).execute()
-            
-            return result
-            
-        except Exception as e:
-            print(f"Error sending reply: {e}")
-            return None
-    
-    def sync_conversation_from_thread(self, thread_id, application_id):
-        """Sync conversation data from Gmail thread"""
-        try:
-            messages = self.get_thread_messages(thread_id)
-            
-            if not messages:
-                return None
-            
-            # Get or create conversation
-            conversation = Conversation.query.filter_by(
-                gmail_thread_id=thread_id
-            ).first()
-            
-            if not conversation:
-                application = Application.query.get(application_id)
-                if not application:
-                    return None
-                
-                conversation = Conversation(
-                    application_id=application_id,
-                    gmail_thread_id=thread_id,
-                    subject=messages[0]['subject'],
-                    corporate_user_id=application.corporate_user_id,
-                    applicant_user_id=application.user_id
-                )
-                db.session.add(conversation)
-                db.session.flush()
-            
-            # Sync messages
-            for msg in messages:
-                existing_msg = ConversationMessage.query.filter_by(
-                    gmail_message_id=msg['id']
-                ).first()
-                
-                if not existing_msg:
-                    # Determine sender type
-                    sender_type = self.determine_sender_type(msg['from'], conversation)
-                    sender_id = self.get_sender_id(msg['from'], conversation)
-                    
-                    conv_message = ConversationMessage(
-                        conversation_id=conversation.id,
-                        gmail_message_id=msg['id'],
-                        sender_id=sender_id,
-                        sender_type=sender_type,
-                        subject=msg['subject'],
-                        body=msg['body'],
-                        html_body=msg['html_body'],
-                        gmail_timestamp=msg['timestamp'],
-                        has_attachments=msg['has_attachments']
-                    )
-                    
-                    db.session.add(conv_message)
-            
-            # Update conversation metadata
-            conversation.last_message_at = max(msg['timestamp'] for msg in messages)
-            conversation.updated_at = datetime.utcnow()
-            
-            db.session.commit()
-            return conversation
-            
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error syncing conversation: {e}")
-            return None
-    
-    def determine_sender_type(self, from_email, conversation):
-        """Determine if sender is corporate or applicant"""
-        corporate_user = User.query.get(conversation.corporate_user_id)
-        if corporate_user and corporate_user.company_email in from_email:
-            return 'corporate'
-        return 'applicant'
-    
-    def get_sender_id(self, from_email, conversation):
-        """Get sender user ID"""
-        corporate_user = User.query.get(conversation.corporate_user_id)
-        if corporate_user and corporate_user.company_email in from_email:
-            return conversation.corporate_user_id
-        return conversation.applicant_user_id
+            for p in payload['parts']:
+                _walk(p)
+        else:
+            _walk(payload)
+
+    if not body_text and body_html:
+        body_text = strip_tags(body_html)
+    if not body_html and body_text:
+        body_html = body_text.replace('\n', '<br>')
+
+    return body_text, body_html
+
+
+def process_incoming_gmail_message_for_user(gmail_msg):
+    """
+    Process a single Gmail message as a potential incoming reply.
+    Only creates a ConversationMessage if its threadId matches an Application.gmail_thread_id.
+    """
+    thread_id = gmail_msg.get('threadId')
+    msg_id = gmail_msg.get('id')
+    if not thread_id or not msg_id:
+        return
+
+    # Does this thread belong to an application sent from this app?
+    app = Application.query.filter_by(gmail_thread_id=thread_id).first()
+    if not app:
+        return  # ignore messages not tied to any app
+
+    # Avoid duplicates
+    if ConversationMessage.query.filter_by(gmail_message_id=msg_id).first():
+        return
+
+    # Find or create conversation
+    convo = Conversation.query.filter_by(gmail_thread_id=thread_id).first()
+    if not convo:
+        convo = Conversation(
+            application_id=app.id,
+            gmail_thread_id=thread_id,
+            subject=app.learnership_name,
+            corporate_user_id=app.corporate_user_id,
+            applicant_user_id=app.user_id,
+            last_message_at=datetime.utcnow(),
+            corporate_unread_count=0,
+            applicant_unread_count=0,
+        )
+        db.session.add(convo)
+        db.session.flush()
+
+    # Parse headers
+    headers = gmail_msg.get('payload', {}).get('headers', [])
+    subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), convo.subject)
+    date_header = next((h['value'] for h in headers if h['name'].lower() == 'date'), None)
+    if date_header:
+        gmail_ts = parsedate_to_datetime(date_header)
+    else:
+        gmail_ts = datetime.utcnow()
+
+    body_text, body_html = extract_text_and_html_from_gmail_message(gmail_msg)
+
+    # Treat this as a "corporate" (employer) message to the applicant
+    msg = ConversationMessage(
+        conversation_id=convo.id,
+        gmail_message_id=msg_id,
+        sender_id=app.user_id,   # we don't have a separate corporate user yet
+        sender_type='corporate',
+        subject=subject,
+        body=body_text,
+        html_body=body_html,
+        gmail_timestamp=gmail_ts,
+        has_attachments=bool(gmail_msg.get('payload', {}).get('parts')),
+        is_read_by_applicant=False,
+        is_read_by_corporate=True,
+    )
+
+    convo.last_message_at = gmail_ts
+    convo.applicant_unread_count = (convo.applicant_unread_count or 0) + 1
+
+    # Update application flags
+    app.has_response = True
+    app.email_status = 'responded'
+    app.response_received_at = gmail_ts
+
+    db.session.add(msg)
+    db.session.commit()

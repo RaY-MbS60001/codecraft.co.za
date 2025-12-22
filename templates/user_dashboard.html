@@ -41,6 +41,17 @@
                 </svg>
                 <span>Feed</span>
             </a>
+                <a href="{{ url_for('user_inbox') }}" class="nav-feed-button nav-inbox-button" aria-label="Inbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 8a2 2 0 012-2h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 8l9 6 9-6" />
+        </svg>
+        <span>Inbox</span>
+        <span class="inbox-badge" id="navInboxBadge" style="display:none;">0</span>
+    </a>
+
             <div class="user-menu">
                 <button class="user-menu-trigger" aria-haspopup="true" aria-expanded="false">
                     <div class="user-avatar-small">
@@ -527,6 +538,31 @@
             });
         }
 
+
+                // Inbox unread count badge
+        function updateInboxCounts() {
+            fetch('/api/user/inbox/unread-count')
+                .then(response => response.json())
+                .then(data => {
+                    const unreadCount = data.unread_count || 0;
+                    const badge = document.getElementById('navInboxBadge');
+
+                    if (!badge) return;
+
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .catch(err => console.log('Inbox badge error:', err));
+        }
+
+        // Call once and then poll every 30s
+        updateInboxCounts();
+        setInterval(updateInboxCounts, 30000);
+        
         // Animated Number Counter
         const counters = document.querySelectorAll('.stat-number[data-count]');
 
@@ -2375,6 +2411,28 @@
 .cta-button.compact {
     font-size: 13px;
     padding: 8px 16px;
+}
+.nav-inbox-button {
+    position: relative;
+}
+
+.inbox-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ef4444; /* red */
+    color: #fff;
+    border-radius: 999px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 2px solid #1e293b; /* match nav background */
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.6);
 }
 </style>
 {% endblock %}

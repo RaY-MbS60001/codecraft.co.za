@@ -76,34 +76,82 @@ def build_credentials(token_json):
         raise
 
 
-def create_message_with_attachments(sender, to, subject, body, file_paths=None):
-    """Create a message with attachments"""
-    message = MIMEMultipart()
+def create_message_with_attachments(sender, to, subject, body, file_paths=None, html_body=None):
+    """Create a message with attachments and optional HTML support"""
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from email.mime.base import MIMEBase
+    from email import encoders
+    import base64
+    import os
+    from flask import current_app
+
+    # ✅ CREATE MAIN MESSAGE AS MIXED (to hold text + attachments)
+    message = MIMEMultipart('mixed')
     message['to'] = to
     message['from'] = sender
     message['subject'] = subject
     
-    # Add body
-    message.attach(MIMEText(body))
+    # ✅ CREATE ALTERNATIVE PART (for plain text + HTML)
+    msg_alternative = MIMEMultipart('alternative')
+    message.attach(msg_alternative)
     
-    # Add attachments
-    if file_paths:
+    # ✅ Add plain text version first
+    text_part = MIMEText(body, 'plain')
+    msg_alternative.attach(text_part)
+    
+    # ✅ Add HTML version if provided
+    if html_body:
+        html_part = MIMEText(html_body, 'html')
+        msg_alternative.attach(html_part)
+    
+    # ✅ DEBUG: Log file_paths
+    print(f"\n📋 DEBUG: create_message_with_attachments")
+    print(f"   Sender: {sender}")
+    print(f"   To: {to}")
+    print(f"   File paths received: {file_paths}")
+    
+    # Add attachments AFTER text/html (to main 'mixed' message, not alternative)
+    attachment_count = 0
+    if file_paths and len(file_paths) > 0:
+        print(f"   📎 Processing {len(file_paths)} files...")
+        
         for file_path in file_paths:
             path = file_path.get('path') if isinstance(file_path, dict) else file_path
             filename = file_path.get('filename') if isinstance(file_path, dict) else os.path.basename(path)
             
+            print(f"      Checking file: {filename}")
+            
             if not os.path.exists(path):
+                print(f"      ❌ File not found: {path}")
                 current_app.logger.warning(f"File not found: {path}")
                 continue
+            
+            try:
+                with open(path, 'rb') as file:
+                    part = MIMEBase('application', 'octet-stream')
+                    part.set_payload(file.read())
+                    
+                # Encode
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename="{filename}"'
+                )
                 
-            with open(path, 'rb') as file:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(file.read())
+                # ✅ ATTACH TO MAIN MESSAGE, NOT ALTERNATIVE
+                message.attach(part)
                 
-            # Encode and add header
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f"attachment; filename={filename}")
-            message.attach(part)
+                attachment_count += 1
+                print(f"      ✅ Successfully attached: {filename}")
+                
+            except Exception as e:
+                print(f"      ❌ Error attaching file: {e}")
+                current_app.logger.error(f"Error attaching {path}: {e}")
+    else:
+        print(f"   ⚠️ No file_paths provided or empty list")
+    
+    print(f"   📊 Total attachments added: {attachment_count}\n")
     
     # Encode message
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()

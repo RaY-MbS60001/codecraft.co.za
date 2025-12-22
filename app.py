@@ -26,6 +26,7 @@ from flask import (
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user
 )
+from gmail_status_checker import GmailStatusChecker
 from flask_wtf import FlaskForm
 from werkzeug.utils import secure_filename
 from wtforms import TextAreaField, SubmitField, SelectMultipleField, widgets
@@ -1816,36 +1817,301 @@ def corporate_inbox():
     return render_template('corporate/inbox.html', conversations=filtered_conversations)
 
 
-
-@app.route('/corporate/inbox/conversation/<int:conversation_id>')
-@corporate_required
+@app.route('/conversation/<int:conversation_id>')
+@login_required
 def view_conversation(conversation_id):
-    """View specific conversation"""
-    conversation = Conversation.query.filter_by(
-        id=conversation_id,
-        corporate_user_id=current_user.id
-    ).first_or_404()
+    try:
+        # Get conversation and verify ownership
+        conversation = Conversation.query.filter_by(
+            id=conversation_id,
+            applicant_user_id=current_user.id
+        ).first()
+        
+        if not conversation:
+            flash('Conversation not found.', 'error')
+            return redirect(url_for('user_inbox'))
+        
+        # Get messages for this conversation using ConversationMessage model
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+        
+        # Debug: Print message content to see what's available
+        for message in messages:
+            print(f"Message ID: {message.id}")
+            print(f"Body: {message.body[:100] if message.body else 'None'}...")
+            print(f"HTML Body: {message.html_body[:100] if message.html_body else 'None'}...")
+            print(f"Subject: {message.subject}")
+            print("---")
+        
+        # Mark messages as read when viewing
+        for message in messages:
+            if not message.is_read_by_applicant:
+                message.is_read_by_applicant = True
+        
+        # Reset unread count and update last read time
+        conversation.applicant_unread_count = 0
+        if hasattr(conversation, 'last_read_at'):
+            conversation.last_read_at = datetime.utcnow()
+        db.session.commit()
+        
+        return render_template('user_conversation.html', 
+                             conversation=conversation, 
+                             messages=messages)
+                             
+    except Exception as e:
+        app.logger.error(f"Error viewing conversation: {str(e)}")
+        flash('Error loading conversation.', 'error')
+        return redirect(url_for('user_inbox'))
+
+@app.route('/api/conversations/<int:conversation_id>/mark-read', methods=['POST'])
+@login_required
+def mark_conversation_read(conversation_id):
+    try:
+        # Get the conversation and verify it belongs to the current user
+        conversation = Conversation.query.filter_by(
+            id=conversation_id,
+            applicant_user_id=current_user.id
+        ).first()
+        
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Reset the unread count for this conversation
+        conversation.applicant_unread_count = 0
+        
+        # Only set last_read_at if the column exists
+        try:
+            conversation.last_read_at = datetime.utcnow()
+        except:
+            pass  # Column might not exist, skip it
+        
+        # Mark all messages as read by applicant
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).all()
+        
+        for message in messages:
+            try:
+                message.is_read_by_applicant = True
+            except:
+                pass  # Column might not exist
+        
+        db.session.commit()
+        
+        return jsonify({'success': True, 'marked_read': len(messages)})
+        
+    except Exception as e:
+        app.logger.error(f"Error marking conversation as read: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/conversations/<int:conversation_id>/messages')
+@login_required
+def api_get_conversation_messages(conversation_id):  # Renamed to avoid conflict
+    try:
+        conversation = Conversation.query.get(conversation_id)
+        
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Verify user is part of this conversation
+        user_is_participant = (
+            conversation.applicant_user_id == current_user.id or 
+            conversation.corporate_user_id == current_user.id
+        )
+        
+        if not user_is_participant:
+            return jsonify({'error': 'Access denied'}), 403
+        
+        since_count = request.args.get('since', 0, type=int)
+        
+        # Get all messages for this conversation
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+        
+        # Return only new messages if since parameter is provided
+        new_messages = messages[since_count:] if since_count < len(messages) else []
+        
+        messages_data = []
+        for msg in new_messages:
+            messages_data.append({
+                'id': msg.id,
+                'body': msg.body,
+                'html_body': msg.html_body,
+                'sender_type': msg.sender_type,
+                'sender_id': msg.sender_id,
+                'gmail_timestamp': msg.gmail_timestamp.isoformat() if msg.gmail_timestamp else None
+            })
+        
+        return jsonify({
+            'messages': messages_data,
+            'total_count': len(messages)
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Error fetching messages: {str(e)}')
+        return jsonify({'error': 'Failed to fetch messages'}), 500
+
+@app.route('/api/user/inbox/unread-count')
+@login_required  
+def api_get_inbox_unread_count():  # Renamed to avoid conflict
+    try:
+        # Count unread conversations for current user
+        if current_user.role == 'corporate':
+            # Corporate user - count conversations where they have unread messages
+            unread_count = Conversation.query.filter_by(
+                corporate_user_id=current_user.id
+            ).filter(Conversation.corporate_unread_count > 0).count()
+        else:
+            # Regular user (applicant) - count conversations where they have unread messages
+            unread_count = Conversation.query.filter_by(
+                applicant_user_id=current_user.id
+            ).filter(Conversation.applicant_unread_count > 0).count()
+        
+        return jsonify({'unread_count': unread_count})
+        
+    except Exception as e:
+        app.logger.error(f'Error getting unread count: {str(e)}')
+        return jsonify({'unread_count': 0})
     
-    # Mark messages as read by corporate
-    unread_messages = ConversationMessage.query.filter_by(
-        conversation_id=conversation_id,
-        is_read_by_corporate=False
-    ).filter(ConversationMessage.sender_type == 'applicant').all()
+
+
+
+@app.route('/api/conversations/<int:conversation_id>/messages')
+@login_required
+def get_conversation_messages(conversation_id):
+    try:
+        conversation = Conversation.query.get(conversation_id)
+        
+        if not conversation:
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        # Verify user is part of this conversation
+        user_is_participant = (
+            conversation.applicant_user_id == current_user.id or 
+            conversation.corporate_user_id == current_user.id
+        )
+        
+        if not user_is_participant:
+            return jsonify({'error': 'Access denied'}), 403
+        
+        since_count = request.args.get('since', 0, type=int)
+        
+        # Get all messages for this conversation
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+        
+        # Return only new messages if since parameter is provided
+        new_messages = messages[since_count:] if since_count < len(messages) else []
+        
+        messages_data = []
+        for msg in new_messages:
+            messages_data.append({
+                'id': msg.id,
+                'body': msg.body,
+                'html_body': msg.html_body,
+                'sender_type': msg.sender_type,
+                'sender_id': msg.sender_id,
+                'gmail_timestamp': msg.gmail_timestamp.isoformat() if msg.gmail_timestamp else None
+            })
+        
+        return jsonify({
+            'messages': messages_data,
+            'total_count': len(messages)
+        })
+        
+    except Exception as e:
+        app.logger.error(f'Error fetching messages: {str(e)}')
+        return jsonify({'error': 'Failed to fetch messages'}), 500
+
+@app.route('/api/user/inbox/unread-count')
+@login_required
+def get_inbox_unread_count():
+    try:
+        # Count unread conversations for current user
+        if current_user.role == 'corporate':
+            # Corporate user - count conversations where they have unread messages
+            unread_count = Conversation.query.filter_by(
+                corporate_user_id=current_user.id
+            ).filter(Conversation.corporate_unread_count > 0).count()
+        else:
+            # Regular user (applicant) - count conversations where they have unread messages
+            unread_count = Conversation.query.filter_by(
+                applicant_user_id=current_user.id
+            ).filter(Conversation.applicant_unread_count > 0).count()
+        
+        return jsonify({'unread_count': unread_count})
+        
+    except Exception as e:
+        app.logger.error(f'Error getting unread count: {str(e)}')
+        return jsonify({'unread_count': 0})
+@app.route('/user/inbox')
+@login_required
+def user_inbox():
+    try:
+        # Get conversations for current user
+        if current_user.role == 'corporate':
+            # Corporate user sees conversations where they are the corporate participant
+            conversations = Conversation.query.filter_by(
+                corporate_user_id=current_user.id,
+                is_active=True
+            ).order_by(Conversation.last_message_at.desc()).all()
+            
+            # Count unread conversations
+            unread_count = Conversation.query.filter_by(
+                corporate_user_id=current_user.id
+            ).filter(Conversation.corporate_unread_count > 0).count()
+            
+        else:
+            # Regular user (applicant) sees conversations where they are the applicant
+            conversations = Conversation.query.filter_by(
+                applicant_user_id=current_user.id,
+                is_active=True
+            ).order_by(Conversation.last_message_at.desc()).all()
+            
+            # Count unread conversations
+            unread_count = Conversation.query.filter_by(
+                applicant_user_id=current_user.id
+            ).filter(Conversation.applicant_unread_count > 0).count()
+        
+        return render_template(
+            'user_inbox.html', 
+            conversations=conversations,
+            unread_count=unread_count,
+            current_year=datetime.now().year
+        )
+        
+    except Exception as e:
+        app.logger.error(f'Error loading inbox: {str(e)}')
+        flash('Error loading inbox.', 'error')
+        return redirect(url_for('user_dashboard'))
     
-    for msg in unread_messages:
-        msg.mark_as_read('corporate')
-    
-    # Reset corporate unread count
-    conversation.corporate_unread_count = 0
-    db.session.commit()
-    
-    messages = ConversationMessage.query.filter_by(
-        conversation_id=conversation_id
-    ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
-    
-    return render_template('corporate/conversation.html', 
-                         conversation=conversation, 
-                         messages=messages)
+
+
+def update_conversation_read_status(conversation_id, user_id, sender_type):
+    """Update read status when new message is added to conversation"""
+    try:
+        conversation = Conversation.query.get(conversation_id)
+        if not conversation:
+            return
+        
+        # Update unread counts based on who sent the message
+        if sender_type == 'applicant':
+            # Applicant sent message, increment corporate unread count
+            conversation.corporate_unread_count += 1
+        else:
+            # Corporate sent message, increment applicant unread count
+            conversation.applicant_unread_count += 1
+        
+        conversation.last_message_at = datetime.utcnow()
+        db.session.commit()
+        
+    except Exception as e:
+        app.logger.error(f'Error updating conversation read status: {str(e)}')
 
 @app.route('/corporate/inbox/conversation/<int:conversation_id>/reply', methods=['POST'])
 @corporate_required
@@ -1924,17 +2190,19 @@ def sync_inbox():
     
     return redirect(url_for('corporate_inbox'))
 
-@app.route('/api/corporate/inbox/unread-count')
-@corporate_required
+@app.route('/api/user/inbox/unread-count')
+@login_required
 def get_unread_count():
-    """API endpoint for unread message count"""
-    total_unread = db.session.query(func.sum(Conversation.corporate_unread_count)).filter_by(
-        corporate_user_id=current_user.id,
-        is_active=True
-    ).scalar() or 0
-    
-    return {'unread_count': total_unread}
-# ADD THESE ROUTES to your app.py:
+    try:
+        # Use your existing unread count column
+        unread_count = Conversation.query.filter_by(
+            applicant_user_id=current_user.id,
+        ).filter(Conversation.applicant_unread_count > 0).count()
+        
+        return jsonify({'unread_count': unread_count})
+    except Exception as e:
+        app.logger.error(f"Error getting unread count: {str(e)}")
+        return jsonify({'unread_count': 0})
 
 from models import LearnearshipOpportunity
 
@@ -2557,6 +2825,336 @@ def cv_generator(template):
             500,
         )
 
+# =============================================================================
+# USER INBOX ROUTES - FIXED FOR YOUR TEMPLATES
+# =============================================================================
+
+import logging
+logger = logging.getLogger(__name__)  # Add this at the top of your app.py
+
+@app.route('/user/inbox/<int:conversation_id>')
+@login_required
+def user_conversation(conversation_id):
+    """View a specific conversation"""
+    try:
+        from models import Conversation, ConversationMessage
+        
+        # Get conversation and verify ownership
+        conversation = Conversation.query.filter_by(
+            id=conversation_id
+        ).filter(
+            (Conversation.applicant_user_id == current_user.id) |
+            (Conversation.corporate_user_id == current_user.id)
+        ).first()
+        
+        if not conversation:
+            flash('Conversation not found', 'error')
+            return redirect(url_for('user_inbox'))
+        
+        # Get all messages in the conversation, ordered by timestamp
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+        
+        # Mark messages as read for current user
+        unread_messages = []
+        if current_user.id == conversation.applicant_user_id:
+            # Mark as read by applicant
+            unread_messages = [m for m in messages if not m.is_read_by_applicant]
+            for msg in unread_messages:
+                msg.is_read_by_applicant = True
+            conversation.applicant_unread_count = 0
+        elif current_user.id == conversation.corporate_user_id:
+            # Mark as read by corporate
+            unread_messages = [m for m in messages if not m.is_read_by_corporate]
+            for msg in unread_messages:
+                msg.is_read_by_corporate = True
+            conversation.corporate_unread_count = 0
+        
+        if unread_messages:
+            db.session.commit()
+        
+        return render_template(
+            'user_conversation.html',  # ← Your actual template name
+            conversation=conversation,
+            messages=messages,
+            current_year=datetime.now().year
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error viewing conversation: {e}")
+        flash('Error loading conversation', 'error')
+        return redirect(url_for('user_inbox'))
+
+
+@app.route('/user/inbox/sync', methods=['POST'])
+@login_required
+def user_inbox_sync():
+    """Trigger a Gmail sync for the current user"""
+    try:
+        checker = GmailStatusChecker(current_user.id)
+        updated, has_new = checker.sync_inbox_and_statuses()
+        app.logger.info(f"Sync complete: {updated} apps updated, has_new: {has_new}")
+        return ('', 204)  # Success, no content
+    except Exception as e:
+        app.logger.error(f"Error syncing inbox: {e}")
+        return jsonify({'error': 'Sync failed'}), 500
+
+
+@app.route('/api/user/inbox/unread-count')
+@login_required
+def api_user_inbox_unread_count():
+    """Get unread conversation count for current user"""
+    try:
+        from models import Conversation
+        from sqlalchemy import func
+        
+        # Sum all unread counts for this user's conversations
+        total_unread = db.session.query(
+            func.coalesce(func.sum(Conversation.applicant_unread_count), 0)
+        ).filter(
+            Conversation.applicant_user_id == current_user.id,
+            Conversation.is_active == True
+        ).scalar()
+        
+        return jsonify({
+            'unread_count': int(total_unread or 0),
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error getting unread count: {e}")
+        return jsonify({
+            'unread_count': 0,
+            'status': 'error',
+            'message': str(e)
+        })
+
+
+@app.route('/api/user/inbox/conversations')
+@login_required
+def api_user_inbox_conversations():
+    """Check for new conversations and activity"""
+    try:
+        from models import Conversation
+        from sqlalchemy import func
+        
+        # Get conversation stats
+        conversation_count = Conversation.query.filter_by(
+            applicant_user_id=current_user.id,
+            is_active=True
+        ).count()
+        
+        # Get latest message time
+        latest_message_time = db.session.query(
+            func.max(Conversation.last_message_at)
+        ).filter(
+            Conversation.applicant_user_id == current_user.id,
+            Conversation.is_active == True
+        ).scalar()
+        
+        # Check if there are any unread messages
+        has_unread = db.session.query(
+            func.sum(Conversation.applicant_unread_count)
+        ).filter(
+            Conversation.applicant_user_id == current_user.id,
+            Conversation.is_active == True
+        ).scalar() or 0
+        
+        return jsonify({
+            'conversation_count': conversation_count,
+            'has_new_messages': bool(has_unread > 0),
+            'latest_message_time': latest_message_time.isoformat() if latest_message_time else None,
+            'status': 'success'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error checking conversations: {e}")
+        return jsonify({
+            'conversation_count': 0,
+            'has_new_messages': False,
+            'latest_message_time': None,
+            'status': 'error'
+        })
+
+
+
+@app.route('/api/user/inbox/mark-all-read', methods=['POST'])
+@login_required
+def api_mark_all_conversations_read():
+    """Mark all conversations as read for current user"""
+    try:
+        from models import Conversation, ConversationMessage
+        
+        # Get all user's conversations
+        user_conversations = Conversation.query.filter_by(
+            applicant_user_id=current_user.id,
+            is_active=True
+        ).all()
+        
+        conversation_ids = [c.id for c in user_conversations]
+        
+        if conversation_ids:
+            # Mark all messages in user's conversations as read
+            ConversationMessage.query.filter(
+                ConversationMessage.conversation_id.in_(conversation_ids)
+            ).update({
+                'is_read_by_applicant': True
+            }, synchronize_session=False)
+            
+            # Reset all unread counts
+            Conversation.query.filter_by(
+                applicant_user_id=current_user.id
+            ).update({
+                'applicant_unread_count': 0
+            })
+            
+            db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'All conversations marked as read'})
+        
+    except Exception as e:
+        app.logger.error(f"Error marking all conversations as read: {e}")
+        return jsonify({'error': 'Failed to mark all as read'}), 500
+
+
+@app.route('/conversation/<int:conversation_id>')
+@login_required
+def conversation_detail(conversation_id):
+    """View a specific conversation - matches template url_for calls"""
+    try:
+        from models import Conversation, ConversationMessage
+        
+        # Get conversation and verify ownership
+        conversation = Conversation.query.filter_by(
+            id=conversation_id
+        ).filter(
+            (Conversation.applicant_user_id == current_user.id) |
+            (Conversation.corporate_user_id == current_user.id)
+        ).first()
+        
+        if not conversation:
+            flash('Conversation not found', 'error')
+            return redirect(url_for('user_inbox'))
+        
+        # Get all messages in the conversation, ordered by timestamp
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+        
+        # Mark messages as read for current user
+        unread_messages = []
+        if current_user.id == conversation.applicant_user_id:
+            # Mark as read by applicant
+            unread_messages = [m for m in messages if not m.is_read_by_applicant]
+            for msg in unread_messages:
+                msg.is_read_by_applicant = True
+            conversation.applicant_unread_count = 0
+        elif current_user.id == conversation.corporate_user_id:
+            # Mark as read by corporate
+            unread_messages = [m for m in messages if not m.is_read_by_corporate]
+            for msg in unread_messages:
+                msg.is_read_by_corporate = True
+            conversation.corporate_unread_count = 0
+        
+        if unread_messages:
+            db.session.commit()
+        
+        return render_template(
+            'user_conversation.html',
+            conversation=conversation,
+            messages=messages,
+            current_year=datetime.now().year
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error viewing conversation: {e}")
+        flash('Error loading conversation', 'error')
+        return redirect(url_for('user_inbox'))
+
+@app.route('/api/conversations/<int:conversation_id>/messages', methods=['POST'])
+@login_required
+def send_conversation_message(conversation_id):
+    data = request.get_json()
+    message = data.get('message', '').strip()
+    
+    if not message:
+        return jsonify({'error': 'Message is required'}), 400
+    
+    # Save message and send via Gmail API
+    # Return message_id for status tracking
+    return jsonify({'success': True, 'message_id': 'new_msg_id'})
+
+@app.route('/api/conversations/<int:conversation_id>/messages')
+@login_required  
+def get_new_messages(conversation_id):
+    since = request.args.get('since', 0, type=int)
+    # Return new messages since 'since' count
+    return jsonify({'messages': []})
+
+# Add this to your Flask app initialization
+from markupsafe import Markup
+import re
+
+@app.template_filter('nl2br')
+def nl2br_filter(text):
+    """Convert newlines to <br> tags"""
+    if not text:
+        return ''
+    # Replace \n with <br> and wrap in Markup to mark as safe HTML
+    return Markup(re.sub(r'\n', '<br>', str(text)))
+
+
+
+# Helper function to avoid code duplication
+def view_conversation_helper(conversation_id):
+    """Shared logic for viewing conversations"""
+    try:
+        from models import Conversation, ConversationMessage
+        
+        conversation = Conversation.query.filter_by(
+            id=conversation_id
+        ).filter(
+            (Conversation.applicant_user_id == current_user.id) |
+            (Conversation.corporate_user_id == current_user.id)
+        ).first()
+        
+        if not conversation:
+            flash('Conversation not found', 'error')
+            return redirect(url_for('user_inbox'))
+        
+        messages = ConversationMessage.query.filter_by(
+            conversation_id=conversation_id
+        ).order_by(ConversationMessage.gmail_timestamp.asc()).all()
+        
+        # Mark as read logic
+        unread_messages = []
+        if current_user.id == conversation.applicant_user_id:
+            unread_messages = [m for m in messages if not m.is_read_by_applicant]
+            for msg in unread_messages:
+                msg.is_read_by_applicant = True
+            conversation.applicant_unread_count = 0
+        elif current_user.id == conversation.corporate_user_id:
+            unread_messages = [m for m in messages if not m.is_read_by_corporate]
+            for msg in unread_messages:
+                msg.is_read_by_corporate = True
+            conversation.corporate_unread_count = 0
+        
+        if unread_messages:
+            db.session.commit()
+        
+        return render_template(
+            'user_conversation.html',
+            conversation=conversation,
+            messages=messages,
+            current_year=datetime.now().year
+        )
+        
+    except Exception as e:
+        app.logger.error(f"Error viewing conversation: {e}")
+        flash('Error loading conversation', 'error')
+        return redirect(url_for('user_inbox'))
+    
 
 # =============================================================================
 # APPLY TO MULTIPLE LEARNERSHIPS
@@ -2961,13 +3559,9 @@ def gmail_status_dashboard():
 # =============================================================================
 # EMAIL SENDING HELPERS (GMAIL API)
 # =============================================================================
-# =============================================================================
-# EMAIL SENDING HELPERS (GMAIL API)
-# =============================================================================
 def send_application_email(recipient_email, company_name, user):
     """
-    Send an application email to a company using the Gmail API (OAuth).
-    Returns dict with success, message, and gmail_data (id, threadId)
+    Send an application email with plain text body and HTML signature
     """
     from mailer import (
         build_credentials,
@@ -2975,53 +3569,80 @@ def send_application_email(recipient_email, company_name, user):
         send_gmail_message,
     )
     from models import GoogleToken
+    from flask import render_template
     from socket import timeout
-    \
+    import os
 
-    # Initialize result structure
     result = {
         "success": False,
         "message": "",
         "gmail_data": {}
     }
 
-    subject = f"Learnership Application from {user.full_name or user.email}"
+    subject = f"Application for Learnership Opportunity - {user.full_name or user.email}"
 
-    body = f"""
-Dear {company_name}'s hiring team,
+    try:
+        token_row = GoogleToken.query.filter_by(user_id=user.id).first()
+        if not token_row:
+            print("No Google token found.")
+            result["message"] = "Google authentication required."  
+            return result
 
-I would like to apply for any available learnership opportunities in your organization.
+        credentials = build_credentials(token_row.token_json)
 
-Applicant Details:
+        # Get documents
+        docs = Document.query.filter_by(user_id=user.id, is_active=True).all()
+        file_paths = []
+
+        for doc in docs:
+            if doc.file_path and isinstance(doc.file_path, str) and os.path.exists(doc.file_path):
+                file_paths.append({
+                    "path": doc.file_path,
+                    "filename": doc.original_filename
+                })
+
+        print(f"📎 Found {len(file_paths)} valid documents to attach")
+
+        # Document status for plain text
+        if file_paths:
+            docs_plain = f"✓ Documents Attached: {len(file_paths)} file(s)\n"
+        else:
+            docs_plain = "⚠️ No Documents Attached\nPlease reply with your CV, resume, and supporting documents to strengthen your application.\n"
+
+        # ✅ PLAIN TEXT BODY
+        body = f"""Dear Hiring Team,
+
+I hope this message finds you well. I am writing to express my genuine interest in learnership opportunities within your organization.
+
+Please find my CV and supporting documents attached for your review. I am eager to develop professionally and contribute positively to your team.
+
+Contact Information:
 Name: {user.full_name or 'Not provided'}
 Email: {user.email}
 Phone: {user.phone or 'Not provided'}
 
-Please find my CV and supporting documents attached for your consideration.
-
+{docs_plain}
 Thank you for your time and consideration.
 
 Kind regards,
 {user.full_name or user.email}
 """
 
-    try:
-        token_row = GoogleToken.query.filter_by(user_id=user.id).first()
-        if not token_row:
-            print("No Google token found.")
-            result["message"] = "Google authentication required."
-            return result
-
-        credentials = build_credentials(token_row.token_json)
-
-        docs = Document.query.filter_by(user_id=user.id, is_active=True).all()
-        file_paths = []
-
-        for doc in docs:
-            if os.path.exists(doc.file_path):
-                file_paths.append(
-                    {"path": doc.file_path, "filename": doc.original_filename}
-                )
+        # ✅ GET HTML SIGNATURE
+        signature_html = render_template('emails/email_signature.html')
+        
+        # ✅ COMBINE BODY + SIGNATURE IN HTML - LEFT ALIGNED
+        html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0;">
+    <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: Arial, sans-serif; margin: 0; padding: 0; font-size: 14px; color: #333; text-align: left;">{body}</pre>
+    {signature_html}
+</body>
+</html>"""
 
         message = create_message_with_attachments(
             user.email,
@@ -3029,22 +3650,24 @@ Kind regards,
             subject,
             body,
             file_paths,
+            html_body=html_body
         )
 
         try:
-            # ✅ FIX: Capture the returned message with ID and threadId
             sent_message = send_gmail_message(credentials, message)
             
             if sent_message:
                 gmail_id = sent_message.get('id')
                 thread_id = sent_message.get('threadId')
+                doc_count = len(file_paths)
                 
                 print(f"✅ Email sent to {recipient_email}")
+                print(f"   📎 Documents attached: {doc_count}")
                 print(f"   Gmail Message ID: {gmail_id}")
                 print(f"   Gmail Thread ID: {thread_id}")
                 
                 result["success"] = True
-                result["message"] = "Email sent successfully."
+                result["message"] = f"Email sent successfully with {doc_count} document(s)"
                 result["gmail_data"] = {
                     "id": gmail_id,
                     "threadId": thread_id
@@ -3059,18 +3682,13 @@ Kind regards,
             return result
         except Exception as e:
             print("Gmail API error:", e)
-            if "quota" in str(e).lower():
-                result["message"] = "Gmail quota exceeded."
-            else:
-                result["message"] = f"Email sending error: {e}"
+            result["message"] = f"Email sending error: {e}"
             return result
 
     except Exception as e:
         print("Error sending Gmail:", e)
         result["message"] = f"Error preparing email: {e}"
         return result
-
-
 # =============================================================================
 # BULK EMAIL WRAPPER (adds Gmail tracking)
 # =============================================================================
@@ -3102,29 +3720,47 @@ def send_application_email_with_gmail(recipient_email, company_name, user):
 # =============================================================================
 @app.route("/apply_bulk_email", methods=["POST"])
 @login_required
-@check_application_limit  # Premium limit decorator
+@check_application_limit
 def apply_bulk_email():
     try:
         ids = request.form.getlist("selected_emails")
+        reapply_ids = request.form.getlist("reapply_emails")
+        
         print(f"DEBUG: Received IDs: {ids}")
+        print(f"DEBUG: Re-apply IDs: {reapply_ids}")
 
-        if not ids:
+        if not ids and not reapply_ids:
             flash("Please select at least one company.", "warning")
-            return redirect(url_for("learnerships"))  # Fixed redirect
+            return redirect(url_for("learnerships"))
 
-        # Premium limit check for bulk applications
+        # ✅ CHECK DOCUMENTS BEFORE STARTING
+        docs = Document.query.filter_by(user_id=current_user.id, is_active=True).all()
+        valid_docs = [d for d in docs if d.file_path and isinstance(d.file_path, str) and os.path.exists(d.file_path)]
+        
+        if not valid_docs:
+            flash(
+                "⚠️ You must upload at least one document (CV/Resume) before applying.",
+                "warning"
+            )
+            return redirect(url_for("user_documents"))
+        
+        print(f"📎 User has {len(valid_docs)} valid document(s) to attach")
+
+        # Premium limit check
+        total_applications = len(ids) + len(reapply_ids)
+        
         if not current_user.is_premium_active():
             remaining = current_user.get_remaining_applications()
             if remaining == 0:
-                flash("Daily application limit reached (24 applications). Upgrade to premium for unlimited applications!", "warning")
+                flash("Daily application limit reached. Upgrade to premium!", "warning")
                 return redirect(url_for('upgrade_to_premium'))
-            elif len(ids) > remaining:
-                flash(f"You can only apply to {remaining} more companies today. Selected {len(ids)} companies. Upgrade to premium for unlimited applications!", "warning")
+            elif total_applications > remaining:
+                flash(f"You can only apply to {remaining} more companies today.", "warning")
                 return redirect(url_for('upgrade_to_premium'))
 
-        # Get email entries from LearnershipEmail model
+        # Get email entries
         email_entries = LearnershipEmail.query.filter(
-            LearnershipEmail.id.in_(ids),
+            LearnershipEmail.id.in_(ids + reapply_ids),
             LearnershipEmail.is_active == True,
         ).all()
         
@@ -3137,27 +3773,81 @@ def apply_bulk_email():
         successful = []
         failed = []
         timeout_list = []
-        already = []
+        reapplied = []
         gmail_tracked = 0
-        applications_sent = 0  # Track successful applications for premium limits
+        applications_sent = 0
 
         for entry in email_entries:
             print(f"\n{'='*50}")
             print(f"📧 Processing: {entry.company_name} - {entry.email_address}")
             
-            # Check if user already applied to this company using Application model
+            # Check if user already applied to this company
             existing = Application.query.filter_by(
                 user_id=current_user.id, 
                 company_email=entry.email_address
             ).first()
 
+            # ✅ HANDLE RE-APPLICATIONS - COMPLETE FIX WITH PROPER CASCADE ORDER
             if existing:
-                already.append(entry.company_name)
-                print(f"   ⚠️ Already applied to {entry.company_name}")
-                continue
-
+                if str(entry.id) not in reapply_ids:
+                    print(f"   ⚠️ Already applied to {entry.company_name} (skipped)")
+                    continue
+                else:
+                    print(f"   🔄 Re-applying to {entry.company_name}")
+                    
+                    # ✅ DELETE ALL RELATED RECORDS IN CORRECT CASCADE ORDER
+                    try:
+                        application_id = existing.id
+                        print(f"   🔍 Deleting all records for application_id: {application_id}")
+                        
+                        # 1. Delete ConversationMessage records first (deepest level)
+                        conversation_messages_deleted = 0
+                        conversations = Conversation.query.filter_by(application_id=application_id).all()
+                        for conversation in conversations:
+                            messages = ConversationMessage.query.filter_by(conversation_id=conversation.id).all()
+                            for message in messages:
+                                db.session.delete(message)
+                                conversation_messages_deleted += 1
+                        print(f"   🗑️ Deleted {conversation_messages_deleted} conversation messages")
+                        
+                        # 2. Delete Conversation records
+                        conversations_deleted = len(conversations)
+                        for conversation in conversations:
+                            db.session.delete(conversation)
+                        print(f"   🗑️ Deleted {conversations_deleted} conversations")
+                        
+                        # 3. Delete CalendarEvent records
+                        calendar_events = CalendarEvent.query.filter_by(application_id=application_id).all()
+                        for event in calendar_events:
+                            db.session.delete(event)
+                        print(f"   🗑️ Deleted {len(calendar_events)} calendar events")
+                        
+                        # 4. Delete ApplicationMessage records
+                        app_messages = ApplicationMessage.query.filter_by(application_id=application_id).all()
+                        for msg in app_messages:
+                            db.session.delete(msg)
+                        print(f"   🗑️ Deleted {len(app_messages)} application messages")
+                        
+                        # 5. Delete any other related records that reference application_id
+                        # Add any other models that have foreign keys to Application here if needed
+                        
+                        # 6. Finally delete the Application itself
+                        db.session.delete(existing)
+                        
+                        # Commit all deletions
+                        db.session.commit()
+                        print(f"   ✅ Successfully deleted application {application_id} and all related data")
+                        
+                    except Exception as delete_error:
+                        print(f"   ❌ Error deleting existing application: {delete_error}")
+                        import traceback
+                        traceback.print_exc()
+                        db.session.rollback()
+                        failed.append(entry.company_name)
+                        continue
+                    
             try:
-                # Send the email
+                # Send email with documents
                 result = send_application_email_with_gmail(
                     entry.email_address, entry.company_name, current_user
                 )
@@ -3168,18 +3858,15 @@ def apply_bulk_email():
                 message = result.get("message", "")
                 gmail_data = result.get("gmail_data", {})
                 
-                # Log Gmail tracking data
                 if gmail_data:
                     print(f"   📬 Gmail ID: {gmail_data.get('id')}")
                     print(f"   🧵 Thread ID: {gmail_data.get('threadId')}")
-                else:
-                    print(f"   ⚠️ No Gmail tracking data received!")
 
-                # Create ONLY Application record - no other models needed
+                # Create NEW Application record
                 application = Application(
                     user_id=current_user.id,
                     company_name=entry.company_name,
-                    company_email=entry.email_address,  # Store the email address
+                    company_email=entry.email_address,
                     learnership_name="Email Application",
                     status="submitted" if success else "pending",
                 )
@@ -3187,50 +3874,38 @@ def apply_bulk_email():
                 if success:
                     application.email_status = "sent"
                     application.sent_at = datetime.utcnow()
-                    
-                    # Save Gmail tracking IDs
                     application.gmail_message_id = gmail_data.get("id")
                     application.gmail_thread_id = gmail_data.get("threadId")
                     application.has_response = False
+                    application.documents_attached = len(valid_docs)
                     
-                    # Track application usage for premium limits
                     current_user.use_application()
                     applications_sent += 1
                     
-                    # Log what we're saving
-                    print(f"   ✅ Saving Application with:")
-                    print(f"      company_name: {application.company_name}")
-                    print(f"      company_email: {application.company_email}")
-                    print(f"      gmail_message_id: {application.gmail_message_id}")
-                    print(f"      gmail_thread_id: {application.gmail_thread_id}")
-                    print(f"   📊 Application #{applications_sent} counted for user")
+                    print(f"   ✅ Creating new Application")
                 else:
                     application.email_status = "failed"
                     print(f"   ❌ Email failed: {message}")
 
-                # Add to database
                 db.session.add(application)
+                db.session.commit()  # ✅ Commit immediately after adding new application
 
-                # Track results
                 if success:
                     successful.append(entry.company_name)
+                    if str(entry.id) in reapply_ids:
+                        reapplied.append(entry.company_name)
                     if gmail_data.get("id"):
                         gmail_tracked += 1
-                        print(f"   🎯 Gmail tracking ENABLED for {entry.company_name}")
-                    else:
-                        print(f"   ⚠️ Email sent but NO Gmail tracking for {entry.company_name}")
                 else:
                     if "timeout" in message.lower():
                         timeout_list.append(entry.company_name)
                     else:
                         failed.append(entry.company_name)
 
-                # Commit each application individually for better error handling
-                db.session.commit()
                 print(f"   💾 Saved to database")
 
             except Exception as e:
-                print(f"❌ Bulk email error for {entry.company_name}: {e}")
+                print(f"❌ Error for {entry.company_name}: {e}")
                 import traceback
                 traceback.print_exc()
                 db.session.rollback()
@@ -3239,234 +3914,87 @@ def apply_bulk_email():
         # Summary
         print(f"\n{'='*50}")
         print(f"📊 BULK SEND SUMMARY:")
-        print(f"   ✅ Successful: {len(successful)}")
+        print(f"   ✅ New applications: {len(successful) - len(reapplied)}")
+        print(f"   🔄 Re-applications: {len(reapplied)}")
         print(f"   🎯 Gmail tracked: {gmail_tracked}")
-        print(f"   📱 Applications counted: {applications_sent}")
+        print(f"   📎 Documents per application: {len(valid_docs)}")
         print(f"   ❌ Failed: {len(failed)}")
-        print(f"   ⏰ Timeout: {len(timeout_list)}")
-        print(f"   ⚠️ Already applied: {len(already)}")
         print(f"{'='*50}\n")
 
-        # Flash messages for results with premium upselling
+        # Flash messages
         if successful:
-            remaining_today = current_user.get_remaining_applications()
-            msg = (
-                f"Successfully sent applications to {len(successful)} companies!"
-                if len(successful) > 5
-                else f"Successfully sent applications to: {', '.join(successful)}"
-            )
-            if gmail_tracked:
-                msg += f" ({gmail_tracked} tracked via Gmail)"
+            new_count = len(successful) - len(reapplied)
             
-            # Premium upsell message for free users
-            if not current_user.is_premium_active():
-                if remaining_today == "Unlimited":
-                    pass  # This shouldn't happen for non-premium, but just in case
-                elif remaining_today == 0:
-                    msg += " ⚠️ You've reached your daily limit. Upgrade to premium for unlimited applications!"
-                else:
-                    msg += f" You have {remaining_today} applications remaining today."
+            msg = f"✅ Successfully sent {len(successful)} application(s) with {len(valid_docs)} document(s)!"
+            
+            if new_count > 0:
+                msg += f"\n   📝 New: {new_count}"
+            if reapplied:
+                msg += f"\n   🔄 Re-applied: {len(reapplied)}"
+            
+            if gmail_tracked:
+                msg += f"\n🎯 {gmail_tracked} application(s) tracked for responses"
             
             flash(msg, "success")
 
         if timeout_list:
-            flash(
-                f"Network timeout for: {', '.join(timeout_list)}. Please try again later.",
-                "warning",
-            )
+            flash(f"⏱️ Network timeout for: {', '.join(timeout_list)}", "warning")
 
         if failed:
-            flash(
-                f"Failed to send applications to: {', '.join(failed)}. Please check your internet connection and try again.",
-                "error",
-            )
-
-        if already:
-            flash(
-                f"You've already applied to: {', '.join(already)}",
-                "info",
-            )
-
-        if gmail_tracked:
-            flash(f"🔔 {gmail_tracked} applications are being tracked for responses.", "info")
-
-        # Premium upgrade suggestion for users near their limit
-        if not current_user.is_premium_active():
-            remaining_after = current_user.get_remaining_applications()
-            if remaining_after <= 5 and remaining_after > 0:
-                flash(f"💡 Only {remaining_after} applications remaining today. Upgrade to premium for unlimited daily applications!", "info")
-            elif remaining_after == 0:
-                flash("🚫 Daily limit reached! Upgrade to premium to continue applying to more companies.", "warning")
+            flash(f"❌ Failed: {', '.join(failed)}", "error")
 
         return redirect(url_for("my_applications"))
 
     except Exception as e:
-        print(f"Fatal error in apply_bulk_email: {e}")
+        print(f"Fatal error: {e}")
         import traceback
         traceback.print_exc()
         db.session.rollback()
-        flash("An error occurred while processing your applications. Please try again.", "error")
+        flash("An error occurred.", "error")
         return redirect(url_for("learnerships"))
+
+
+# ✅ NEW ROUTE: Check for existing applications and ask for confirmation
+@app.route("/check_existing_applications", methods=["POST"])
+@login_required
+def check_existing_applications():
+    """Check which companies user already applied to and ask for confirmation"""
+    ids = request.json.get("selected_ids", [])
     
-
-# =============================================================================
-# BULK PROCESSING JOB (async worker)
-# =============================================================================
-
-def bulk_send_job(app, user_id, learnerships, attachment_ids):
-    """
-    Background job to send multiple applications with Gmail tracking.
+    if not ids:
+        return jsonify({"existing": [], "new": ids})
     
-    This function is used for:
-    1. Asynchronous bulk email sending (prevents UI blocking)
-    2. Processing large batches of learnership applications
-    3. Handling document attachments for multiple applications
-    4. Gmail API integration with tracking capabilities
-    5. Background processing when users apply to multiple learnerships at once
-    """
-    import time
+    # Get all selected companies
+    email_entries = LearnershipEmail.query.filter(
+        LearnershipEmail.id.in_(ids)
+    ).all()
     
-    with app.app_context():
-        try:
-            from mailer import (
-                build_credentials,
-                create_message_with_attachments,
-                send_gmail_message,
-            )
-            from models import User, Document, Application, GoogleToken, db, LearnearshipOpportunity
+    existing_companies = []
+    new_companies = []
+    
+    for entry in email_entries:
+        existing = Application.query.filter_by(
+            user_id=current_user.id,
+            company_email=entry.email_address
+        ).first()
+        
+        if existing:
+            existing_companies.append({
+                "id": entry.id,
+                "name": entry.company_name,
+                "email": entry.email_address,
+                "applied_at": existing.created_at.strftime("%Y-%m-%d %H:%M") if existing.created_at else "Unknown"
+            })
+        else:
+            new_companies.append(entry.id)
+    
+    return jsonify({
+        "existing": existing_companies,
+        "new": new_companies,
+        "total": len(email_entries)
+    })
 
-            user = User.query.get(user_id)
-            if not user:
-                print("User not found for bulk job.")
-                return
 
-            token_row = GoogleToken.query.filter_by(user_id=user.id).first()
-            if not token_row:
-                print("Missing Google token.")
-                return
-
-            credentials = build_credentials(token_row.token_json)
-
-            # Get user's documents for attachments
-            docs = Document.query.filter(
-                Document.id.in_(attachment_ids),
-                Document.user_id == user.id,
-                Document.is_active == True,
-            ).all()
-
-            file_paths = [
-                {"path": d.file_path, "filename": d.original_filename}
-                for d in docs
-            ]
-
-            print(f"📦 Processing {len(learnerships)} learnerships for user {user.email}")
-            print(f"📎 Attaching {len(file_paths)} documents")
-
-            for lr in learnerships:
-                try:
-                    print(f"\n📧 Processing: {lr.get('title')} at {lr.get('company')}")
-                    
-                    # Create Application record (using your current model structure)
-                    new_app = Application(
-                        user_id=user.id,
-                        company_name=lr.get("company"),
-                        company_email=lr.get("apply_email"),  # Store email directly
-                        learnership_name=lr.get("title"),
-                        status="processing",
-                    )
-
-                    db.session.add(new_app)
-                    db.session.commit()
-                    
-                    print(f"   📝 Created Application ID: {new_app.id}")
-
-                    # Send email with attachments
-                    email = lr.get("apply_email")
-                    subject = f"Application for {lr.get('title')} - {user.full_name or user.email}"
-                    
-                    # Create email body
-                    body = f"""Dear {lr.get('company')} Hiring Team,
-
-I hope this email finds you well. I am writing to express my interest in the {lr.get('title')} position at your esteemed organization.
-
-Applicant Details:
-- Name: {user.full_name or 'Not provided'}
-- Email: {user.email}
-- Phone: {user.phone or 'Not provided'}
-
-{getattr(user, 'email_body', 'I am eager to contribute to your team and would welcome the opportunity to discuss my application further.')}
-
-Please find my CV and supporting documents attached for your consideration.
-
-Thank you for your time and consideration. I look forward to hearing from you.
-
-Kind regards,
-{user.full_name or user.email}
-"""
-
-                    # Create and send Gmail message
-                    message = create_message_with_attachments(
-                        user.email,
-                        email, 
-                        subject, 
-                        body, 
-                        file_paths
-                    )
-                    
-                    # Send via Gmail API and capture tracking data
-                    sent_message = send_gmail_message(credentials, message)
-                    
-                    if sent_message:
-                        # Update application with successful send data
-                        new_app.status = "submitted"
-                        new_app.email_status = "sent"
-                        new_app.sent_at = datetime.utcnow()
-                        
-                        # Save Gmail tracking IDs for response monitoring
-                        new_app.gmail_message_id = sent_message.get('id')
-                        new_app.gmail_thread_id = sent_message.get('threadId')
-                        new_app.has_response = False
-                        
-                        # Track application usage for premium limits
-                        user.use_application()
-                        
-                        print(f"   ✅ Email sent successfully!")
-                        print(f"      Gmail Message ID: {new_app.gmail_message_id}")
-                        print(f"      Gmail Thread ID: {new_app.gmail_thread_id}")
-                    else:
-                        # Update application with failed send data
-                        new_app.status = "error"
-                        new_app.email_status = "failed"
-                        print(f"   ❌ Failed to send email")
-                    
-                    db.session.commit()
-                    print(f"   💾 Updated Application ID: {new_app.id}")
-
-                except Exception as e:
-                    print(f"❌ Bulk job error for {lr.get('company', 'Unknown')}: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    
-                    # Update application status to error if it exists
-                    if 'new_app' in locals():
-                        try:
-                            new_app.status = "error"
-                            new_app.email_status = "failed"
-                            db.session.commit()
-                        except:
-                            db.session.rollback()
-
-                # Rate limiting to avoid Gmail API quotas
-                time.sleep(2)  # 2 second delay between emails
-
-            print(f"\n✅ Bulk job completed for user {user.email}")
-
-        except Exception as e:
-            print(f"💥 Fatal bulk job error: {e}")
-            import traceback
-            traceback.print_exc()
-            db.session.rollback()
- 
 # --------------------------------------------------------------------
 # USER PREMIUM FEATURES
 # --------------------------------------------------------------------

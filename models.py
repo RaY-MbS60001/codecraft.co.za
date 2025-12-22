@@ -654,6 +654,7 @@ class Conversation(db.Model):
     gmail_thread_id = db.Column(db.String(255), nullable=False, unique=True)
     subject = db.Column(db.String(500), nullable=False)
     
+    last_read_at = db.Column(db.DateTime)
     # Participants
     corporate_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     applicant_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

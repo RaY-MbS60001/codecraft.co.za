@@ -1,0 +1,960 @@
+{% extends "base.html" %}
+{% block title %}Inbox - CodeCraftCo{% endblock %}
+
+{% block additional_css %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+    :root {
+        --background: #1e293b;
+        --surface: #334155;
+        --surface-hover: #475569;
+        --surface-alt: #64748b;
+        --border-color: #475569;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --primary-color: #3b82f6;
+        --primary-hover: #2563eb;
+        --primary-light: rgba(59, 130, 246, 0.15);
+        --success-color: #10b981;
+        --success-hover: #059669;
+        --success-light: rgba(16, 185, 129, 0.15);
+        --warning-color: #f59e0b;
+        --warning-hover: #d97706;
+        --warning-light: rgba(245, 158, 11, 0.15);
+        --danger-color: #ef4444;
+        --danger-hover: #dc2626;
+        --danger-light: rgba(239, 68, 68, 0.15);
+        --info-color: #06b6d4;
+        --info-light: rgba(6, 182, 212, 0.15);
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --radius-full: 50%;
+        --transition-fast: 0.15s ease;
+        --transition-normal: 0.3s ease;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+        --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
+
+    body {
+        background: var(--background);
+        color: var(--text-primary);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+    }
+
+    /* Top nav (user version) */
+    .dashboard-nav {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        box-shadow: var(--shadow);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .nav-left .nav-logo {
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .nav-logo a {
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transform: translateY(16px);
+    }
+
+    .word {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .letter-box {
+        width: 35px;
+        height: 35px;
+        background-color: rgba(51, 51, 51, 0.9);
+        border: 2px solid #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(10px);
+        transition: all var(--transition-normal);
+    }
+
+    .letter-box.red { box-shadow: 0 0 12px #ff0000, 0 0 24px rgba(255, 0, 0, 0.4); }
+    .letter-box.blue { box-shadow: 0 0 12px #0099ff, 0 0 24px rgba(0, 153, 255, 0.4); }
+    .letter-box.orange { box-shadow: 0 0 12px #ff8800, 0 0 24px rgba(255, 136, 0, 0.4); }
+
+    .letter {
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        font-family: 'Arial', sans-serif;
+        line-height: 1;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .word-text {
+        font-size: 20px;
+        font-weight: normal;
+        color: #fff;
+        margin-left: 3px;
+        font-family: 'Arial', sans-serif;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        line-height: 1;
+    }
+
+    .nav-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-normal);
+        font-weight: 500;
+        position: relative;
+        background: var(--surface-hover);
+    }
+
+    .nav-link.active {
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+
+    .nav-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+
+    .inbox-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+        border: 2px solid var(--surface);
+        animation: pulse-notification 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-notification {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        50% {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+    }
+
+    /* User menu */
+    .user-menu {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .user-menu-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: white;
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-normal);
+    }
+
+    .user-menu-trigger:hover {
+        background: var(--surface-hover);
+    }
+
+    .user-avatar-small span,
+    .user-avatar-small img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        border: 2px solid var(--border-color);
+        object-fit: cover;
+    }
+
+    .user-name {
+        font-size: 0.9rem;
+        color: white;
+        font-weight: 500;
+        max-width: 150px;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .chevron-icon {
+        transition: transform var(--transition-normal);
+        color: var(--text-secondary);
+    }
+
+    .user-menu-dropdown {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 48px;
+        background: var(--surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        min-width: 200px;
+        z-index: 1001;
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(10px);
+    }
+
+    .user-menu-trigger:hover + .user-menu-dropdown,
+    .user-menu-dropdown:hover {
+        display: block;
+    }
+
+    .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        color: white;
+        text-decoration: none;
+        transition: background var(--transition-fast);
+        font-size: 0.9rem;
+    }
+
+    .menu-item:hover {
+        background: var(--surface-hover);
+        color: white;
+        text-decoration: none;
+    }
+
+    .menu-item.logout {
+        color: var(--danger-color) !important;
+    }
+
+    .menu-item.logout:hover {
+        background: var(--danger-light) !important;
+        color: var(--danger-color) !important;
+    }
+
+    .menu-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: 0;
+    }
+
+    .menu-badge {
+        margin-left: auto;
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    /* Main Content */
+    .inbox-container {
+        min-height: 100vh;
+        background: var(--background);
+        color: var(--text-primary);
+    }
+
+    .inbox-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+
+    .inbox-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .inbox-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(45deg, var(--text-primary), var(--info-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+    }
+
+    .inbox-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .conversations-list {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border-color);
+    }
+
+    .conversation-item {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color var(--transition-fast);
+        opacity: 0;
+    }
+
+    .conversation-item:last-child {
+        border-bottom: none;
+    }
+
+    .conversation-item:hover {
+        background: var(--surface-hover);
+    }
+
+    .conversation-item.unread {
+        background: var(--primary-light);
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .conversation-link {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        transition: all var(--transition-fast);
+    }
+
+    .conversation-link:hover {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .conversation-info {
+        flex: 1;
+    }
+
+    .company-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+        color: var(--text-primary);
+    }
+
+    .conversation-subject {
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .conversation-role {
+        color: var(--text-tertiary);
+        font-size: 0.8rem;
+    }
+
+    .conversation-meta {
+        text-align: right;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.5rem;
+    }
+
+    .last-message-time {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+    }
+
+    .unread-count {
+        background: var(--danger-color);
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .empty-inbox {
+        text-align: center;
+        padding: 4rem;
+        color: var(--text-tertiary);
+    }
+
+    .empty-inbox i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-inbox h3 {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all var(--transition-normal);
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: var(--surface-alt);
+        color: white;
+        box-shadow: 0 4px 15px rgba(100, 116, 139, 0.3);
+    }
+
+    .btn-secondary:hover {
+        background: var(--surface-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(100, 116, 139, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    /* Footer (same style as your other pages) */
+    .main-footer {
+        background: #1e293b;
+        border-top: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 20px 14px 14px;
+        margin-top: 40px;
+    }
+
+    .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        max-width: 1100px;
+        margin: 0 auto;
+        gap: 12px;
+    }
+
+    .footer-brand {
+        flex: 1 1 200px;
+        text-align: center;
+    }
+
+    .footer-brand .logo-container {
+        justify-content: center;
+        transform: scale(0.9);
+        margin-bottom: 8px;
+    }
+
+    .footer-tagline {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        margin-top: 3px;
+    }
+
+    .footer-links {
+        flex: 1 1 280px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 12px;
+    }
+
+    .footer-links a {
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: color 0.3s;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    .footer-links a:hover {
+        color: var(--text-primary);
+        background: rgba(248, 250, 252, 0.1);
+    }
+
+    .footer-social {
+        flex: 1 1 160px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+    }
+
+    .social-btn {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--surface-hover);
+        color: white;
+        font-size: 12px;
+        text-decoration: none;
+        transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .social-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .social-btn.linkedin:hover { background: #0077b5; }
+    .social-btn.github:hover { background: #181717; }
+    .social-btn.instagram:hover {
+        background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+    }
+    .social-btn.facebook:hover { background: #1877f2; }
+    .social-btn.whatsapp:hover { background: #25D366; }
+
+    .footer-bottom {
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+        padding-top: 8px;
+        margin-top: 8px;
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .dashboard-nav {
+            padding: 0.5rem 1rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-right {
+            gap: 0.75rem;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link span {
+            display: none;
+        }
+
+        .nav-link {
+            padding: 8px;
+            min-width: 40px;
+            justify-content: center;
+        }
+
+        .inbox-badge {
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            top: -6px;
+            right: -6px;
+        }
+
+        .user-name {
+            display: none;
+        }
+
+        .inbox-content {
+            padding: 1rem;
+        }
+
+        .inbox-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .conversation-link {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .conversation-meta {
+            align-items: flex-start;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .footer-inner {
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .inbox-content { padding: 0.5rem; }
+        .inbox-header h1 { font-size: 2rem; }
+        .conversation-link { padding: 1rem; }
+        .company-name { font-size: 1rem; }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<nav class="dashboard-nav">
+    <div class="nav-left">
+        <div class="nav-logo">
+            <a href="{{ url_for('user_dashboard') }}">
+                <div class="logo-container">
+                    <div class="word">
+                        <div class="letter-box red">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">ode</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box blue">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">raft</div>
+                    </div>
+                    <div class="word">
+                        <div class="letter-box orange">
+                            <div class="letter">C</div>
+                        </div>
+                        <div class="word-text">o</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="nav-right">
+        <a href="{{ url_for('user_dashboard') }}" class="nav-link">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+
+        <a href="{{ url_for('my_applications') }}" class="nav-link">
+            <i class="fas fa-briefcase"></i>
+            <span>Applications</span>
+        </a>
+
+        <a href="{{ url_for('user_inbox') }}" class="nav-link active" id="inboxNavLink">
+            <i class="fas fa-envelope"></i>
+            <span>Inbox</span>
+            <span class="inbox-badge" id="navInboxBadge" style="display: none;">0</span>
+        </a>
+
+        <div class="user-menu">
+            <button class="user-menu-trigger" onclick="toggleUserMenu()">
+                <div class="user-avatar-small">
+                    {% if current_user.profile_picture %}
+                        <img src="{{ current_user.profile_picture }}" alt="">
+                    {% else %}
+                        <span>{{ (current_user.full_name or current_user.email)[0].upper() }}</span>
+                    {% endif %}
+                </div>
+                <span class="user-name">{{ current_user.full_name or current_user.email }}</span>
+                <svg class="chevron-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 6.646a.5.5 0 01.708 0L8 9.293l2.646-2.647a.5.5 0 01.708.708l-3 3a.5.5 0 01-.708 0l-3-3a.5.5 0 010-.708z" />
+                </svg>
+            </button>
+            <div class="user-menu-dropdown" id="userMenuDropdown">
+                <a href="{{ url_for('edit_profile') }}" class="menu-item">
+                    <i class="fas fa-user"></i> Profile
+                </a>
+                <a href="{{ url_for('user_inbox') }}" class="menu-item">
+                    <i class="fas fa-envelope"></i> Inbox
+                    <span class="menu-badge" id="menuInboxBadge" style="display: none;">0</span>
+                </a>
+                <hr class="menu-divider">
+                <a href="{{ url_for('logout') }}" class="menu-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="inbox-container">
+    <div class="inbox-content">
+        <header class="inbox-header">
+            <h1>Your Inbox</h1>
+            <div class="inbox-actions">
+                <button onclick="syncInbox(event)" class="btn btn-secondary">
+                    <i class="fas fa-sync"></i> Sync with Gmail
+                </button>
+            </div>
+        </header>
+
+        <div class="conversations-list">
+            {% if conversations %}
+{% for conversation in conversations %}
+    {% set unread = conversation.applicant_unread_count or 0 %}
+
+    <div class="conversation-item {% if unread > 0 %}unread{% endif %}">
+<a href="{{ url_for('conversation_detail', conversation_id=conversation.id) }}" class="conversation-link">
+            <div class="conversation-info">
+                <div class="company-name">
+                    {{ conversation.application.company_name or 'Company' }}
+                </div>
+                <div class="conversation-subject">
+                    {{ conversation.subject }}
+                </div>
+                <div class="conversation-role">
+                    {{ conversation.application.learnership_name }}
+                </div>
+            </div>
+            <div class="conversation-meta">
+                <div class="last-message-time">
+                    {{ conversation.last_message_at.strftime('%b %d, %Y %I:%M %p') }}
+                </div>
+                {% if unread > 0 %}
+                <div class="unread-count">
+                    {{ unread }}
+                </div>
+                {% endif %}
+            </div>
+        </a>
+    </div>
+{% endfor %}
+            {% else %}
+                <div class="empty-inbox">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No conversations yet</h3>
+                    <p>When companies reply to applications you send from CodeCraftCo, conversations will appear here.</p>
+                    <button onclick="syncInbox(event)" class="btn btn-primary">
+                        <i class="fas fa-sync"></i> Sync with Gmail
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="main-footer">
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <div class="logo-container">
+                <div class="word">
+                    <div class="letter-box red">
+                        <div class="letter">C</div>
+                    </div>
+                    <div class="word-text">ode</div>
+                </div>
+                <div class="word">
+                    <div class="letter-box blue">
+                        <div class="letter">C</div>
+                    </div>
+                    <div class="word-text">raft</div>
+                </div>
+                <div class="word">
+                    <div class="letter-box orange">
+                        <div class="letter">C</div>
+                    </div>
+                    <div class="word-text">o</div>
+                </div>
+            </div>
+            <div class="footer-tagline">Empowering developers with smart tools.</div>
+        </div>
+
+        <div class="footer-links">
+            <a href="{{ url_for('user_dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('my_applications') }}">Applications</a>
+            <a href="{{ url_for('contact_us') }}">Contact</a>
+            <a href="{{ url_for('privacy_policy') }}">Privacy</a>
+            <a href="{{ url_for('terms_of_service') }}">Terms</a>
+        </div>
+
+        <div class="footer-social">
+            <a href="#" class="social-btn linkedin"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" class="social-btn github"><i class="fab fa-github"></i></a>
+            <a href="#" class="social-btn instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-btn facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="social-btn whatsapp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        © {{ current_year or 2024 }} CodeCraftCo. All rights reserved.
+    </div>
+</footer>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+function toggleUserMenu() {
+    const dropdown = document.getElementById('userMenuDropdown');
+    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
+
+document.addEventListener('click', function (event) {
+    const userMenu = document.querySelector('.user-menu');
+    const dropdown = document.getElementById('userMenuDropdown');
+    if (!userMenu.contains(event.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+// User inbox unread count polling
+function updateInboxCounts() {
+    fetch('/api/user/inbox/unread-count')
+        .then(response => response.json())
+        .then(data => {
+            const unreadCount = data.unread_count || 0;
+
+            const badges = [
+                document.getElementById('navInboxBadge'),
+                document.getElementById('menuInboxBadge')
+            ];
+
+            badges.forEach(badge => {
+                if (!badge) return;
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+
+            if (unreadCount > 0) {
+                document.title = `(${unreadCount}) Inbox - CodeCraftCo`;
+            } else {
+                document.title = 'Inbox - CodeCraftCo';
+            }
+        })
+        .catch(error => console.log('Inbox update error:', error));
+}
+
+function syncInbox(ev) {
+    const btn = ev.target.closest('button');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+    btn.disabled = true;
+
+    if (window.showCustomLoading) {
+        window.showCustomLoading('Syncing Inbox', 'Fetching latest messages from Gmail...');
+    }
+
+    fetch('/user/inbox/sync', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+        }
+    })
+    .then(response => {
+        if (window.hideCustomLoading) window.hideCustomLoading();
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Sync failed');
+        }
+    })
+    .catch(error => {
+        console.error('Sync error:', error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        alert('Failed to sync inbox. Please try again.');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateInboxCounts();
+    setInterval(updateInboxCounts, 30000); // every 30s
+
+    const conversations = document.querySelectorAll('.conversation-item');
+    conversations.forEach((conversation, index) => {
+        conversation.style.animationDelay = `${index * 0.1}s`;
+        conversation.style.animation = 'fadeInUp 0.6s ease-out forwards';
+    });
+
+    // Optional: auto-refresh if new messages exist
+    setInterval(() => {
+        fetch('/api/user/inbox/conversations')
+            .then(response => response.json())
+            .then(data => {
+                if (data.has_new_messages) {
+                    window.location.reload();
+                }
+            })
+            .catch(error => console.log('Inbox refresh error:', error));
+    }, 120000);
+});
+</script>
+{% endblock %}

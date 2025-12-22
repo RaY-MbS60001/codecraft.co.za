@@ -12,6 +12,161 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def process_incoming_gmail_message_for_user(gmail_message):
+    """Process an incoming Gmail message for the user's inbox"""
+    try:
+        from models import ConversationMessage, Conversation, Application, User, db
+        from datetime import datetime
+        import base64
+        import re
+        
+        message_id = gmail_message.get('id')
+        thread_id = gmail_message.get('threadId')
+        
+        # Check if message already exists
+        existing = ConversationMessage.query.filter_by(gmail_message_id=message_id).first()
+        if existing:
+            logger.info(f"Message {message_id} already exists, skipping")
+            return False
+        
+        # Get message details
+        payload = gmail_message.get('payload', {})
+        headers = payload.get('headers', [])
+        
+        # Extract headers
+        sender_email = None
+        subject = None
+        
+        for header in headers:
+            name = header.get('name', '').lower()
+            value = header.get('value', '')
+            
+            if name == 'from':
+                sender_email = value
+            elif name == 'subject':
+                subject = value
+        
+        # Extract email from sender (remove name)
+        if sender_email:
+            email_match = re.search(r'<([^>]+)>', sender_email)
+            if email_match:
+                sender_email = email_match.group(1)
+            else:
+                # If no angle brackets, assume it's just the email
+                sender_email = sender_email.split()[0] if ' ' in sender_email else sender_email
+        
+        # Get message body
+        body = ""
+        html_body = ""
+        
+        def extract_text_from_payload(payload):
+            body_text = ""
+            html_text = ""
+            
+            if payload.get('body', {}).get('data'):
+                decoded = base64.urlsafe_b64decode(payload['body']['data']).decode('utf-8', errors='ignore')
+                if payload.get('mimeType') == 'text/html':
+                    html_text = decoded
+                else:
+                    body_text = decoded
+            elif payload.get('parts'):
+                for part in payload.get('parts', []):
+                    if part.get('body', {}).get('data'):
+                        decoded = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8', errors='ignore')
+                        if part.get('mimeType') == 'text/html':
+                            html_text = decoded
+                        elif part.get('mimeType') == 'text/plain':
+                            body_text = decoded
+                    elif part.get('parts'):
+                        # Recursive for nested parts
+                        nested_body, nested_html = extract_text_from_payload(part)
+                        body_text += nested_body
+                        html_text += nested_html
+            
+            return body_text, html_text
+        
+        body, html_body = extract_text_from_payload(payload)
+        
+        # Get timestamp
+        internal_date = int(gmail_message.get('internalDate', 0))
+        gmail_timestamp = datetime.fromtimestamp(internal_date / 1000) if internal_date else datetime.utcnow()
+        
+        # Find related application by thread ID
+        application = Application.query.filter_by(gmail_thread_id=thread_id).first()
+        
+        if not application:
+            logger.info(f"No application found for thread {thread_id}, skipping message")
+            return False
+        
+        # Find or create conversation
+        conversation = Conversation.query.filter_by(
+            gmail_thread_id=thread_id,
+            application_id=application.id
+        ).first()
+        
+        if not conversation:
+            # Create new conversation
+            conversation = Conversation(
+                application_id=application.id,
+                gmail_thread_id=thread_id,
+                subject=subject or f"Application to {application.company_name}",
+                corporate_user_id=1,  # Default corporate user - you can improve this
+                applicant_user_id=application.user_id,
+                last_message_at=gmail_timestamp
+            )
+            db.session.add(conversation)
+            db.session.flush()  # Get the ID
+        
+        # Determine sender type
+        # If sender email matches application user email, it's from applicant
+        # Otherwise, assume it's from corporate
+        if sender_email and sender_email.lower() == application.user.email.lower():
+            sender_id = application.user_id
+            sender_type = 'applicant'
+        else:
+            # This is a response from the company
+            sender_id = conversation.corporate_user_id
+            sender_type = 'corporate'
+        
+        # Check for attachments
+        has_attachments = bool(payload.get('parts', []))
+        
+        # Create conversation message
+        conversation_msg = ConversationMessage(
+            conversation_id=conversation.id,
+            gmail_message_id=message_id,
+            sender_id=sender_id,
+            sender_type=sender_type,
+            subject=subject or '',
+            body=body,
+            html_body=html_body,
+            gmail_timestamp=gmail_timestamp,
+            has_attachments=has_attachments,
+            is_read_by_corporate=(sender_type == 'corporate'),
+            is_read_by_applicant=(sender_type == 'applicant')
+        )
+        
+        db.session.add(conversation_msg)
+        
+        # Update conversation
+        conversation.last_message_at = gmail_timestamp
+        if sender_type == 'corporate':
+            conversation.applicant_unread_count += 1
+        else:
+            conversation.corporate_unread_count += 1
+        
+        db.session.commit()
+        
+        logger.info(f"✅ Saved conversation message from {sender_email}: {subject}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Error processing Gmail message: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return False
+
 class GmailStatusChecker:
     def __init__(self, user_id):
         self.user_id = user_id
@@ -239,7 +394,7 @@ class GmailStatusChecker:
         print(f"🔄 Starting status update for user {self.user_id}")
         
         from models import Application
-        from app import db
+        from models import db
         
         # Get applications WITH gmail_message_id
         applications = Application.query.filter_by(
@@ -331,7 +486,7 @@ class GmailStatusChecker:
         logger.info(f"🔍 Checking recent responses (last {days} days)")
         
         from models import Application
-        from app import db
+        from models import db
         
         cutoff_date = datetime.utcnow() - timedelta(days=days)
         
@@ -376,7 +531,7 @@ class GmailStatusChecker:
         logger.info(f"🚀 Force refreshing application {application_id}")
         
         from models import Application
-        from app import db
+        from models import db
         
         try:
             app = Application.query.filter_by(id=application_id, user_id=self.user_id).first()
@@ -426,3 +581,89 @@ class GmailStatusChecker:
             db.session.rollback()
             logger.error(f"❌ Error: {e}")
             return {'error': str(e)}
+    
+    def sync_conversation_messages(self):
+        """
+        Fetch full threads for this user's applications and sync incoming messages
+        into ConversationMessage for the user inbox.
+
+        Returns True if any new messages were added.
+        """
+        from models import Application
+
+        logger.info(f"🔄 Syncing conversation messages for user {self.user_id}")
+
+        if not self.service:
+            self.service = self.get_gmail_service()
+        if not self.service:
+            logger.error("❌ Could not create Gmail service for syncing conversations")
+            return False
+
+        # All apps for this user that have a Gmail thread
+        apps = Application.query.filter_by(user_id=self.user_id)\
+            .filter(Application.gmail_thread_id.isnot(None))\
+            .all()
+
+        logger.info(f"📋 Found {len(apps)} applications with Gmail threads")
+
+        processed_any = False
+
+        for app in apps:
+            if not app.gmail_thread_id:
+                continue
+
+            try:
+                thread = self.service.users().threads().get(
+                    userId='me',
+                    id=app.gmail_thread_id,
+                    format='full'
+                ).execute()
+
+                messages = thread.get('messages', [])
+                logger.info(f"   🧵 App {app.id}: thread {app.gmail_thread_id} has {len(messages)} messages")
+
+                for msg in messages:
+                    labels = msg.get('labelIds', [])
+                    # Skip our own sent/draft messages; we only want incoming replies
+                    if 'SENT' in labels or 'DRAFT' in labels:
+                        continue
+
+                    # Process incoming message
+                    if process_incoming_gmail_message_for_user(msg):
+                        processed_any = True
+
+            except Exception as e:
+                logger.error(f"❌ Error syncing thread {app.gmail_thread_id} for application {app.id}: {e}")
+                continue
+
+        if processed_any:
+            logger.info("✅ Conversation messages sync completed with new messages")
+        else:
+            logger.info("ℹ️ No new conversation messages found")
+
+        return processed_any
+    
+    def sync_inbox_and_statuses(self):
+        """
+        Combined method to sync conversation messages and update application statuses
+        Returns tuple: (updated_count, has_new_messages)
+        """
+        logger.info(f"🚀 Starting combined inbox and status sync for user {self.user_id}")
+        
+        try:
+            # First, sync conversation messages
+            has_new_messages = self.sync_conversation_messages()
+            
+            # Then, update application statuses
+            updated_count = self.update_application_statuses()
+            
+            # Also check for recent responses
+            response_count = self.check_recent_responses()
+            
+            logger.info(f"✅ Sync complete: {updated_count} apps updated, {response_count} responses found, new messages: {has_new_messages}")
+            
+            return updated_count, has_new_messages
+            
+        except Exception as e:
+            logger.error(f"❌ Error in sync_inbox_and_statuses: {e}")
+            return 0, False

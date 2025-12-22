@@ -38,6 +38,6 @@ with app.app_context():
     print("=" * 80)
     print("\n🚀 NOW YOU CAN LOGIN!\n")
     print("   URL: http://localhost:5000/admin-login")
-    print("   Username: hr_techcorp")
+    print("   Username: hr_techcorp") 
     print("   Password: admin123")
     print()
