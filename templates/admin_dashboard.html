@@ -12,7 +12,7 @@
     {% if current_user.is_admin %}
     <a href="{{ url_for('premium_management') }}" class="btn btn-ink btn-sm d-inline-flex align-items-center gap-2">
       Premium management
-      <span class="cc-pill cc-pill-mute" style="border-color:#fff;color:#fff">{{ premium_count or 0 }}</span>
+      <span class="cc-tag cc-tag-mute" style="border-color:#fff;color:#fff">{{ premium_count or 0 }}</span>
     </a>
     {% endif %}
   </div>
@@ -56,7 +56,7 @@
                 <div class="fw-bold text-truncate">{{ user.full_name or user.username }}</div>
                 <div class="small text-mute text-truncate">{{ user.email }}</div>
               </div>
-              <span class="cc-pill {{ 'cc-pill-green' if user.is_active else 'cc-pill-mute' }}">{{ user.role }}</span>
+              <span class="cc-tag {{ 'cc-tag-green' if user.is_active else 'cc-tag-mute' }}">{{ user.role }}</span>
             </div>
             {% else %}
             <p class="small text-mute mb-0">No users yet.</p>
@@ -79,7 +79,7 @@
                 <div class="fw-bold text-truncate">{{ learnership.company_name }}</div>
                 <div class="small text-mute text-truncate">{{ learnership.email }}</div>
               </div>
-              <span class="cc-pill {{ 'cc-pill-green' if learnership.is_active else 'cc-pill-mute' }}">{{ 'Active' if learnership.is_active else 'Inactive' }}</span>
+              <span class="cc-tag {{ 'cc-tag-green' if learnership.is_active else 'cc-tag-mute' }}">{{ 'Active' if learnership.is_active else 'Inactive' }}</span>
             </div>
             {% else %}
             <p class="small text-mute mb-0">No learnerships found.</p>
@@ -98,19 +98,19 @@
             </form>
             <div class="cc-quick-item">
               <div class="small">Enriched</div>
-              <span class="cc-pill cc-pill-green">{{ company_info_stats.enriched }} / {{ company_info_stats.total }}</span>
+              <span class="cc-tag cc-tag-green">{{ company_info_stats.enriched }} / {{ company_info_stats.total }}</span>
             </div>
             <div class="cc-quick-item">
               <div class="small">Descriptions found</div>
-              <span class="cc-pill cc-pill-green">{{ company_info_stats.with_description }}</span>
+              <span class="cc-tag cc-tag-green">{{ company_info_stats.with_description }}</span>
             </div>
             <div class="cc-quick-item">
               <div class="small">Logos cached in R2</div>
-              <span class="cc-pill {{ 'cc-pill-green' if company_info_stats.r2_configured else 'cc-pill-mute' }}">{{ company_info_stats.with_logo }}</span>
+              <span class="cc-tag {{ 'cc-tag-green' if company_info_stats.r2_configured else 'cc-tag-mute' }}">{{ company_info_stats.with_logo }}</span>
             </div>
             <div class="cc-quick-item">
               <div class="small">Last run</div>
-              <span class="cc-pill cc-pill-mute">{{ company_info_stats.last_run.strftime('%d %b %Y, %H:%M') if company_info_stats.last_run else 'Never' }}</span>
+              <span class="cc-tag cc-tag-mute">{{ company_info_stats.last_run.strftime('%d %b %Y, %H:%M') if company_info_stats.last_run else 'Never' }}</span>
             </div>
             <p class="small text-mute mt-2 mb-0">Runs automatically in the background (~50 companies at a time, re-checked every 90 days). "Refresh now" forces an immediate run.</p>
           </div>
@@ -125,7 +125,7 @@
                 <div class="fw-bold text-truncate">{{ application.user.full_name or application.user.username }}</div>
                 <div class="small text-mute text-truncate">{{ application.learnership.title if application.learnership else application.learnership_name }}</div>
               </div>
-              <span class="cc-pill cc-pill-blue">{{ application.status|title }}</span>
+              <span class="cc-tag cc-tag-blue">{{ application.status|title }}</span>
             </div>
             {% else %}
             <p class="small text-mute mb-0">No applications found.</p>
@@ -157,11 +157,11 @@
               <td>{{ user.id }}</td>
               <td>{{ user.email }}</td>
               <td>{{ user.full_name or '-' }}</td>
-              <td><span class="cc-pill cc-pill-blue">{{ user.role }}</span></td>
+              <td><span class="cc-tag cc-tag-blue">{{ user.role }}</span></td>
               <td class="small text-mute">{{ user.auth_method }}</td>
               <td class="small">{{ user.created_at.strftime('%Y-%m-%d') }}</td>
               <td class="small">{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
-              <td><span class="cc-pill {{ 'cc-pill-green' if user.is_active else 'cc-pill-mute' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span></td>
+              <td><span class="cc-tag {{ 'cc-tag-green' if user.is_active else 'cc-tag-mute' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span></td>
               <td>
                 <div class="cc-admin-actions">
                   <a href="{{ url_for('view_user', user_id=user.id) }}" class="btn btn-outline-ink btn-sm" title="View">View</a>
@@ -204,7 +204,7 @@
               <td>{{ learnership.id }}</td>
               <td>{{ learnership.company_name }}</td>
               <td>{{ learnership.email }}</td>
-              <td><span class="cc-pill {{ 'cc-pill-green' if learnership.is_active else 'cc-pill-mute' }}">{{ 'Active' if learnership.is_active else 'Inactive' }}</span></td>
+              <td><span class="cc-tag {{ 'cc-tag-green' if learnership.is_active else 'cc-tag-mute' }}">{{ 'Active' if learnership.is_active else 'Inactive' }}</span></td>
               <td class="small">{{ learnership.created_at.strftime('%Y-%m-%d') }}</td>
               <td>{{ learnership.email_applications|length }}</td>
               <td>
@@ -242,7 +242,7 @@
               <td>{{ application.user.full_name or application.user.username }}</td>
               <td>{{ application.learnership.title if application.learnership else application.learnership_name }}</td>
               <td>{{ application.company_name }}</td>
-              <td><span class="cc-pill cc-pill-blue">{{ application.status|title }}</span></td>
+              <td><span class="cc-tag cc-tag-blue">{{ application.status|title }}</span></td>
               <td class="small">{{ application.submitted_at.strftime('%Y-%m-%d') }}</td>
               <td class="small">{{ application.updated_at.strftime('%Y-%m-%d') }}</td>
               <td>
