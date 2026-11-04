@@ -1,0 +1,63 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Contact Us | CodeCraft Co{% endblock %}
+{% block desc %}Get in touch with CodeCraft Co.{% endblock %}
+
+{% block content %}
+<div class="container pt-3" style="max-width:640px">
+  <div class="cc-hero-mini">{{ hero_art('default', faint=True) }}
+  <a class="small" href="{{ url_for('index') }}">&larr; Home</a>
+  <p class="cc-eyebrow">Get in touch</p>
+  <h1 class="serif h2 mt-2 mb-1">Contact Us</h1>
+  <p class="text-mute">Questions, feedback, or something not working right? Send us a message below, or email
+    directly.</p>
+  </div>
+
+  <section class="cc-box mb-4">
+    <p class="fw-bold mb-1">Email us</p>
+    <p class="mb-0"><a href="mailto:support@codecraft.co.za">support@codecraft.co.za</a></p>
+  </section>
+
+  <section class="cc-section pt-0">
+    <h2>Send a message</h2>
+    <form method="post" action="{{ url_for('submit_contact') }}">
+      <div class="row g-2">
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="firstName">First name</label>
+          <input class="form-control" type="text" id="firstName" name="first_name" maxlength="80" required>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="lastName">Last name</label>
+          <input class="form-control" type="text" id="lastName" name="last_name" maxlength="80" required>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="email">Email address</label>
+          <input class="form-control" type="email" id="email" name="email" maxlength="160" required>
+        </div>
+        <div class="col-12 col-md-6">
+          <label class="form-label" for="phone">Phone <span class="text-mute fw-normal">(optional)</span></label>
+          <input class="form-control" type="tel" id="phone" name="phone" maxlength="30">
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="subject">Subject</label>
+          <select class="form-select" id="subject" name="subject" required>
+            <option value="" disabled selected>Select a subject</option>
+            <option value="general">General enquiry</option>
+            <option value="support">Technical support</option>
+            <option value="application">Application help</option>
+            <option value="partnership">Partnership opportunities</option>
+            <option value="feedback">Feedback &amp; suggestions</option>
+            <option value="complaint">Complaint</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="message">Message</label>
+          <textarea class="form-control" id="message" name="message" rows="5" maxlength="2000" required></textarea>
+        </div>
+      </div>
+      <button class="btn btn-ink mt-3" type="submit">Send message</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

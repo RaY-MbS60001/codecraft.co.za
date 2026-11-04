@@ -1,0 +1,74 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Code of Conduct | CodeCraft Co{% endblock %}
+{% block desc %}What we expect from everyone using the CodeCraft Co platform.{% endblock %}
+
+{% block content %}
+<div class="container pt-3" style="max-width:760px">
+  <div class="cc-hero-mini">{{ hero_art('rise', faint=True) }}
+  <a class="small" href="{{ url_for('index') }}">&larr; Home</a>
+  <p class="cc-eyebrow">Legal</p>
+  <h1 class="serif h2 mt-2 mb-1">Code of Conduct</h1>
+  <p class="text-mute">The ground rules for applying, reporting outcomes and talking to other users on CodeCraft Co.</p>
+  <p class="small text-mute mb-0">Last updated: November 2026</p>
+  </div>
+
+  <section class="cc-section">
+    <h2>Why this exists</h2>
+    <p>CodeCraft Co works because applicants trust what other applicants post &mdash; honest reports of what
+      happened after they applied. That only works if people play fair. This page sets out what we expect, and
+      what happens if someone doesn't.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>When you apply</h2>
+    <ul>
+      <li>Use your own, accurate CV and information &mdash; never someone else's</li>
+      <li>Don't apply to the same company over and over to spam an employer or inflate your numbers</li>
+      <li>Don't use the platform to send anything other than genuine learnership applications</li>
+    </ul>
+  </section>
+
+  <section class="cc-section">
+    <h2>When you post a report</h2>
+    <p>After applying, you can tell other applicants what happened. When you do:</p>
+    <ul>
+      <li>Report what actually happened to you &mdash; not a guess, and not someone else's experience</li>
+      <li>No links, email addresses or phone numbers in a report &mdash; they're stripped out and discouraged for
+        everyone's safety</li>
+      <li>No harassment, hate speech, threats or personal attacks against a company, a staff member or another
+        learner</li>
+      <li>No made-up or exaggerated outcomes meant to mislead other applicants</li>
+    </ul>
+    <p>Anyone can flag a report that breaks these rules. We review flagged reports and may hide ones that don't
+      belong, without warning the poster first.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Talking to other users</h2>
+    <p>On the parts of the platform where replies or contact requests are visible to others, keep it respectful.
+      We don't tolerate harassment, discrimination, or attempts to pressure someone into sharing contact details
+      they haven't agreed to share.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>What happens if you break these rules</h2>
+    <p>Depending on how serious it is, we may hide the content in question, warn you, or suspend or remove your
+      account. Serious or repeated abuse &mdash; fraud, harassment, fake reports used to damage a real company
+      &mdash; can mean immediate removal without warning.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Report a problem</h2>
+    <p>If you see content or behaviour that breaks this code, flag it where you see it, or email us directly at
+      <a href="mailto:support@codecraft.co.za">support@codecraft.co.za</a>.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>How this fits together</h2>
+    <p>This Code of Conduct works alongside our <a href="{{ url_for('terms_of_service') }}">Terms of Service</a>
+      and <a href="{{ url_for('privacy_policy') }}">Privacy Policy</a>. If something here conflicts with the
+      Terms, the Terms apply.</p>
+  </section>
+</div>
+{% endblock %}

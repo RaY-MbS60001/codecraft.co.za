@@ -1,0 +1,30 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Sending… | CodeCraft Co{% endblock %}
+
+{% block content %}
+<div class="container pt-4" style="max-width:560px" data-job-status data-job-id="{{ job.id }}" data-status-url="{{ url_for('send_status_api', job_id=job.id) }}" data-applications-url="{{ url_for('my_applications') }}">
+  <div class="cc-hero-mini">{{ hero_art('orbit', faint=True) }}
+  <p class="cc-eyebrow">In progress</p>
+  <h1 class="serif h2 mb-2">Sending your applications</h1>
+  </div>
+  <p class="text-mute">You can leave this page — we'll keep sending in the background and let you know when it's done.</p>
+
+  <div class="cc-box mt-3">
+    <p class="fw-bold mb-1" data-job-line>Getting started…</p>
+    <div class="cc-bars" data-job-bars aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <p class="small text-mute mb-0" data-job-count>0 of {{ job.total }}</p>
+  </div>
+
+  <div class="mt-3" data-job-done hidden>
+    <div class="alert alert-success py-2 mb-2" data-job-result-success hidden></div>
+    <div class="alert alert-warning py-2 mb-2" data-job-result-warning hidden></div>
+    <div class="alert alert-danger py-2 mb-2" data-job-result-error hidden></div>
+    <a class="btn btn-ink w-100" href="{{ url_for('my_applications') }}">See my applications</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='v2/sending.js') }}" defer></script>
+{% endblock %}

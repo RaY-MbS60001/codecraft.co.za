@@ -1,0 +1,52 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Pay for Premium | CodeCraft Co{% endblock %}
+{% block content %}
+<div class="container pt-3" style="max-width:560px">
+  <div class="cc-hero-mini">{{ hero_art('rise', faint=True) }}
+  <a class="small" href="{{ url_for('upgrade_to_premium') }}">&larr; My plan</a>
+  <p class="cc-eyebrow">Payment</p>
+  <h1 class="serif h2 mt-2">Pay for Premium</h1>
+  </div>
+  <p class="text-mute">{{ amount }} gets you unlimited applications for 30 days.</p>
+
+  {% if not pay.configured %}
+  <div class="alert alert-warning">Payment details aren't set up yet on this site — the admin needs to add
+    <code>CAPITEC_ACCOUNT_NUMBER</code> (and the rest) to the environment before this can be paid for real.</div>
+  {% endif %}
+
+  <div class="cc-box mb-3">
+    <p class="fw-bold mb-2">Pay by EFT or PayShap, to:</p>
+    <dl class="row mb-0 small">
+      <dt class="col-5">Bank</dt><dd class="col-7">Capitec Bank</dd>
+      <dt class="col-5">Account name</dt><dd class="col-7">{{ pay.account_name }}</dd>
+      <dt class="col-5">Account number</dt><dd class="col-7"><strong>{{ pay.account_number }}</strong></dd>
+      <dt class="col-5">Branch code</dt><dd class="col-7">{{ pay.branch_code }}</dd>
+      {% if pay.payshap_number %}
+      <dt class="col-5">Or PayShap to</dt><dd class="col-7"><strong>{{ pay.payshap_number }}</strong></dd>
+      {% endif %}
+      <dt class="col-5">Amount</dt><dd class="col-7"><strong>{{ amount }}</strong></dd>
+      <dt class="col-5">Reference</dt><dd class="col-7"><strong>{{ sub.reference }}</strong> — use this exactly, it's how we match your payment to your account</dd>
+    </dl>
+  </div>
+
+  {% if sub.status == 'proof_uploaded' %}
+  <div class="cc-box mb-3"><p class="fw-bold mb-1">Proof received</p>
+    <p class="mb-0 small text-mute">We check these by hand and usually activate Premium within a day. You'll see it reflected here and on My plan automatically.</p></div>
+  {% else %}
+  <section class="cc-section">
+    <h2>Once you've paid</h2>
+    <form method="post" action="{{ url_for('premium.premium_pay_proof') }}" enctype="multipart/form-data" data-loading-title="Uploading proof" data-loading-description="Hang tight">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label small fw-bold" for="proof">Screenshot or PDF of the payment</label>
+      <input class="form-control mb-2" type="file" id="proof" name="proof" accept=".png,.jpg,.jpeg,.pdf,.webp" required>
+      <label class="form-label small fw-bold" for="note">Anything we should know? (optional)</label>
+      <input class="form-control mb-3" type="text" id="note" name="note" maxlength="300" placeholder="e.g. paid from a different name">
+      <button class="btn btn-ink w-100" type="submit">I've paid — send proof</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <p class="small text-mute mt-3">Something not right? Email <a href="mailto:admin@codecraft.co.za">admin@codecraft.co.za</a> with your reference <strong>{{ sub.reference }}</strong>.</p>
+</div>
+{% endblock %}

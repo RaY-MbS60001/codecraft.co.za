@@ -1,0 +1,92 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[top=0cm,bottom=1.3cm,left=0cm,right=0cm]{geometry}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{anyfontsize}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{enumitem}
+\usepackage{ragged2e}
+\usepackage{pifont}
+\usepackage[hidelinks]{hyperref}
+\definecolor{accent}{HTML}{\VAR{accent_hex}}
+\definecolor{ink}{HTML}{111111}
+\definecolor{body}{HTML}{3A3A3A}
+\definecolor{meta}{HTML}{6B7280}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\hyphenpenalty=10000 \tolerance=9999
+\pagestyle{empty}
+\VAR{icon_pack}
+
+\newcommand{\sectiontitle}[1]{%
+  \par\vspace{10pt}
+  {\color{accent}\fontsize{12}{13.5}\selectfont\bfseries\MakeUppercase{#1}}\par
+  \vspace{4pt}\noindent\textcolor{accent!35}{\rule{\linewidth}{1pt}}\par\vspace{5pt}}
+
+\begin{document}
+\noindent
+\colorbox{accent}{\begin{minipage}[c][3.1cm][c]{\textwidth}
+  \hspace{1.6cm}
+  \begin{minipage}[c]{14.5cm}
+    {\color{white}\fontsize{23}{26}\selectfont\bfseries \VAR{d.full_name|e}}\\[4pt]
+    \BLOCK{ if d.job_title }{\color{white}\fontsize{11.5}{13}\selectfont \VAR{d.job_title|e}}\\[7pt]\BLOCK{ endif }
+    {\color{white}\fontsize{8.4}{10}\selectfont
+    \BLOCK{ if d.phone }\VAR{d.phone|e}\hspace{10pt}\BLOCK{ endif }
+    \BLOCK{ if d.email }\VAR{d.email|e}\hspace{10pt}\BLOCK{ endif }
+    \BLOCK{ if d.location }\VAR{d.location|e}\BLOCK{ endif }}
+  \end{minipage}
+\end{minipage}}
+\vspace{14pt}
+
+\hspace{1.6cm}\begin{minipage}{14.8cm}
+
+\BLOCK{ if d.summary }
+{\color{body}\fontsize{10.4}{14}\selectfont\justifying \VAR{d.summary|e}\par}
+\BLOCK{ endif }
+
+\BLOCK{ if d.experience }
+\sectiontitle{Experience}
+\BLOCK{ for x in d.experience }
+\vspace{2pt}
+\makebox[22pt][l]{\raisebox{-0.2ex}{\scalebox{0.85}{\BLOCK{ if d.show_icons and x.icon and x.icon != 'none' }\VAR{icon(x.icon)}\BLOCK{ else }{\color{accent}\fontsize{11}{11}\selectfont\ding{108}}\BLOCK{ endif }}}}%
+\begin{minipage}[t]{\dimexpr\linewidth-20pt\relax}
+  {\color{ink}\fontsize{11.6}{13.5}\selectfont\bfseries \VAR{x.role|e}}
+  \hfill{\color{meta}\fontsize{9}{11}\selectfont \VAR{x.start|e}\BLOCK{ if x.end } -- \VAR{x.end|e}\BLOCK{ endif }}\\[2pt]
+  \BLOCK{ if x.company }{\color{accent}\fontsize{10}{12}\selectfont\bfseries \VAR{x.company|e}}\\[3pt]\BLOCK{ endif }
+  \BLOCK{ if x.details }{\color{body}\fontsize{9.6}{12}\selectfont\justifying \VAR{x.details|e}\par}\BLOCK{ endif }
+\end{minipage}\\[6pt]
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if d.education }
+\sectiontitle{Education}
+\BLOCK{ for x in d.education }
+{\color{ink}\fontsize{11.2}{13}\selectfont\bfseries \VAR{x.qualification|e}}
+\hfill{\color{meta}\fontsize{9}{11}\selectfont \VAR{x.year|e}}\\[2pt]
+\BLOCK{ if x.institution }{\color{accent}\fontsize{9.8}{11.6}\selectfont\bfseries \VAR{x.institution|e}}\\[3pt]\BLOCK{ endif }
+\BLOCK{ if x.details }{\color{body}\fontsize{9.4}{11.6}\selectfont \VAR{x.details|e}\par}\BLOCK{ endif }
+\vspace{4pt}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if d.skills }
+\sectiontitle{Skills}
+{\fontsize{9.2}{9.2}\selectfont
+\BLOCK{ for s in d.skills }
+\tikz[baseline=(tg.base)]{\node[draw=accent,line width=0.7pt,rounded corners=3pt,
+  inner xsep=7pt,inner ysep=4.8pt,text=ink,font=\fontsize{9}{9}\selectfont\bfseries] (tg) {\VAR{s|e}};}\hspace{4pt}\vspace{4pt}
+\BLOCK{ endfor }
+\par}
+\BLOCK{ endif }
+
+\BLOCK{ if d.languages }
+\sectiontitle{Languages}
+{\color{body}\fontsize{10}{14}\selectfont
+\BLOCK{ for l in d.languages }\textbf{\VAR{l.name|e}}\BLOCK{ if l.level } -- \VAR{l.level|e}\BLOCK{ endif }\BLOCK{ if not loop.last }\hspace{16pt}\BLOCK{ endif }\BLOCK{ endfor }\par}
+\BLOCK{ endif }
+
+\end{minipage}
+\end{document}

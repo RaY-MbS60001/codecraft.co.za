@@ -1,0 +1,115 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Terms of Service | CodeCraft Co{% endblock %}
+{% block desc %}The terms that govern your use of the CodeCraft Co platform.{% endblock %}
+
+{% block content %}
+<div class="container pt-3" style="max-width:760px">
+  <div class="cc-hero-mini">{{ hero_art('drift', faint=True) }}
+  <a class="small" href="{{ url_for('index') }}">&larr; Home</a>
+  <p class="cc-eyebrow">Legal</p>
+  <h1 class="serif h2 mt-2 mb-1">Terms of Service</h1>
+  <p class="text-mute">Please read these terms before using the platform.</p>
+  <p class="small text-mute mb-0">Last updated: November 2026</p>
+  </div>
+
+  <section class="cc-section">
+    <h2>Agreement to these terms</h2>
+    <p>By using CodeCraft Co's learnership platform ("the Service"), you agree to these Terms of Service. If you
+      don't agree, please don't use the Service.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Your account</h2>
+    <ul>
+      <li>You can sign in with Google, or register with an email address and password</li>
+      <li>You must give accurate, current information and keep it up to date</li>
+      <li>You're responsible for keeping your login details secure and for activity on your account</li>
+      <li>One account per person; you may not use someone else's account without their permission</li>
+    </ul>
+  </section>
+
+  <section class="cc-section">
+    <h2>Acceptable use</h2>
+    <p>You agree to use the Service lawfully. You may <strong>not</strong>:</p>
+    <ul>
+      <li>Submit false, misleading or fraudulent information</li>
+      <li>Impersonate another person or company</li>
+      <li>Upload malicious files or attempt to disrupt or gain unauthorised access to the Service</li>
+      <li>Use automated tools (scrapers, bots) against the Service without our permission</li>
+      <li>Collect other users' information without their consent</li>
+    </ul>
+  </section>
+
+  <section class="cc-section">
+    <h2>Applying for learnerships</h2>
+    <p>When you apply through CodeCraft Co, we send that company an email from your own connected Gmail account,
+      with your CV attached, on your instruction.</p>
+    <ul>
+      <li>Everything you submit &mdash; your CV, cover details, answers &mdash; must be accurate and your own</li>
+      <li>Whether you're accepted is entirely up to the company; we don't guarantee placement</li>
+      <li>We track delivery, read and reply status where Gmail makes that information available &mdash; this isn't
+        always perfectly reliable, since it depends on the recipient's own email settings</li>
+    </ul>
+    <div class="alert alert-warning py-2">Giving false information in an application is grounds for removing your
+      account.</div>
+  </section>
+
+  <section class="cc-section">
+    <h2>Reports and reviews</h2>
+    <p>When you post what happened after applying (reply, interview, offer, etc.), keep it honest and free of
+      personal contact details, threats or abuse. We may hide or remove reports that break this.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Premium</h2>
+    <p>Premium removes the daily application limit for the period you've paid for. Payments are currently handled
+      by EFT/PayShap and confirmed manually; Premium starts once we've confirmed your payment, not the moment you
+      submit proof of payment.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Intellectual property</h2>
+    <p>The Service itself &mdash; its code, design and the CodeCraft Co name and mark &mdash; belongs to CodeCraft
+      Co. You keep ownership of what you upload (your CV, documents); you're giving us only the licence we need to
+      use and send that content on your behalf, as the Service is meant to work.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Privacy</h2>
+    <p>Our use of your personal information is covered by our <a href="{{ url_for('privacy_policy') }}">Privacy
+      Policy</a>, which forms part of these Terms.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Ending your account</h2>
+    <p>We may suspend or remove an account that breaks these Terms &mdash; for example, false information, fraud or
+      abuse of other users. You can ask us to delete your account and data at any time by emailing
+      <a href="mailto:privacy@codecraft.co.za">privacy@codecraft.co.za</a>.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>No guarantees</h2>
+    <p>The Service is provided "as is". We work to keep it reliable, but we don't promise it will be uninterrupted
+      or error-free, and we're not liable for a company's decision not to respond or not to hire you.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Governing law</h2>
+    <p>These Terms are governed by the laws of the Republic of South Africa, and any dispute falls under the
+      jurisdiction of South African courts.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Changes to these terms</h2>
+    <p>We may update these Terms from time to time. We'll update the date at the top of this page; continuing to
+      use the Service after a change means you accept the update.</p>
+  </section>
+
+  <section class="cc-section">
+    <h2>Contact us</h2>
+    <p>Questions about these Terms: <a href="mailto:legal@codecraft.co.za">legal@codecraft.co.za</a>, or use the
+      <a href="{{ url_for('contact_us') }}">contact form</a>.</p>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Build your CV | CodeCraft Co{% endblock %}
+{% block content %}
+<div class="container pt-3" data-cv-editor data-preview-url="{{ url_for('cv_studio.cv_studio_preview') }}">
+  <div class="cc-hero-mini">{{ hero_art('drift', faint=True) }}
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <a class="small" href="{{ url_for('cv_studio.cv_studio_picker') }}">&larr; Change template</a>
+    <span class="small text-mute">{{ meta.name }}</span>
+  </div>
+  <p class="cc-eyebrow">CV builder</p>
+  <h1 class="serif h2 mb-3">Build your CV</h1>
+  </div>
+
+  <div class="cv-studio-layout">
+    <form method="post" data-cv-form novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="template" value="{{ template_id }}">
+
+      <section class="cc-section pt-0">
+        <h2>You</h2>
+        <div class="row g-2">
+          <div class="col-12"><label class="form-label small">Full name</label>
+            <input class="form-control" name="full_name" maxlength="80" value="{{ d.full_name }}" required></div>
+          <div class="col-12"><label class="form-label small">Job title you're going for</label>
+            <input class="form-control" name="job_title" maxlength="80" value="{{ d.job_title }}"></div>
+          <div class="col-6"><label class="form-label small">Phone</label>
+            <input class="form-control" name="phone" maxlength="30" value="{{ d.phone }}"></div>
+          <div class="col-6"><label class="form-label small">Email</label>
+            <input class="form-control" name="email" maxlength="120" value="{{ d.email }}"></div>
+          <div class="col-6"><label class="form-label small">Location</label>
+            <input class="form-control" name="location" maxlength="80" value="{{ d.location }}"></div>
+          <div class="col-6"><label class="form-label small">Nationality</label>
+            <input class="form-control" name="nationality" maxlength="40" value="{{ d.nationality }}"></div>
+          <div class="col-6"><label class="form-label small">LinkedIn (no https://)</label>
+            <input class="form-control" name="linkedin" maxlength="160" value="{{ d.linkedin }}" placeholder="linkedin.com/in/you"></div>
+          <div class="col-6"><label class="form-label small">Portfolio</label>
+            <input class="form-control" name="portfolio" maxlength="160" value="{{ d.portfolio }}" placeholder="yoursite.co.za"></div>
+          <div class="col-12"><label class="form-label small">Summary</label>
+            <textarea class="form-control" name="summary" maxlength="600" rows="3">{{ d.summary }}</textarea></div>
+        </div>
+      </section>
+
+      {% if meta.photo %}
+      <section class="cc-section">
+        <h2>Photo <span class="small text-mute fw-normal">(optional)</span></h2>
+        <div class="cv-photo-box mb-2">
+          {% if has_photo %}<img src="{{ url_for('cv_studio.cv_studio_photo_serve') }}?v={{ range(1,9999)|random }}" alt="Your CV photo">{% endif %}
+          <div>
+            <label class="form-check-label small d-block mb-1">
+              <input type="checkbox" class="form-check-input" name="show_photo" value="1" {{ 'checked' if d.show_photo }}> Show photo on my CV
+            </label>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <form method="post" action="{{ url_for('cv_studio.cv_studio_photo') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-center" data-no-loading>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="form-control form-control-sm" type="file" name="photo" accept=".jpg,.jpeg,.png,.webp" required style="max-width:200px">
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Upload</button>
+          </form>
+          {% if has_photo %}
+          <form method="post" action="{{ url_for('cv_studio.cv_studio_photo_remove') }}" data-no-loading>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Remove</button>
+          </form>
+          {% endif %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="cc-section">
+        <h2>Accent colour</h2>
+        <input type="hidden" name="accent" value="{{ d.accent or 'blue' }}">
+        <div class="cv-accent-row">
+          {% for key, hex in accents.items() %}
+          <button type="button" data-cv-accent="{{ key }}" class="{{ 'active' if (d.accent or 'blue') == key }}" style="background:{{ hex }}" aria-label="{{ key }}"></button>
+          {% endfor %}
+        </div>
+        {% if meta.icons %}
+        <label class="form-check-label small d-block mt-3">
+          <input type="checkbox" class="form-check-input" name="show_icons" value="1" {{ 'checked' if d.show_icons }}> Show little icons next to entries
+        </label>
+        {% endif %}
+      </section>
+
+      <section class="cc-section">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="mb-0">Experience</h2>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-cv-add="tpl-exp" data-cv-target="[data-exp-list]">+ Add</button>
+        </div>
+        <div data-exp-list>
+          {% for x in d.experience %}
+          <div class="cv-block">
+            <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+            <div class="row g-2">
+              <div class="col-6"><input class="form-control" name="exp_role" placeholder="Role" maxlength="80" value="{{ x.role }}"></div>
+              <div class="col-6"><input class="form-control" name="exp_company" placeholder="Company" maxlength="80" value="{{ x.company }}"></div>
+              <div class="col-4"><input class="form-control" name="exp_start" placeholder="Start" maxlength="20" value="{{ x.start }}"></div>
+              <div class="col-4"><input class="form-control" name="exp_end" placeholder="End" maxlength="20" value="{{ x.end }}"></div>
+              {% if meta.icons %}
+              <div class="col-4"><select class="form-select cv-icon-select" name="exp_icon">
+                {% for ik, label in icons.items() %}<option value="{{ ik }}" {{ 'selected' if x.icon == ik }}>{{ label.split(' ')[0] }}</option>{% endfor %}
+              </select></div>
+              {% endif %}
+              <div class="col-12"><textarea class="form-control" name="exp_details" placeholder="What you did. Separate points with a full stop." maxlength="500" rows="2">{{ x.details }}</textarea></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="cc-section">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="mb-0">Education</h2>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-cv-add="tpl-edu" data-cv-target="[data-edu-list]">+ Add</button>
+        </div>
+        <div data-edu-list>
+          {% for x in d.education %}
+          <div class="cv-block">
+            <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+            <div class="row g-2">
+              <div class="col-6"><input class="form-control" name="edu_qualification" placeholder="Qualification" maxlength="100" value="{{ x.qualification }}"></div>
+              <div class="col-6"><input class="form-control" name="edu_institution" placeholder="Institution" maxlength="100" value="{{ x.institution }}"></div>
+              <div class="col-4"><input class="form-control" name="edu_year" placeholder="Year(s)" maxlength="20" value="{{ x.year }}"></div>
+              <div class="col-8"><input class="form-control" name="edu_details" placeholder="Notes (optional)" maxlength="300" value="{{ x.details }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if meta.icons %}
+      <section class="cc-section">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 class="mb-0">Strengths</h2>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-cv-add="tpl-str" data-cv-target="[data-str-list]">+ Add</button>
+        </div>
+        <p class="small text-mute">A short highlight reel — 2 or 3 is plenty.</p>
+        <div data-str-list>
+          {% for s in d.strengths %}
+          <div class="cv-block">
+            <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+            <div class="row g-2">
+              <div class="col-8"><input class="form-control" name="str_title" placeholder="Title" maxlength="60" value="{{ s.title }}"></div>
+              <div class="col-4"><select class="form-select cv-icon-select" name="str_icon">
+                {% for ik, label in icons.items() %}<option value="{{ ik }}" {{ 'selected' if s.icon == ik }}>{{ label.split(' ')[0] }}</option>{% endfor %}
+              </select></div>
+              <div class="col-12"><input class="form-control" name="str_body" placeholder="One line about it" maxlength="220" value="{{ s.body }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <section class="cc-section">
+        <h2>Skills</h2>
+        <label class="form-label small">Comma-separated</label>
+        <input class="form-control" name="skills" maxlength="800" value="{{ d.skills|join(', ') }}" placeholder="Python, Excel, Customer service">
+      </section>
+
+      <section class="cc-section">
+        <h2>Languages</h2>
+        <label class="form-label small">Comma-separated — add a level after a colon, e.g. <code>English:Fluent, Zulu:Home language</code></label>
+        <input class="form-control" name="languages" maxlength="400"
+               value="{% for l in d.languages %}{{ l.name }}{% if l.level %}:{{ l.level }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}">
+      </section>
+
+      {% if meta.donut %}
+      <section class="cc-section">
+        <h2>My Time</h2>
+        <p class="small text-mute">Optional — a quick breakdown of how your time is spent. Up to 6, percentages don't need to add to 100.</p>
+        <div data-time-list>
+          {% for t in d.time_split %}
+          <div class="cv-block">
+            <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+            <div class="row g-2">
+              <div class="col-8"><input class="form-control" name="time_label" placeholder="e.g. Feature work" maxlength="40" value="{{ t.label }}"></div>
+              <div class="col-4"><input class="form-control" type="number" min="0" max="100" name="time_pct" placeholder="%" value="{{ t.pct }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-cv-add="tpl-time" data-cv-target="[data-time-list]">+ Add</button>
+      </section>
+      {% endif %}
+
+      <section class="cc-section">
+        <h2>Other</h2>
+        <div class="row g-2">
+          <div class="col-6"><label class="form-label small">Driver's licence</label>
+            <input class="form-control" name="licence" maxlength="20" value="{{ d.licence }}" placeholder="e.g. Code 8 (EB)"></div>
+          <div class="col-6"><label class="form-label small">Availability</label>
+            <input class="form-control" name="availability" maxlength="40" value="{{ d.availability }}" placeholder="e.g. Immediately"></div>
+        </div>
+      </section>
+
+      <div class="d-flex gap-2 mt-3 mb-5">
+        <button class="btn btn-ink flex-fill" type="submit" data-loading-title="Saving" data-loading-description="Saving your CV">Save</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('cv_studio.cv_studio_download') }}" download>Download PDF</a>
+      </div>
+      <form method="post" action="{{ url_for('cv_studio.cv_studio_publish') }}" data-loading-title="Publishing" data-loading-description="Making this your CV" class="mb-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ink w-100" type="submit">{{ "Save as my CV and continue applying" if from_apply else "Make this my CV" }}</button>
+      </form>
+    </form>
+
+    <aside class="cv-preview-pane">
+      <p class="fw-bold small mb-2">Live preview</p>
+      <div data-cv-preview>
+        <img src="{{ url_for('static', filename='v2/cv-thumbs/' + template_id + '.jpg') }}" alt="CV preview" class="cv-preview-page">
+      </div>
+      <p class="cv-preview-status" data-cv-preview-status></p>
+    </aside>
+  </div>
+</div>
+
+<template id="tpl-exp"><div class="cv-block">
+  <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+  <div class="row g-2">
+    <div class="col-6"><input class="form-control" name="exp_role" placeholder="Role" maxlength="80"></div>
+    <div class="col-6"><input class="form-control" name="exp_company" placeholder="Company" maxlength="80"></div>
+    <div class="col-4"><input class="form-control" name="exp_start" placeholder="Start" maxlength="20"></div>
+    <div class="col-4"><input class="form-control" name="exp_end" placeholder="End" maxlength="20"></div>
+    {% if meta.icons %}
+    <div class="col-4"><select class="form-select cv-icon-select" name="exp_icon">
+      {% for ik, label in icons.items() %}<option value="{{ ik }}">{{ label.split(' ')[0] }}</option>{% endfor %}
+    </select></div>
+    {% endif %}
+    <div class="col-12"><textarea class="form-control" name="exp_details" placeholder="What you did. Separate points with a full stop." maxlength="500" rows="2"></textarea></div>
+  </div>
+</div></template>
+
+<template id="tpl-edu"><div class="cv-block">
+  <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+  <div class="row g-2">
+    <div class="col-6"><input class="form-control" name="edu_qualification" placeholder="Qualification" maxlength="100"></div>
+    <div class="col-6"><input class="form-control" name="edu_institution" placeholder="Institution" maxlength="100"></div>
+    <div class="col-4"><input class="form-control" name="edu_year" placeholder="Year(s)" maxlength="20"></div>
+    <div class="col-8"><input class="form-control" name="edu_details" placeholder="Notes (optional)" maxlength="300"></div>
+  </div>
+</div></template>
+
+{% if meta.icons %}
+<template id="tpl-str"><div class="cv-block">
+  <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+  <div class="row g-2">
+    <div class="col-8"><input class="form-control" name="str_title" placeholder="Title" maxlength="60"></div>
+    <div class="col-4"><select class="form-select cv-icon-select" name="str_icon">
+      {% for ik, label in icons.items() %}<option value="{{ ik }}">{{ label.split(' ')[0] }}</option>{% endfor %}
+    </select></div>
+    <div class="col-12"><input class="form-control" name="str_body" placeholder="One line about it" maxlength="220"></div>
+  </div>
+</div></template>
+{% endif %}
+
+{% if meta.donut %}
+<template id="tpl-time"><div class="cv-block">
+  <button type="button" data-cv-remove aria-label="Remove">&times;</button>
+  <div class="row g-2">
+    <div class="col-8"><input class="form-control" name="time_label" placeholder="e.g. Feature work" maxlength="40"></div>
+    <div class="col-4"><input class="form-control" type="number" min="0" max="100" name="time_pct" placeholder="%"></div>
+  </div>
+</div></template>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='v2/cv-studio.js') }}" defer></script>
+{% endblock %}

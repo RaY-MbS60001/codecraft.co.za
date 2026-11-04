@@ -1,0 +1,98 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Build your CV | CodeCraft Co{% endblock %}
+{% macro exp_block(e) %}
+<div class="cv-block" data-block>
+  <div class="row g-2">
+    <div class="col-12 col-md-6"><label class="form-label">Job title or role</label><input class="form-control" name="exp_role" maxlength="80" value="{{ e.role if e }}" placeholder="e.g. Cashier"></div>
+    <div class="col-12 col-md-6"><label class="form-label">Company</label><input class="form-control" name="exp_company" maxlength="80" value="{{ e.company if e }}" placeholder="e.g. Shoprite"></div>
+    <div class="col-6"><label class="form-label">From</label><input class="form-control" name="exp_start" maxlength="20" value="{{ e.start if e }}" placeholder="Jan 2023"></div>
+    <div class="col-6"><label class="form-label">To</label><input class="form-control" name="exp_end" maxlength="20" value="{{ e.end if e }}" placeholder="Present"></div>
+    <div class="col-12"><label class="form-label">What you did <span class="text-mute fw-normal">(optional)</span></label><textarea class="form-control" name="exp_details" rows="3" maxlength="500">{{ e.details if e }}</textarea></div>
+  </div>
+  <button type="button" class="btn btn-outline-ink btn-sm mt-2" data-remove-block>Remove</button>
+</div>
+{% endmacro %}
+{% macro edu_block(e) %}
+<div class="cv-block" data-block>
+  <div class="row g-2">
+    <div class="col-12 col-md-6"><label class="form-label">Qualification</label><input class="form-control" name="edu_qualification" maxlength="100" value="{{ e.qualification if e }}" placeholder="e.g. NSC (Matric)"></div>
+    <div class="col-12 col-md-6"><label class="form-label">School or institution</label><input class="form-control" name="edu_institution" maxlength="100" value="{{ e.institution if e }}"></div>
+    <div class="col-12 col-md-4"><label class="form-label">Year</label><input class="form-control" name="edu_year" maxlength="20" value="{{ e.year if e }}" placeholder="2023"></div>
+    <div class="col-12 col-md-8"><label class="form-label">Subjects or notes <span class="text-mute fw-normal">(optional)</span></label><input class="form-control" name="edu_details" maxlength="300" value="{{ e.details if e }}" placeholder="Maths, IT, English"></div>
+  </div>
+  <button type="button" class="btn btn-outline-ink btn-sm mt-2" data-remove-block>Remove</button>
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="container pt-3">
+  <div class="cc-hero-mini">{{ hero_art('default', faint=True) }}
+  <a class="small" href="{{ url_for('index') }}">&larr; Back to companies</a>
+  <p class="cc-eyebrow">CV builder</p>
+  <h1 class="serif h2 mt-2">{{ 'Your CV' if saved else 'Build your CV' }}</h1>
+  </div>
+  <p class="text-mute">Takes about 5 minutes. Save it once, and it's ready for every application.</p>
+
+  <a href="{{ url_for('cv_studio.cv_studio_picker') }}" class="d-flex align-items-center justify-content-between p-3 mb-3 rounded-3 text-decoration-none" style="background:var(--bs-dark,#0d0d0d); color:#fff;">
+    <span>
+      <strong>New: CV Studio</strong>
+      <span class="d-block small opacity-75">Pick a designed template and get a polished PDF, built from the same details.</span>
+    </span>
+    <span aria-hidden="true">&rarr;</span>
+  </a>
+
+  <form method="post" action="{{ url_for('learner.cv_edit') }}" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="template" value="{{ template }}">
+
+    <details class="cv-step" open>
+      <summary>1. About you</summary>
+      <div class="row g-2 pt-2">
+        <div class="col-12"><label class="form-label" for="full_name">Full name</label><input class="form-control" id="full_name" name="full_name" maxlength="80" value="{{ d.full_name }}" autocomplete="name" required></div>
+        <div class="col-12"><label class="form-label" for="job_title">What are you looking for?</label><input class="form-control" id="job_title" name="job_title" maxlength="80" value="{{ d.job_title }}" placeholder="e.g. IT support learnership"></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="phone">Phone</label><input class="form-control" id="phone" name="phone" type="tel" maxlength="30" value="{{ d.phone }}" autocomplete="tel"></div>
+        <div class="col-12 col-md-6"><label class="form-label" for="email">Email</label><input class="form-control" id="email" name="email" type="email" maxlength="120" value="{{ d.email }}" autocomplete="email"></div>
+        <div class="col-12"><label class="form-label" for="location">Town or suburb</label><input class="form-control" id="location" name="location" maxlength="80" value="{{ d.location }}" placeholder="e.g. Soweto, Gauteng"></div>
+        <div class="col-12"><label class="form-label" for="summary">A short intro <span class="text-mute fw-normal">(2 or 3 lines, <span id="sumleft">600</span> left)</span></label>
+          <textarea class="form-control" id="summary" name="summary" rows="4" maxlength="600" data-counter="#sumleft" placeholder="Matric with Maths and IT. Quick to learn and ready to start.">{{ d.summary }}</textarea></div>
+      </div>
+      <p class="form-text mb-0 mt-2">Don't add your ID number, photo, age or marital status. Companies don't need them to shortlist you.</p>
+    </details>
+
+    <details class="cv-step" {{ 'open' if d.education }}>
+      <summary>2. School and studies</summary>
+      <div id="edu-list" class="pt-2">
+        {% for e in d.education %}{{ edu_block(e) }}{% endfor %}
+        {% if not d.education %}{{ edu_block(none) }}{% endif %}
+      </div>
+      <button type="button" class="btn btn-outline-ink mt-2" data-add-block="edu" data-max="{{ max_edu }}">+ Add another</button>
+      <template id="tpl-edu">{{ edu_block(none) }}</template>
+    </details>
+
+    <details class="cv-step" {{ 'open' if d.experience }}>
+      <summary>3. Work or volunteering <span class="text-mute fw-normal">(skip if none)</span></summary>
+      <div id="exp-list" class="pt-2">
+        {% for e in d.experience %}{{ exp_block(e) }}{% endfor %}
+      </div>
+      <button type="button" class="btn btn-outline-ink mt-2" data-add-block="exp" data-max="{{ max_exp }}">+ Add a job</button>
+      <template id="tpl-exp">{{ exp_block(none) }}</template>
+    </details>
+
+    <details class="cv-step">
+      <summary>4. Skills and extras</summary>
+      <div class="row g-2 pt-2">
+        <div class="col-12"><label class="form-label" for="skills">Skills <span class="text-mute fw-normal">(separate with commas)</span></label><textarea class="form-control" id="skills" name="skills" rows="2" placeholder="MS Office, customer service, typing">{{ d.skills|join(', ') if d.skills }}</textarea></div>
+        <div class="col-12"><label class="form-label" for="languages">Languages</label><input class="form-control" id="languages" name="languages" value="{{ d.languages|join(', ') if d.languages }}" placeholder="isiZulu, English"></div>
+        <div class="col-6"><label class="form-label" for="licence">Driver's licence</label><input class="form-control" id="licence" name="licence" maxlength="20" value="{{ d.licence }}" placeholder="Code B"></div>
+        <div class="col-6"><label class="form-label" for="availability">Available from</label><input class="form-control" id="availability" name="availability" maxlength="40" value="{{ d.availability }}" placeholder="Immediately"></div>
+      </div>
+    </details>
+
+    <div class="cc-spacer"></div>
+    <div class="cc-stickycta"><div class="container">
+      <button class="btn btn-ink w-100" type="submit">Save and preview</button>
+    </div></div>
+  </form>
+</div>
+{% endblock %}

@@ -56,7 +56,8 @@ from models import (
     db, User, Application, Document,
     GoogleToken,LearnershipEmail,
     CalendarEvent, ApplicationMessage,
-    Conversation, ConversationMessage,PremiumTransaction
+    Conversation, ConversationMessage,PremiumTransaction,
+    BulkSendJob,
 )
 from forms import (
     AdminLoginForm, EditProfileForm, ChangePasswordForm,
@@ -346,15 +347,51 @@ def validate_session():
 # BASIC ROUTES
 # =============================================================================
 
+# New public, mobile-first learner flow (see public_routes.py)
+from public_routes import public_bp, render_home, safe_next, company_logo_domain
+# Registered as a real Jinja global (not just a context-processor var) so it also
+# works inside imported macros like tile() in _macros.html, which don't inherit
+# the calling template's context unless imported 'with context'.
+app.jinja_env.globals['company_logo_domain'] = company_logo_domain
+from learner_routes import learner_bp, company_ids_by_email
+from premium_routes import premium_bp
+from cv_studio_routes import cv_studio_bp
+
+
 @app.route("/")
 def index():
-    return render_template("home.html", current_year=datetime.now().year)
+    return render_home()
+
+
+@app.route("/sw.js")
+def service_worker():
+    """Served from the site root (not /static/sw.js) so its default scope
+    covers the whole app, not just /static/."""
+    from flask import send_from_directory
+    resp = send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+app.register_blueprint(public_bp)
+app.register_blueprint(learner_bp)
+app.register_blueprint(premium_bp)
+app.register_blueprint(cv_studio_bp)
+
+# Manual Capitec EFT/PayShap details for the Premium payment flow — set these
+# as real environment variables before going live (see PAYMENTS.md). Left
+# blank, the payment page tells the learner it isn't configured yet instead
+# of showing a fake account number.
+app.config['CAPITEC_ACCOUNT_NAME'] = os.environ.get('CAPITEC_ACCOUNT_NAME', '')
+app.config['CAPITEC_ACCOUNT_NUMBER'] = os.environ.get('CAPITEC_ACCOUNT_NUMBER', '')
+app.config['CAPITEC_BRANCH_CODE'] = os.environ.get('CAPITEC_BRANCH_CODE', '470010')
+app.config['CAPITEC_PAYSHAP_NUMBER'] = os.environ.get('CAPITEC_PAYSHAP_NUMBER', '')
 
 
 @app.route("/feed")
 @login_required
 def feed():
-    return render_template("feed.html")
+    return redirect(url_for("index"))
 
 
 # =============================================================================
@@ -370,7 +407,7 @@ def login():
 
         if not email or not password:
             flash("Please enter both email and password.", "error")
-            return render_template("login.html")
+            return render_template("v2/login.html")
 
         user = User.query.filter_by(email=email).first()
 
@@ -378,7 +415,7 @@ def login():
 
             if not user.is_active:
                 flash("Your account has been deactivated.", "error")
-                return render_template("login.html")
+                return render_template("v2/login.html")
 
             client_ip = request.environ.get("HTTP_X_REAL_IP", request.remote_addr)
             user_agent = request.headers.get("User-Agent", "")
@@ -402,11 +439,13 @@ def login():
 
             if user.role == "admin":
                 return redirect(url_for("admin_dashboard"))
-            return redirect(url_for("feed"))
+            if user.role == "corporate":
+                return redirect(url_for("corporate_dashboard"))
+            return redirect(safe_next(request.args.get("next")) or url_for("index"))
 
         flash("Invalid email or password.", "error")
 
-    return render_template("login.html")
+    return render_template("v2/login.html")
 
 
 # =============================================================================
@@ -676,6 +715,61 @@ def admin_check_emails():
     return redirect(url_for('admin_dashboard'))
 
 
+# Company-info enrichment (descriptions + persisted logos) -- same
+# auto-trigger-on-page-load pattern as the email reachability checker above.
+@app.route('/api/company-info-status')
+@login_required
+def get_company_info_status():
+    """API endpoint: how much of the company-info enrichment is done, and
+    kick off a background batch if there's unenriched companies left."""
+    from models import CompanyInfo
+    from company_info import fetch_company_info_batch
+    from r2_storage import r2_configured
+    try:
+        total = LearnershipEmail.query.filter_by(is_active=True).count()
+        enriched = CompanyInfo.query.count()
+        with_description = CompanyInfo.query.filter(CompanyInfo.description.isnot(None)).count()
+        with_logo = CompanyInfo.query.filter(CompanyInfo.logo_r2_url.isnot(None)).count()
+
+        if enriched < total:
+            threading.Thread(target=fetch_company_info_batch, args=(50,), daemon=True).start()
+
+        last = CompanyInfo.query.order_by(CompanyInfo.description_checked_at.desc()).first()
+
+        return jsonify({
+            'status': 'success',
+            'r2_configured': r2_configured(),
+            'stats': {
+                'total': total,
+                'enriched': enriched,
+                'unenriched': total - enriched,
+                'with_description': with_description,
+                'with_logo': with_logo,
+            },
+            'last_run': last.description_checked_at.isoformat() if last and last.description_checked_at else None,
+        })
+    except Exception as e:
+        print(f"Error in get_company_info_status: {e}")
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@app.route('/admin/refresh-company-info', methods=['POST'])
+@login_required
+def admin_refresh_company_info():
+    """Manual trigger: re-run the company-info batch now, including
+    re-checking companies whose info is stale (ignores the normal 90-day
+    cooldown so an admin click always does something)."""
+    if not current_user.is_admin:
+        flash('Access denied.', 'error')
+        return redirect(url_for('feed'))
+
+    from company_info import fetch_company_info_batch
+    threading.Thread(target=fetch_company_info_batch, args=(100, 0), daemon=True).start()
+
+    flash('Company-info enrichment started in background. Refresh this page in a minute or two to see progress.', 'info')
+    return redirect(url_for('admin_dashboard'))
+
+
 # Add these imports at the top if not already present
 import threading
 try:
@@ -828,6 +922,7 @@ def google_login():
             db.session.add(demo_user)
             db.session.commit()
 
+        _keep = {k: session[k] for k in ("post_login_next", "apply_ids") if k in session}
         demo_user.clear_session()
         session.clear()
 
@@ -846,8 +941,9 @@ def google_login():
         demo_user.last_login = datetime.utcnow()
         db.session.commit()
 
+        session.update(_keep)
         flash("Logged in as Demo User (Google OAuth not configured)", "warning")
-        return redirect(url_for("user_dashboard"))
+        return redirect(safe_next(session.pop("post_login_next", None)) or url_for("index"))
 
     return google.authorize_redirect(
         url_for("google_callback", _external=True),
@@ -950,6 +1046,7 @@ def google_callback():
         client_ip = request.environ.get("HTTP_X_REAL_IP", request.remote_addr)
         user_agent = request.headers.get("User-Agent", "")
 
+        _keep = {k: session[k] for k in ("post_login_next", "apply_ids") if k in session}
         user.clear_session()
         session.clear()
 
@@ -966,8 +1063,9 @@ def google_callback():
 
         db.session.commit()
 
+        session.update(_keep)
         flash(f"Welcome, {user.full_name or user.email}!", "success")
-        return redirect(url_for("feed", login="success"))
+        return redirect(safe_next(session.pop("post_login_next", None)) or url_for("index"))
 
     except Exception as e:
         print("OAuth callback error:", e)
@@ -975,22 +1073,10 @@ def google_callback():
         return redirect(url_for("login"))
 
 
-# =============================================================================
-# CONTENT SECURITY POLICY HEADERS
-# =============================================================================
-
-@app.after_request
-def add_csp_headers(response):
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "img-src 'self' data:; "
-        "connect-src 'self'; "
-        "frame-src 'none'; "
-    )
-    return response
+# Content-Security-Policy is set once, in security_middleware.py's
+# add_security_headers() -- that's the hook that actually wins (it's
+# registered earlier, so it runs last and overwrites any other CSP header).
+# Edit the policy there, not here, so there's only one place to keep in sync.
 
 
 # =============================================================================
@@ -999,6 +1085,11 @@ def add_csp_headers(response):
 @app.route("/user/dashboard")
 @login_required
 def user_dashboard():
+    if current_user.role == "corporate":
+        return redirect(url_for("corporate_dashboard"))
+    if current_user.role == "admin":
+        return redirect(url_for("admin_dashboard"))
+    return redirect(url_for("my_applications"))
     try:
         # Get recent applications - use submitted_at instead of created_at
         recent_apps = (
@@ -2079,7 +2170,7 @@ def user_inbox():
             ).filter(Conversation.applicant_unread_count > 0).count()
         
         return render_template(
-            'user_inbox.html', 
+            'user_inbox.html' if current_user.role == 'corporate' else 'v2/inbox.html',
             conversations=conversations,
             unread_count=unread_count,
             current_year=datetime.now().year
@@ -2586,15 +2677,15 @@ def edit_profile():
         current_user.address = form.address.data
         db.session.commit()
 
-        flash("Profile updated successfully!", "success")
-        return redirect(url_for("user_dashboard"))
+        flash("Profile updated.", "success")
+        return redirect(url_for("edit_profile"))
 
     # Pre-fill
     form.full_name.data = current_user.full_name
     form.phone.data = current_user.phone
     form.address.data = current_user.address
 
-    return render_template("edit_profile.html", form=form)
+    return render_template("v2/profile.html", form=form)
 
 # =============================================================================
 # DOCUMENT VIEW ROUTES
@@ -2718,8 +2809,54 @@ def document_center():
         grouped.setdefault(group, []).append(doc)
 
     return render_template(
-        "document_center.html", form=form, documents=documents, grouped_documents=grouped
+        "v2/documents.html", form=form, documents=documents, grouped_documents=grouped
     )
+
+
+@app.route("/user/documents/combine", methods=["POST"])
+@login_required
+def combine_documents_route():
+    from document_engine import combine_documents
+
+    ids = [int(x) for x in request.form.getlist("doc_ids") if x.isdigit()]
+    docs = (
+        Document.query.filter(
+            Document.id.in_(ids), Document.user_id == current_user.id, Document.is_active.is_(True)
+        ).all() if ids else []
+    )
+    # keep the order the learner picked them in, not whatever order the DB returns
+    by_id = {d.id: d for d in docs}
+    ordered = [by_id[i] for i in ids if i in by_id]
+
+    if len(ordered) < 2:
+        flash("Pick at least two documents to combine.", "warning")
+        return redirect(url_for("document_center"))
+
+    folder = os.path.join(app.config["UPLOAD_FOLDER"], "documents")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{current_user.id}_combined_{stamp}.pdf"
+    path = os.path.join(folder, filename)
+
+    included, skipped = combine_documents(ordered, path)
+
+    if included == 0:
+        flash("Couldn't combine those -- none of the selected files could be read.", "danger")
+        return redirect(url_for("document_center"))
+
+    doc = Document(
+        user_id=current_user.id, document_type="other", filename=filename,
+        original_filename=f"Combined_{stamp}.pdf", file_path=path,
+        file_size=os.path.getsize(path),
+    )
+    db.session.add(doc)
+    db.session.commit()
+
+    if skipped:
+        names = ", ".join(f"{d.original_filename} ({why})" for d, why in skipped)
+        flash(f"Combined {included} file(s) into one PDF. Left out: {names}.", "warning")
+    else:
+        flash(f"Combined {included} files into one PDF.", "success")
+    return redirect(url_for("document_center"))
 
 
 @app.route("/user/document/delete/<int:doc_id>", methods=["POST"])
@@ -2774,7 +2911,8 @@ def load_learnerships_from_json():
 @app.route("/user/learnerships", methods=["GET", "POST"])
 @login_required
 def learnerships():
-    """Display learnership opportunities"""
+    """Old list page. The public home page replaced it."""
+    return redirect(url_for("index"))
     try:
         # Get learnership emails
         learnership_emails = LearnershipEmail.query.filter_by(is_active=True).all()
@@ -2875,7 +3013,7 @@ def user_conversation(conversation_id):
             db.session.commit()
         
         return render_template(
-            'user_conversation.html',  # ← Your actual template name
+            'v2/conversation.html' if current_user.id == conversation.applicant_user_id else 'user_conversation.html',
             conversation=conversation,
             messages=messages,
             current_year=datetime.now().year
@@ -3350,12 +3488,11 @@ def my_applications():
     )
 
     return render_template(
-        "my_applications.html",
+        "v2/applications.html",
         applications=applications,
-        grouped_applications=grouped_status,
-        email_status_groups=email_groups,
         stats=stats,
         needs_update=needs_update,
+        company_ids=company_ids_by_email(applications),
     )
 
 
@@ -3559,7 +3696,28 @@ def gmail_status_dashboard():
 # =============================================================================
 # EMAIL SENDING HELPERS (GMAIL API)
 # =============================================================================
-def send_application_email(recipient_email, company_name, user):
+# Preset opening paragraphs for the application email -- the learner picks
+# a tone on the review screen, or writes their own ("Custom"). Whatever is
+# chosen replaces ONLY this opening; contact info, document status and the
+# sign-off stay fixed so every email is still structurally consistent.
+INTRO_PRESETS = {
+    "default": (
+        "I hope this message finds you well. I am writing to express my genuine "
+        "interest in learnership opportunities within your organization."
+    ),
+    "neutral": (
+        "I am applying for a learnership opportunity with your organization and "
+        "would welcome the chance to be considered."
+    ),
+    "general": (
+        "I am reaching out to apply for any suitable learnership opportunities "
+        "currently available at your organization."
+    ),
+}
+DEFAULT_INTRO_STYLE = "default"
+
+
+def send_application_email(recipient_email, company_name, user, doc_ids=None, intro_text=None):
     """
     Send an application email with plain text body and HTML signature
     """
@@ -3592,6 +3750,8 @@ def send_application_email(recipient_email, company_name, user):
 
         # Get documents
         docs = Document.query.filter_by(user_id=user.id, is_active=True).all()
+        if doc_ids is not None:  # the confirm screen passes the documents the learner ticked
+            docs = [d for d in docs if d.id in doc_ids]
         file_paths = []
 
         for doc in docs:
@@ -3610,9 +3770,10 @@ def send_application_email(recipient_email, company_name, user):
             docs_plain = "⚠️ No Documents Attached\nPlease reply with your CV, resume, and supporting documents to strengthen your application.\n"
 
         # ✅ PLAIN TEXT BODY
+        opening = (intro_text or "").strip() or INTRO_PRESETS[DEFAULT_INTRO_STYLE]
         body = f"""Dear Hiring Team,
 
-I hope this message finds you well. I am writing to express my genuine interest in learnership opportunities within your organization.
+{opening}
 
 Please find my CV and supporting documents attached for your review. I am eager to develop professionally and contribute positively to your team.
 
@@ -3693,11 +3854,11 @@ Kind regards,
 # BULK EMAIL WRAPPER (adds Gmail tracking)
 # =============================================================================
 
-def send_application_email_with_gmail(recipient_email, company_name, user):
+def send_application_email_with_gmail(recipient_email, company_name, user, doc_ids=None, intro_text=None):
     """
     Wrapper that ensures consistent return format with Gmail tracking data
     """
-    result = send_application_email(recipient_email, company_name, user)
+    result = send_application_email(recipient_email, company_name, user, doc_ids, intro_text=intro_text)
     
     # Result is now always a dict with the correct structure
     if isinstance(result, dict):
@@ -3717,6 +3878,12 @@ def send_application_email_with_gmail(recipient_email, company_name, user):
 
 # =============================================================================
 # BULK EMAIL ROUTE — APPLY VIA EMAIL LIST
+#
+# Sending runs in a background thread (bulk-send jobs can take 20-60s+ for a
+# full batch: a Gmail API round trip per company plus a 0.35s gap between
+# sends to stay under Gmail's burst limit). The request below only validates
+# and kicks the job off; it redirects straight to a status page that polls
+# the job's progress and drives a live notification while it runs.
 # =============================================================================
 @app.route("/apply_bulk_email", methods=["POST"])
 @login_required
@@ -3725,7 +3892,7 @@ def apply_bulk_email():
     try:
         ids = request.form.getlist("selected_emails")
         reapply_ids = request.form.getlist("reapply_emails")
-        
+
         print(f"DEBUG: Received IDs: {ids}")
         print(f"DEBUG: Re-apply IDs: {reapply_ids}")
 
@@ -3736,19 +3903,28 @@ def apply_bulk_email():
         # ✅ CHECK DOCUMENTS BEFORE STARTING
         docs = Document.query.filter_by(user_id=current_user.id, is_active=True).all()
         valid_docs = [d for d in docs if d.file_path and isinstance(d.file_path, str) and os.path.exists(d.file_path)]
-        
+
         if not valid_docs:
             flash(
-                "⚠️ You must upload at least one document (CV/Resume) before applying.",
+                "You must upload at least one document (CV/Resume) before applying.",
                 "warning"
             )
-            return redirect(url_for("user_documents"))
-        
+            return redirect(url_for("document_center"))
+
+        # Confirm screen sends v2=1 plus the ids of the documents the learner ticked.
+        doc_ids = None
+        if request.form.get("v2"):
+            doc_ids = [int(x) for x in request.form.getlist("doc_ids") if x.isdigit()]
+            valid_docs = [d for d in valid_docs if d.id in doc_ids]
+            if not valid_docs:
+                flash("Tick at least one document to attach.", "warning")
+                return redirect(url_for("public.confirm"))
+
         print(f"📎 User has {len(valid_docs)} valid document(s) to attach")
 
         # Premium limit check
         total_applications = len(ids) + len(reapply_ids)
-        
+
         if not current_user.is_premium_active():
             remaining = current_user.get_remaining_applications()
             if remaining == 0:
@@ -3763,195 +3939,250 @@ def apply_bulk_email():
             LearnershipEmail.id.in_(ids + reapply_ids),
             LearnershipEmail.is_active == True,
         ).all()
-        
+
         print(f"DEBUG: Found {len(email_entries)} email entries")
 
         if not email_entries:
             flash("No valid email addresses selected.", "error")
             return redirect(url_for("learnerships"))
 
-        successful = []
-        failed = []
-        timeout_list = []
-        reapplied = []
-        gmail_tracked = 0
-        applications_sent = 0
+        entry_ids = [e.id for e in email_entries]
 
-        for entry in email_entries:
-            print(f"\n{'='*50}")
-            print(f"📧 Processing: {entry.company_name} - {entry.email_address}")
-            
-            # Check if user already applied to this company
-            existing = Application.query.filter_by(
-                user_id=current_user.id, 
-                company_email=entry.email_address
-            ).first()
+        job = BulkSendJob(
+            user_id=current_user.id,
+            status="running",
+            total=len(entry_ids),
+        )
+        db.session.add(job)
+        db.session.commit()
 
-            # ✅ HANDLE RE-APPLICATIONS - COMPLETE FIX WITH PROPER CASCADE ORDER
-            if existing:
-                if str(entry.id) not in reapply_ids:
-                    print(f"   ⚠️ Already applied to {entry.company_name} (skipped)")
-                    continue
-                else:
-                    print(f"   🔄 Re-applying to {entry.company_name}")
-                    
-                    # ✅ DELETE ALL RELATED RECORDS IN CORRECT CASCADE ORDER
-                    try:
-                        application_id = existing.id
-                        print(f"   🔍 Deleting all records for application_id: {application_id}")
-                        
-                        # 1. Delete ConversationMessage records first (deepest level)
-                        conversation_messages_deleted = 0
-                        conversations = Conversation.query.filter_by(application_id=application_id).all()
-                        for conversation in conversations:
-                            messages = ConversationMessage.query.filter_by(conversation_id=conversation.id).all()
-                            for message in messages:
-                                db.session.delete(message)
-                                conversation_messages_deleted += 1
-                        print(f"   🗑️ Deleted {conversation_messages_deleted} conversation messages")
-                        
-                        # 2. Delete Conversation records
-                        conversations_deleted = len(conversations)
-                        for conversation in conversations:
-                            db.session.delete(conversation)
-                        print(f"   🗑️ Deleted {conversations_deleted} conversations")
-                        
-                        # 3. Delete CalendarEvent records
-                        calendar_events = CalendarEvent.query.filter_by(application_id=application_id).all()
-                        for event in calendar_events:
-                            db.session.delete(event)
-                        print(f"   🗑️ Deleted {len(calendar_events)} calendar events")
-                        
-                        # 4. Delete ApplicationMessage records
-                        app_messages = ApplicationMessage.query.filter_by(application_id=application_id).all()
-                        for msg in app_messages:
-                            db.session.delete(msg)
-                        print(f"   🗑️ Deleted {len(app_messages)} application messages")
-                        
-                        # 5. Delete any other related records that reference application_id
-                        # Add any other models that have foreign keys to Application here if needed
-                        
-                        # 6. Finally delete the Application itself
-                        db.session.delete(existing)
-                        
-                        # Commit all deletions
-                        db.session.commit()
-                        print(f"   ✅ Successfully deleted application {application_id} and all related data")
-                        
-                    except Exception as delete_error:
-                        print(f"   ❌ Error deleting existing application: {delete_error}")
-                        import traceback
-                        traceback.print_exc()
-                        db.session.rollback()
-                        failed.append(entry.company_name)
-                        continue
-                    
-            try:
-                # Send email with documents
-                result = send_application_email_with_gmail(
-                    entry.email_address, entry.company_name, current_user
-                )
-                
-                print(f"DEBUG: Email result: {result}")
+        flask_app = current_app._get_current_object()
+        intro_style = (request.form.get("intro_style") or DEFAULT_INTRO_STYLE).strip()
+        custom_intro = (request.form.get("custom_intro") or "").strip()[:2000]
+        intro_text = custom_intro if intro_style == "custom" else INTRO_PRESETS.get(intro_style, INTRO_PRESETS[DEFAULT_INTRO_STYLE])
 
-                success = result.get("success", False)
-                message = result.get("message", "")
-                gmail_data = result.get("gmail_data", {})
-                
-                if gmail_data:
-                    print(f"   📬 Gmail ID: {gmail_data.get('id')}")
-                    print(f"   🧵 Thread ID: {gmail_data.get('threadId')}")
+        threading.Thread(
+            target=_run_bulk_send_job,
+            args=(flask_app, job.id, current_user.id, entry_ids, list(reapply_ids), doc_ids, intro_text),
+            daemon=True,
+        ).start()
 
-                # Create NEW Application record
-                application = Application(
-                    user_id=current_user.id,
-                    company_name=entry.company_name,
-                    company_email=entry.email_address,
-                    learnership_name="Email Application",
-                    status="submitted" if success else "pending",
-                )
-
-                if success:
-                    application.email_status = "sent"
-                    application.sent_at = datetime.utcnow()
-                    application.gmail_message_id = gmail_data.get("id")
-                    application.gmail_thread_id = gmail_data.get("threadId")
-                    application.has_response = False
-                    application.documents_attached = len(valid_docs)
-                    
-                    current_user.use_application()
-                    applications_sent += 1
-                    
-                    print(f"   ✅ Creating new Application")
-                else:
-                    application.email_status = "failed"
-                    print(f"   ❌ Email failed: {message}")
-
-                db.session.add(application)
-                db.session.commit()  # ✅ Commit immediately after adding new application
-
-                if success:
-                    successful.append(entry.company_name)
-                    if str(entry.id) in reapply_ids:
-                        reapplied.append(entry.company_name)
-                    if gmail_data.get("id"):
-                        gmail_tracked += 1
-                else:
-                    if "timeout" in message.lower():
-                        timeout_list.append(entry.company_name)
-                    else:
-                        failed.append(entry.company_name)
-
-                print(f"   💾 Saved to database")
-
-            except Exception as e:
-                print(f"❌ Error for {entry.company_name}: {e}")
-                import traceback
-                traceback.print_exc()
-                db.session.rollback()
-                failed.append(entry.company_name)
-
-        # Summary
-        print(f"\n{'='*50}")
-        print(f"📊 BULK SEND SUMMARY:")
-        print(f"   ✅ New applications: {len(successful) - len(reapplied)}")
-        print(f"   🔄 Re-applications: {len(reapplied)}")
-        print(f"   🎯 Gmail tracked: {gmail_tracked}")
-        print(f"   📎 Documents per application: {len(valid_docs)}")
-        print(f"   ❌ Failed: {len(failed)}")
-        print(f"{'='*50}\n")
-
-        # Flash messages
-        if successful:
-            new_count = len(successful) - len(reapplied)
-            
-            msg = f"✅ Successfully sent {len(successful)} application(s) with {len(valid_docs)} document(s)!"
-            
-            if new_count > 0:
-                msg += f"\n   📝 New: {new_count}"
-            if reapplied:
-                msg += f"\n   🔄 Re-applied: {len(reapplied)}"
-            
-            if gmail_tracked:
-                msg += f"\n🎯 {gmail_tracked} application(s) tracked for responses"
-            
-            flash(msg, "success")
-
-        if timeout_list:
-            flash(f"⏱️ Network timeout for: {', '.join(timeout_list)}", "warning")
-
-        if failed:
-            flash(f"❌ Failed: {', '.join(failed)}", "error")
-
-        return redirect(url_for("my_applications"))
+        return redirect(url_for("sending_status", job_id=job.id))
 
     except Exception as e:
-        print(f"Fatal error: {e}")
+        print(f"Fatal error starting bulk send: {e}")
         import traceback
         traceback.print_exc()
         db.session.rollback()
         flash("An error occurred.", "error")
         return redirect(url_for("learnerships"))
+
+
+def _run_bulk_send_job(app, job_id, user_id, entry_ids, reapply_ids, doc_ids, intro_text=None):
+    """Runs in its own background thread with its own app context and DB
+    session. Mirrors the old synchronous loop exactly, but updates the
+    BulkSendJob row after every company instead of flashing one summary
+    at the very end — that row is what the status page polls."""
+    with app.app_context():
+        job = db.session.get(BulkSendJob, job_id)
+        if not job:
+            return
+        try:
+            user = db.session.get(User, user_id)
+            if not user:
+                job.status = "error"
+                job.result_error = "Your session couldn't be found. Please try sending again."
+                job.finished_at = datetime.utcnow()
+                db.session.commit()
+                return
+
+            if doc_ids:
+                valid_docs = Document.query.filter(
+                    Document.id.in_(doc_ids),
+                    Document.user_id == user.id,
+                    Document.is_active == True,
+                ).all()
+            else:
+                valid_docs = Document.query.filter_by(user_id=user.id, is_active=True).all()
+            valid_docs = [d for d in valid_docs if d.file_path and isinstance(d.file_path, str) and os.path.exists(d.file_path)]
+
+            email_entries = LearnershipEmail.query.filter(
+                LearnershipEmail.id.in_(entry_ids),
+                LearnershipEmail.is_active == True,
+            ).all()
+            order = {eid: i for i, eid in enumerate(entry_ids)}
+            email_entries.sort(key=lambda e: order.get(e.id, 0))
+
+            successful, failed, timeout_list, auth_failed, reapplied = [], [], [], [], []
+            gmail_tracked = 0
+
+            for entry in email_entries:
+                job.current_company = entry.company_name
+                db.session.commit()
+
+                existing = Application.query.filter_by(
+                    user_id=user.id, company_email=entry.email_address
+                ).first()
+
+                if existing and str(entry.id) not in reapply_ids:
+                    job.processed += 1
+                    job.skipped += 1
+                    db.session.commit()
+                    continue
+
+                if existing:
+                    # Re-applying: clear out the old application's related
+                    # records first (same cascade order as before).
+                    try:
+                        application_id = existing.id
+                        for conversation in Conversation.query.filter_by(application_id=application_id).all():
+                            for message in ConversationMessage.query.filter_by(conversation_id=conversation.id).all():
+                                db.session.delete(message)
+                            db.session.delete(conversation)
+                        for event in CalendarEvent.query.filter_by(application_id=application_id).all():
+                            db.session.delete(event)
+                        for msg in ApplicationMessage.query.filter_by(application_id=application_id).all():
+                            db.session.delete(msg)
+                        db.session.delete(existing)
+                        db.session.commit()
+                    except Exception as delete_error:
+                        print(f"[bulk-send job {job_id}] couldn't clear old application for {entry.company_name}: {delete_error}")
+                        db.session.rollback()
+                        failed.append(entry.company_name)
+                        job.processed += 1
+                        job.failed += 1
+                        db.session.commit()
+                        continue
+
+                try:
+                    result = send_application_email_with_gmail(
+                        entry.email_address, entry.company_name, user, doc_ids=doc_ids, intro_text=intro_text
+                    )
+                    success = result.get("success", False)
+                    message = result.get("message", "")
+                    gmail_data = result.get("gmail_data", {})
+
+                    application = Application(
+                        user_id=user.id,
+                        company_name=entry.company_name,
+                        company_email=entry.email_address,
+                        learnership_name="Email Application",
+                        status="submitted" if success else "pending",
+                    )
+
+                    if success:
+                        application.email_status = "sent"
+                        application.sent_at = datetime.utcnow()
+                        application.gmail_message_id = gmail_data.get("id")
+                        application.gmail_thread_id = gmail_data.get("threadId")
+                        application.has_response = False
+                        application.documents_attached = len(valid_docs)
+                        user.use_application()
+                    else:
+                        application.email_status = "failed"
+
+                    db.session.add(application)
+                    db.session.commit()
+
+                    if success:
+                        successful.append(entry.company_name)
+                        job.sent_ok += 1
+                        if str(entry.id) in reapply_ids:
+                            reapplied.append(entry.company_name)
+                            job.reapplied_ok += 1
+                        if gmail_data.get("id"):
+                            gmail_tracked += 1
+                    else:
+                        low = message.lower()
+                        if "timeout" in low:
+                            timeout_list.append(entry.company_name)
+                        elif "re-authenticate" in low or "unauthorized" in low or "google authentication required" in low:
+                            auth_failed.append(entry.company_name)
+                        else:
+                            failed.append(entry.company_name)
+                        job.failed += 1
+
+                except Exception as e:
+                    print(f"[bulk-send job {job_id}] error for {entry.company_name}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    db.session.rollback()
+                    failed.append(entry.company_name)
+                    job.failed += 1
+
+                job.processed += 1
+                db.session.commit()
+
+                # Same gentle gap as before, between Gmail sends.
+                if entry is not email_entries[-1]:
+                    time.sleep(0.35)
+
+            if successful:
+                new_count = len(successful) - len(reapplied)
+                msg = f"Successfully sent {len(successful)} application(s) with {len(valid_docs)} document(s)."
+                if new_count > 0:
+                    msg += f"\n   New: {new_count}"
+                if reapplied:
+                    msg += f"\n   Re-applied: {len(reapplied)}"
+                if gmail_tracked:
+                    msg += f"\n{gmail_tracked} application(s) tracked for responses."
+                job.result_success = msg
+
+            if timeout_list:
+                job.result_warning = f"Network timeout for: {', '.join(timeout_list)}"
+
+            error_parts = []
+            if auth_failed:
+                error_parts.append(
+                    f"{len(auth_failed)} application(s) couldn't send because your Google sign-in "
+                    f"has expired or been disconnected — sending more companies won't help until you "
+                    f"reconnect. Sign out and sign back in with Google, then try these again: "
+                    f"{', '.join(auth_failed)}"
+                )
+            if failed:
+                error_parts.append(f"Failed: {', '.join(failed)}")
+            if error_parts:
+                job.result_error = "\n\n".join(error_parts)
+
+            job.current_company = None
+            job.status = "done"
+            job.finished_at = datetime.utcnow()
+            db.session.commit()
+
+        except Exception as e:
+            print(f"[bulk-send job {job_id}] fatal error: {e}")
+            import traceback
+            traceback.print_exc()
+            db.session.rollback()
+            try:
+                job.status = "error"
+                job.result_error = "Something went wrong while sending. Check My Applications for what went through."
+                job.finished_at = datetime.utcnow()
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+
+@app.route("/go/sending/<int:job_id>")
+@login_required
+def sending_status(job_id):
+    """The page the learner lands on right after pressing Send. Polls
+    /api/send-status/<job_id> for live progress and drives a Web
+    Notification while the job runs in the background."""
+    job = db.session.get(BulkSendJob, job_id)
+    if not job or job.user_id != current_user.id:
+        abort(404)
+    return render_template("v2/sending.html", job=job)
+
+
+@app.route("/api/send-status/<int:job_id>")
+@login_required
+def send_status_api(job_id):
+    job = db.session.get(BulkSendJob, job_id)
+    if not job or job.user_id != current_user.id:
+        abort(404)
+    return jsonify(job.as_dict())
+
 
 
 # ✅ NEW ROUTE: Check for existing applications and ask for confirmation
@@ -4125,7 +4356,7 @@ def upgrade_to_premium():
     remaining = current_user.get_remaining_applications()
     premium_status = current_user.get_premium_status()
     
-    return render_template('upgrade_premium.html', 
+    return render_template('v2/premium.html', 
                          remaining_applications=remaining,
                          premium_status=premium_status)
 
@@ -4180,14 +4411,21 @@ from datetime import datetime, timedelta
 import os
 
 def get_week_format(date_column):
-    """Database-agnostic week formatting"""
-    database_url = os.environ.get("DATABASE_URL", "")
-    
-    if database_url.startswith(("postgresql://", "postgres://")):
-        # PostgreSQL version - returns YYYY-WW format
+    """Database-agnostic week formatting.
+
+    Was checking os.environ["DATABASE_URL"] -- but get_database_url_and_options()
+    above ignores DATABASE_URL entirely in dev (FLASK_ENV != "production") and
+    always connects to local SQLite, while DATABASE_URL itself is still set to
+    the production Postgres string in .env.production. So this always picked
+    the Postgres branch locally and every local query failed with
+    "no such function: to_char" (caught by the try/except around its only
+    caller, so it silently produced an empty weekly trend instead of erroring
+    loudly). Check the actual connected engine instead of an unrelated env var.
+    """
+    if db.engine.dialect.name == "postgresql":
         return func.to_char(date_column, 'YYYY-WW').label("week")
     else:
-        # SQLite version
+        # SQLite (and anything else): strftime
         return func.strftime("%Y-%W", date_column).label("week")
 
 @app.route("/user/applications/analytics", endpoint="application_analytics")
@@ -4211,12 +4449,15 @@ def analytics_dashboard_user_live():
             "label": s.capitalize(),
             "value": status_counts.get(s, 0),
             "color": {
-                "sent": "#3b82f6",
-                "delivered": "#10b981",
-                "read": "#8b5cf6",
-                "responded": "#22c55e",
-                "pending": "#f97316",
-                "failed": "#ef4444"
+                # Brand palette (the logo's own red / blue / amber, plus the
+                # site's green/mute) so the analytics page reads as part of
+                # the same app rather than a generic chart library's colors.
+                "sent": "#2f8fff",       # cc-blue
+                "delivered": "#f29a2e",  # cc-amber
+                "read": "#8b5cf6",       # supporting violet (not in the 3-color logo mark, kept distinct from the others)
+                "responded": "#16803c",  # cc-green
+                "pending": "#67676a",    # cc-mute
+                "failed": "#e0453a"      # cc-red
             }.get(s, "#94a3b8")
         })
 
@@ -4292,11 +4533,12 @@ def analytics_dashboard_user_live():
 
     # --- RENDER TEMPLATE -------------------------------------------
     return render_template(
-        "analytics_dashboard.html",
+        "v2/analytics.html",
         status_summary=status_summary,
         response_trend=response_trend,
         current_week_responses=current_week_responses,
         recent_list=recent_list,
+        total_applications=sum(s["value"] for s in status_summary),
         current_year=datetime.now().year
     )
 
@@ -4394,6 +4636,18 @@ def admin_dashboard():
                                 if not user.premium_expires or user.premium_expires > datetime.now())
         }
 
+        from models import CompanyInfo
+        from r2_storage import r2_configured
+        _last = CompanyInfo.query.order_by(CompanyInfo.description_checked_at.desc()).first()
+        company_info_stats = {
+            'total': stats['total_learnerships'],
+            'enriched': CompanyInfo.query.count(),
+            'with_description': CompanyInfo.query.filter(CompanyInfo.description.isnot(None)).count(),
+            'with_logo': CompanyInfo.query.filter(CompanyInfo.logo_r2_url.isnot(None)).count(),
+            'r2_configured': r2_configured(),
+            'last_run': _last.description_checked_at if _last else None,
+        }
+
         return render_template(
             "admin_dashboard.html",
             users=users,
@@ -4405,7 +4659,8 @@ def admin_dashboard():
             recent_applications=recent_applications,
             current_user=current_user,
             premium_stats=premium_stats,
-            premium_count=premium_stats['active_premium']
+            premium_count=premium_stats['active_premium'],
+            company_info_stats=company_info_stats
         )
 
     except Exception as e:
@@ -4413,7 +4668,13 @@ def admin_dashboard():
         import traceback
         traceback.print_exc()
 
-        # fallback
+        # fallback -- defined fresh here (not reused from the try block
+        # above) since the exception may have happened before those were set
+        fallback_premium_stats = {'total_premium': 0, 'active_premium': 0}
+        fallback_company_info_stats = {
+            'total': 0, 'enriched': 0, 'with_description': 0, 'with_logo': 0,
+            'r2_configured': False, 'last_run': None,
+        }
         return render_template(
             "admin_dashboard.html",
             users=[],
@@ -4429,8 +4690,9 @@ def admin_dashboard():
             recent_learnerships=[],
             recent_applications=[],
             current_user=current_user,
-            premium_stats=premium_stats,
-            premium_count=premium_stats['active_premium']
+            premium_stats=fallback_premium_stats,
+            premium_count=fallback_premium_stats['active_premium'],
+            company_info_stats=fallback_company_info_stats
         )
 
 
@@ -5073,6 +5335,17 @@ def inject_user():
 
 
 @app.context_processor
+def inject_hot_learnership_count():
+    """How many active companies are currently open for applications --
+    used only by the 'hot' session ad (see before_request), computed lazily
+    via a plain function so it's one cheap count() call, not run on every
+    page unless that ad is actually the one showing this session."""
+    def hot_learnership_count():
+        return LearnershipEmail.query.filter_by(is_active=True).count()
+    return {"hot_learnership_count": hot_learnership_count}
+
+
+@app.context_processor
 def utility_processor():
     """Inject commonly used utility functions into templates."""
 
@@ -5127,9 +5400,19 @@ def filesize_filter(size):
 # BEFORE REQUEST — TRACK LAST ACTIVITY
 # =============================================================================
 
+SESSION_AD_TYPES = ("cv", "trial", "hot")
+
+
 @app.before_request
 def before_request():
-    """Update the user's last activity timestamp on every request."""
+    """Update the user's last activity timestamp on every request. Also
+    picks one promotional ad (CV builder / premium trial / hot learnerships)
+    at random the first time someone's signed-in session is seen, so they
+    get exactly one per login (picked once, not re-rolled every page) --
+    base.html renders whichever one session['session_ad'] holds, with its
+    own X to close it (closing hides it for that page view only, same as
+    the CV-builder ad card; it comes back on the next page, same as Ray
+    asked for)."""
     if current_user.is_authenticated:
         current_user.last_activity = datetime.utcnow()
         try:
@@ -5137,6 +5420,10 @@ def before_request():
         except Exception as e:
             print("Error updating last activity:", e)
             db.session.rollback()
+
+        if "session_ad" not in session:
+            import random
+            session["session_ad"] = random.choice(SESSION_AD_TYPES)
 
 
 # =============================================================================
@@ -5219,38 +5506,51 @@ def safe_db_init():
 
 @app.route('/privacy-policy')
 def privacy_policy():
-    return render_template('privacy_policy.html')
+    return render_template('v2/privacy_policy.html')
 
 
 @app.route('/terms-of-service')
 def terms_of_service():
-    return render_template('terms_of_service.html')
+    return render_template('v2/terms_of_service.html')
 
 
 @app.route('/help-center')
 def help_center():
-    return render_template('help_center.html')
+    return render_template('v2/help_center.html')
 
 
 @app.route('/contact-us')
 def contact_us():
-    return render_template('contact_us.html')
+    return render_template('v2/contact_us.html')
+
+
+@app.route('/code-of-conduct')
+def code_of_conduct():
+    return render_template('v2/code_of_conduct.html')
 
 
 @app.route('/submit-contact', methods=['POST'])
 def submit_contact():
-    # Handle form submission
-    first_name = request.form.get('first_name')
-    last_name = request.form.get('last_name')
-    email = request.form.get('email')
-    phone = request.form.get('phone')
-    subject = request.form.get('subject')
-    message = request.form.get('message')
+    first_name = (request.form.get('first_name') or '').strip()
+    last_name = (request.form.get('last_name') or '').strip()
+    email = (request.form.get('email') or '').strip()
+    phone = (request.form.get('phone') or '').strip()
+    subject = (request.form.get('subject') or '').strip()
+    message = (request.form.get('message') or '').strip()
 
-    # Process the contact form (save to database, send email, etc.)
-    print(f"📧 Contact Form: {first_name} {last_name} - {email} - {subject}")
+    if not (first_name and last_name and email and subject and message):
+        flash('Please fill in your name, email, subject and message.', 'error')
+        return redirect(url_for('contact_us'))
 
-    return jsonify({'status': 'success'}), 200
+    # Logged for now -- there's no admin inbox yet, so this is read from the
+    # server log. A real queue/notification can replace this later.
+    print(
+        f"📧 Contact form: {first_name} {last_name} <{email}>"
+        f"{' / ' + phone if phone else ''} -- {subject}\n{message}"
+    )
+
+    flash("Thanks -- we've got your message and will get back to you soon.", 'success')
+    return redirect(url_for('contact_us'))
 
 # =============================================================================
 # CUSTOM TIME FILTERS (RESTORED)
@@ -5311,5 +5611,6 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=port,
-        debug=debug
+        debug=debug,
+        threaded=True
     )

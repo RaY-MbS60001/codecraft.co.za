@@ -1,0 +1,123 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import tile, plural, hero_art %}
+{% block title %}{{ c.company_name }} | CodeCraft Co{% endblock %}
+{% block desc %}{{ c.description or ('Apply to ' ~ c.company_name ~ ' and see what other applicants report.') }}{% endblock %}
+
+{% block content %}
+<div class="container pt-3">
+  <div class="cc-hero-mini">{{ hero_art('rise', faint=True) }}
+  <a class="small" href="{{ url_for('index') }}">&larr; All companies</a>
+  </div>
+
+  {% if c.cover_image_url %}
+  <div class="cc-cover mt-3">
+    <img src="{{ c.cover_image_url }}" alt="" loading="lazy" onerror="this.closest('.cc-cover').remove()">
+  </div>
+  {% endif %}
+
+  <div class="d-flex gap-3 align-items-start mt-3 mb-3">
+    {{ tile(c, tone, 'lg') }}
+    <div class="min-w-0">
+      <h1 class="serif h3 mb-1" style="overflow-wrap:anywhere">{{ c.company_name }}</h1>
+      <div class="cc-meta"><span>Applies via pipeline</span>
+        {% set domain = company_logo_domain(c) %}
+        {% if domain %}<a href="https://{{ domain }}" target="_blank" rel="noopener noreferrer">Check out their website &nearr;</a>{% endif %}
+      </div>
+      {% if c.description %}<p class="cc-desc lg">{{ c.description }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="cc-stickycta">
+    <div class="container px-0 px-md-3">
+      {% if applied %}
+        <a class="btn btn-outline-ink w-100" href="{{ url_for('my_applications') }}">You applied {{ (applied.submitted_at or applied.sent_at).strftime('%d %b %Y') if (applied.submitted_at or applied.sent_at) }}. Track it</a>
+      {% else %}
+        <a class="btn btn-ink w-100" href="{{ url_for('public.go_apply', id=c.id) }}">Apply to {{ c.company_name }}</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <section class="cc-section rv" id="how">
+    <p class="cc-eyebrow">What happens</p>
+    <h2>Three steps, from your own inbox</h2>
+    <ol class="cc-steps">
+      <li><span>Sign in with Google (once).</span></li>
+      <li><span>Check your CV and press Send.</span></li>
+      <li><span>We email {{ c.company_name }} from your Gmail. Replies show in your Inbox.</span></li>
+    </ol>
+  </section>
+
+  <section class="cc-section rv" id="reports">
+    <p class="cc-eyebrow">The record</p>
+    <h2>What applicants report</h2>
+    {% set total_outcomes = counts['interview'] + counts['offer'] + counts['reply'] + counts['no_reply'] %}
+    {% if total_outcomes %}
+      <div class="cc-stat mb-2">
+        <div><b>{{ counts['interview'] }}</b><span>Interviews</span></div>
+        <div><b>{{ counts['offer'] }}</b><span>Offers</span></div>
+        <div><b>{{ counts['reply'] }}</b><span>Replies</span></div>
+        <div><b>{{ counts['no_reply'] }}</b><span>No reply</span></div>
+      </div>
+      <p class="small text-mute">From {{ total_outcomes }} {{ plural(total_outcomes, 'person', 'people') }} who applied here through CodeCraft.</p>
+    {% endif %}
+
+    {% for r in reports %}
+    <div class="cc-comment">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        {% set initial, avtone = reporter_avatar(r.author) %}
+        <span class="cc-ravatar {{ avtone }}" aria-hidden="true">{{ initial }}</span>
+        <strong>{{ display_name(r.author) }}</strong>
+        {% if r.outcome %}<span class="cc-chip {{ r.outcome }}"><i></i>{{ outcomes[r.outcome] }}</span>{% endif %}
+        {% if r.verified %}<span class="cc-chip verified">Applied via CodeCraft</span>{% endif %}
+        <span class="small text-mute ms-auto">{{ r.created_at.strftime('%d %b') }}</span>
+      </div>
+      {% if r.comment %}<p>{{ r.comment }}</p>{% endif %}
+      {% if current_user.is_authenticated and r.user_id != current_user.id %}
+      <form method="post" action="{{ url_for('public.flag_report', report_id=r.id) }}" class="mt-1">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ url_for('public.company', company_id=c.id) }}#reports">
+        <button class="btn btn-link btn-sm p-0 text-mute" style="min-height:32px" type="submit">Report this</button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+      <p class="text-mute mb-0">Nobody has reported back yet. Applied here? Tell the next person what happened.</p>
+    {% endfor %}
+  </section>
+
+  <section class="cc-section rv" id="share">
+    <p class="cc-eyebrow">{{ 'Your report' if mine else 'Your turn' }}</p>
+    <h2>{{ 'Update your report' if mine else 'Share what happened' }}</h2>
+    {% if not current_user.is_authenticated %}
+      <p class="text-mute">Sign in to comment or report an interview.</p>
+      <a class="btn btn-google d-inline-flex align-items-center justify-content-center gap-2" href="{{ url_for('public.signin', next=url_for('public.company', company_id=c.id) + '#share') }}">
+        <img src="{{ url_for('static', filename='images/google-icon.svg') }}" alt="" width="18" height="18">
+        Sign in with Google
+      </a>
+    {% else %}
+    <form method="post" action="{{ url_for('public.post_report', company_id=c.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <fieldset class="mb-3">
+        <legend class="fs-6 fw-bold">Outcome {% if not applied %}<span class="fw-normal text-mute">(apply here first to report one)</span>{% endif %}</legend>
+        <div class="cc-radio">
+          {% for key, label in outcomes.items() %}
+          <div>
+            <input type="radio" name="outcome" id="o-{{ key }}" value="{{ key }}" {{ 'disabled' if not applied }} {{ 'checked' if mine and mine.outcome == key }}>
+            <label for="o-{{ key }}">{{ label }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <div class="mb-3">
+        <label class="form-label fw-bold" for="comment">Comment <span class="fw-normal text-mute">(optional, <span id="left">280</span> left)</span></label>
+        <textarea class="form-control" id="comment" name="comment" rows="3" maxlength="280" data-counter="#left"
+                  placeholder="e.g. They called me within two weeks.">{{ mine.comment if mine and mine.comment }}</textarea>
+        <div class="form-text">No links, email addresses or phone numbers, please.</div>
+      </div>
+      <button class="btn btn-ink" type="submit">{{ 'Update' if mine else 'Post' }}</button>
+    </form>
+    {% endif %}
+  </section>
+  <div class="cc-spacer"></div>
+</div>
+{% endblock %}

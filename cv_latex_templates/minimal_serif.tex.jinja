@@ -1,0 +1,81 @@
+\documentclass[a4paper,10.5pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[top=1.5cm,bottom=1.3cm,left=1.9cm,right=1.9cm]{geometry}
+\usepackage{mathptmx}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{ragged2e}
+\usepackage[hidelinks]{hyperref}
+\definecolor{ink}{HTML}{111111}
+\definecolor{body}{HTML}{333333}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\pagestyle{empty}
+\justifying
+\newcommand{\sectiontitle}[1]{\par\vspace{13pt}{\color{ink}\Large\scshape #1}\par
+  \vspace{3pt}\noindent\textcolor{ink}{\rule{\linewidth}{0.6pt}}\par\vspace{7pt}}
+
+\begin{document}
+{\centering
+{\Large\bfseries \VAR{d.full_name|e}}\\[3pt]
+\BLOCK{ if d.job_title }{\normalsize \VAR{d.job_title|e}}\\[4pt]\BLOCK{ endif }
+{\small
+\BLOCK{ if d.phone }\VAR{d.phone|e}\BLOCK{ endif }
+\BLOCK{ if d.email } \textbullet\ \VAR{d.email|e}\BLOCK{ endif }
+\BLOCK{ if d.location } \textbullet\ \VAR{d.location|e}\BLOCK{ endif }
+\BLOCK{ if d.linkedin } \textbullet\ \href{https://\VAR{d.linkedin|url}}{\VAR{d.linkedin|e}}\BLOCK{ endif }
+}
+\par}
+
+\BLOCK{ if d.summary }
+\sectiontitle{Summary}
+{\normalsize \VAR{d.summary|e}\par}
+\BLOCK{ endif }
+
+\BLOCK{ if d.experience }
+\sectiontitle{Experience}
+\BLOCK{ for x in d.experience }
+{\normalsize\bfseries \VAR{x.role|e}}\BLOCK{ if x.company }, \VAR{x.company|e}\BLOCK{ endif }
+\hfill{\normalsize\itshape \VAR{x.start|e}\BLOCK{ if x.end } -- \VAR{x.end|e}\BLOCK{ endif }}\\
+\BLOCK{ if x.details }
+{\normalsize\color{body}
+\begin{itemize}[leftmargin=16pt,itemsep=3pt,topsep=4pt,parsep=0pt]
+\BLOCK{ for line in x.details.split('.') }
+\BLOCK{ if line.strip() }\item \VAR{(line.strip()+'.')|e}\BLOCK{ endif }
+\BLOCK{ endfor }
+\end{itemize}}
+\BLOCK{ endif }
+\vspace{6pt}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if d.education }
+\sectiontitle{Education}
+\BLOCK{ for x in d.education }
+{\normalsize\bfseries \VAR{x.qualification|e}}\BLOCK{ if x.institution }, \VAR{x.institution|e}\BLOCK{ endif }
+\hfill{\normalsize\itshape \VAR{x.year|e}}\\
+\BLOCK{ if x.details }{\normalsize\color{body}\VAR{x.details|e}\par}\BLOCK{ endif }
+\vspace{6pt}
+\BLOCK{ endfor }
+\BLOCK{ endif }
+
+\BLOCK{ if d.skills }
+\sectiontitle{Skills}
+{\normalsize \BLOCK{ for s in d.skills }\VAR{s|e}\BLOCK{ if not loop.last } \textbullet\ \BLOCK{ endif }\BLOCK{ endfor }\par}
+\BLOCK{ endif }
+
+\BLOCK{ if d.languages }
+\sectiontitle{Languages}
+{\normalsize \BLOCK{ for l in d.languages }\VAR{l.name|e}\BLOCK{ if l.level } (\VAR{l.level|e})\BLOCK{ endif }\BLOCK{ if not loop.last }, \BLOCK{ endif }\BLOCK{ endfor }\par}
+\BLOCK{ endif }
+
+\BLOCK{ if d.licence or d.availability or d.nationality }
+\sectiontitle{Other}
+{\normalsize
+\BLOCK{ if d.nationality }Nationality: \VAR{d.nationality|e}\\\BLOCK{ endif }
+\BLOCK{ if d.licence }Driver's licence: \VAR{d.licence|e}\\\BLOCK{ endif }
+\BLOCK{ if d.availability }Available: \VAR{d.availability|e}\BLOCK{ endif }
+\par}
+\BLOCK{ endif }
+\end{document}

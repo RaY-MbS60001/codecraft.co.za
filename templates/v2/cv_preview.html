@@ -1,0 +1,40 @@
+{% extends "v2/base.html" %}
+{% from "v2/_cv_sheet.html" import sheet %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Your CV | CodeCraft Co{% endblock %}
+{% block content %}
+<div class="container pt-3 cv-page">
+  <div class="cc-hero-mini d-print-none">{{ hero_art('default', faint=True) }}
+  <a class="small d-print-none" href="{{ url_for('learner.cv_edit') }}">&larr; Edit details</a>
+  <p class="cc-eyebrow d-print-none">CV builder</p>
+  <h1 class="serif h2 mt-2 d-print-none">Pick a look</h1>
+  </div>
+
+  <div class="cc-filters d-print-none" role="group" aria-label="CV style">
+    {% for key, cfg in templates.items() %}
+    <a class="cc-pill {{ 'active' if key == t }}" href="{{ url_for('learner.cv_preview', t=key) }}" {{ 'aria-current=page' if key == t }}>{{ cfg.label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if problems %}
+  <div class="alert alert-warning mt-3 d-print-none">
+    {% for p in problems %}<div>{{ p }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="my-3">{{ sheet(d, t) }}</div>
+  <p class="small text-mute d-print-none">This is a preview. The PDF follows the same layout in simple, recruiter-friendly text.</p>
+  <div class="cc-spacer d-print-none"></div>
+</div>
+
+<div class="cc-stickycta d-print-none">
+  <div class="container d-flex gap-2">
+    <a class="btn btn-outline-ink" href="{{ url_for('learner.cv_download', t=t) }}">Download PDF</a>
+    <form class="flex-grow-1" method="post" action="{{ url_for('learner.cv_publish') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="t" value="{{ t }}">
+      <button class="btn btn-ink w-100" type="submit" {{ 'disabled' if problems }}>{{ 'Use this CV and continue' if from_apply else 'Use this CV' }}</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

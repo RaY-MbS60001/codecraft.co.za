@@ -1,0 +1,57 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import plural, hero_art, cv_builder_ad %}
+{% block title %}My documents | CodeCraft Co{% endblock %}
+{% block content %}
+<div class="container pt-3">
+  <div class="cc-hero-mini">
+    {{ hero_art('default', faint=True) }}
+    <p class="cc-eyebrow">Your files</p>
+    <h1 class="serif h2 mb-1">My documents</h1>
+    <p class="text-mute">Only what you tick on the send screen is emailed. Nothing here is shared with companies by itself.</p>
+  </div>
+
+  {{ cv_builder_ad(has_cv=has_cv()) }}
+
+  {% if documents|length > 1 %}
+  <form method="post" action="{{ url_for('combine_documents_route') }}" id="cc-combine-form"></form>
+  <p class="small text-mute mb-2">Tick two or more to merge into a single PDF (PDF, JPG and PNG can be combined; Word files can't).</p>
+  {% endif %}
+  {% for group, docs in grouped_documents.items() %}
+  <section class="cc-section rv">
+    <h2>{{ {'Cv': 'CV', 'Id': 'ID document', 'Cover Letter': 'Cover letter', 'Qualification': 'Qualification certificate', 'Disability': 'Disability letter'}.get(group, group) }}</h2>
+    {% for d in docs %}
+    <div class="cc-doc align-items-center">
+      {% if documents|length > 1 %}
+      <input type="checkbox" class="form-check-input flex-shrink-0" name="doc_ids" value="{{ d.id }}" form="cc-combine-form" data-cc-combine-pick aria-label="Select {{ d.original_filename }} to combine">
+      {% endif %}
+      <div class="flex-grow-1 min-w-0">
+        <div class="fw-bold text-truncate">{{ d.original_filename }}</div>
+        <div class="small text-mute">{{ d.uploaded_at.strftime('%d %b %Y') if d.uploaded_at }}{% if d.file_size %} &middot; {{ (d.file_size / 1024)|round|int }} KB{% endif %}</div>
+      </div>
+      <a class="btn btn-outline-ink btn-sm" href="{{ url_for('view_document', document_id=d.id) }}" target="_blank" rel="noopener">View</a>
+      <form method="post" action="{{ url_for('delete_document', doc_id=d.id) }}" data-confirm="Remove {{ d.original_filename }}?">
+        <button class="btn btn-outline-ink btn-sm" type="submit">Remove</button>
+      </form>
+    </div>
+    {% endfor %}
+  </section>
+  {% else %}
+  <p class="text-mute py-3">You haven't added any documents yet.</p>
+  {% endfor %}
+  {% if documents|length > 1 %}
+    <button type="submit" class="btn btn-ink btn-sm mb-3" id="cc-combine-btn" form="cc-combine-form" disabled>Combine selected into one PDF</button>
+  {% endif %}
+
+  <section class="cc-section">
+    <h2>Add a document</h2>
+    <form method="post" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+      <div class="mb-3"><label class="form-label" for="{{ form.document_type.id }}">What is it?</label>{{ form.document_type(class_="form-select") }}</div>
+      <div class="mb-2"><label class="form-label" for="{{ form.document.id }}">File</label>{{ form.document(class_="form-control", accept=".pdf,.doc,.docx,.jpg,.jpeg,.png") }}</div>
+      {% for e in form.document.errors %}<div class="text-danger small mb-2">{{ e }}</div>{% endfor %}
+      <p class="form-text">PDF, Word, JPG or PNG. Keep IDs and certificates separate from your CV.</p>
+      <button class="btn btn-ink" type="submit">Upload</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Help Center | CodeCraft Co{% endblock %}
+{% block desc %}Answers to common questions about applying, your account and documents.{% endblock %}
+
+{% block content %}
+<div class="container pt-3" style="max-width:760px">
+  <div class="cc-hero-mini">{{ hero_art('orbit', faint=True) }}
+  <a class="small" href="{{ url_for('index') }}">&larr; Home</a>
+  <p class="cc-eyebrow">Support</p>
+  <h1 class="serif h2 mt-2 mb-1">Help Center</h1>
+  <p class="text-mute">Answers to the questions we get most. Can't find yours? <a href="{{ url_for('contact_us') }}">Contact us</a>.</p>
+  </div>
+
+  <section class="cc-section">
+    <h2>Getting started</h2>
+
+    <details class="mb-2">
+      <summary class="fw-bold">How do I create an account?</summary>
+      <div class="pt-2">
+        <p>Either click <strong>Sign in with Google</strong> on the homepage and authorise access with your Google
+          account, or register with your name, email and a password. Signing in with Google is the quicker route,
+          since it's also what lets you send applications from your own Gmail later.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">What is a learnership?</summary>
+      <div class="pt-2">
+        <p>A learnership combines structured learning with real workplace experience, usually registered with a
+          SETA (Sector Education and Training Authority). It typically pays a stipend while you learn, and gives
+          you an industry-recognised qualification plus real work experience at the end.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">Who can apply?</summary>
+      <div class="pt-2">
+        <p>Eligibility varies by listing &mdash; always check the specific company's requirements &mdash; but most
+          learnerships look for South African citizens or permanent residents, with at least a Grade 12 / Matric
+          certificate, who are currently unemployed or looking to change direction.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="cc-section">
+    <h2>Applications</h2>
+
+    <details class="mb-2">
+      <summary class="fw-bold">How do I apply for a learnership?</summary>
+      <div class="pt-2">
+        <p>Browse companies on the homepage, open the one you're interested in, and click <strong>Apply</strong>.
+          We'll send that company an email from your own connected Gmail, with your CV attached. You can preview a
+          company's profile first without leaving the page.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">What documents do I need?</summary>
+      <div class="pt-2">
+        <p>At minimum, a CV. Many learners also keep a certified ID copy, their Matric certificate and any
+          qualification certificates in <strong>My documents</strong>, ready to attach when a listing asks for
+          them. PDF, Word, JPG and PNG are all accepted.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">How do I know if a company has seen my application?</summary>
+      <div class="pt-2">
+        <p>Your <strong>Applications</strong> page shows a real status for each one: <strong>Sent</strong>,
+          <strong>Delivered</strong>, <strong>Read</strong> and <strong>Responded</strong> (or <strong>Pending</strong>
+          / <strong>Failed</strong> if something went wrong). This comes from your own Gmail account, so it's only
+          as reliable as the read-receipt and delivery information Gmail can see.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">Can I combine several documents into one PDF?</summary>
+      <div class="pt-2">
+        <p>Yes &mdash; on <strong>My documents</strong>, tick two or more files and click <strong>Combine selected
+          into one PDF</strong>. PDF, JPG and PNG can be merged; Word files can't be combined this way.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="cc-section">
+    <h2>CV builder</h2>
+
+    <details class="mb-2">
+      <summary class="fw-bold">What's the difference between the two CV builders?</summary>
+      <div class="pt-2">
+        <p>CV Studio is the newer, template-based builder &mdash; pick a look, fill in your details, and it
+          compiles a polished PDF with a live preview as you type. It also supports a photo. The classic builder is
+          a simpler, faster option if you just want something basic and functional.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">Can I see what a template looks like before choosing it?</summary>
+      <div class="pt-2">
+        <p>Yes &mdash; each template in CV Studio shows a filled example so you can see roughly how your own CV
+          will look once your details are in.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="cc-section">
+    <h2>Account settings</h2>
+
+    <details class="mb-2">
+      <summary class="fw-bold">How do I update my profile?</summary>
+      <div class="pt-2">
+        <p>Open your profile picture in the top right and choose <strong>Edit profile</strong>. Update your details
+          and save.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">How do I reset my password?</summary>
+      <div class="pt-2">
+        <p>From the sign-in page, use <strong>Forgot password</strong> and follow the emailed link. If you signed
+          up with Google, there's no CodeCraft Co password to reset &mdash; manage access through your Google
+          account instead.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">How do I delete my account?</summary>
+      <div class="pt-2">
+        <p>Email <a href="mailto:privacy@codecraft.co.za">privacy@codecraft.co.za</a> from your registered address
+          and we'll delete your account and data. This is permanent and can't be undone.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="cc-section">
+    <h2>Technical support</h2>
+
+    <details class="mb-2">
+      <summary class="fw-bold">The site isn't loading properly &mdash; what do I try?</summary>
+      <div class="pt-2">
+        <p>Clear your browser cache, try a different browser, check your connection, and disable any ad-blocking or
+          privacy extensions that might be interfering. Still stuck? <a href="{{ url_for('contact_us') }}">Contact
+          us</a>.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">My document won't upload &mdash; what's wrong?</summary>
+      <div class="pt-2">
+        <p>Usually it's file size or format. Keep files under a few MB, use PDF, DOC, DOCX, JPG or PNG, and avoid
+          unusual characters in the filename.</p>
+      </div>
+    </details>
+
+    <details class="mb-2">
+      <summary class="fw-bold">I'm not getting email notifications</summary>
+      <div class="pt-2">
+        <p>Check your spam folder first, and make sure the email on your profile is correct. If you signed in with
+          Google, also check that Gmail access is still connected.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="cc-box d-flex justify-content-between align-items-center flex-wrap gap-2 mt-4">
+    <div>
+      <p class="fw-bold mb-0">Still need help?</p>
+      <p class="text-mute mb-0 small">We read every message.</p>
+    </div>
+    <a href="{{ url_for('contact_us') }}" class="btn btn-ink">Contact support</a>
+  </section>
+</div>
+{% endblock %}
