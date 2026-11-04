@@ -183,6 +183,15 @@
           </tbody>
         </table>
       </div>
+      <div class="cc-admin-pager" id="users-pager">
+        <span>Page <span class="cc-pager-page" id="users-page-label">1</span></span>
+        <div class="cc-pager-btns">
+          <button type="button" class="btn btn-outline-ink btn-sm" id="users-first" onclick="ccGoPage('users', 1)">&laquo; First</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="users-prev" onclick="ccGoPage('users', 'prev')">&lsaquo; Prev</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="users-next" onclick="ccGoPage('users', 'next')">Next &rsaquo;</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="users-last" onclick="ccGoPage('users', 'last')">Last &raquo;</button>
+        </div>
+      </div>
     </div>
 
     <!-- ===== Learnerships ===== -->
@@ -222,6 +231,15 @@
             {% endfor %}
           </tbody>
         </table>
+      </div>
+      <div class="cc-admin-pager" id="learnerships-pager">
+        <span>Page <span class="cc-pager-page" id="learnerships-page-label">1</span></span>
+        <div class="cc-pager-btns">
+          <button type="button" class="btn btn-outline-ink btn-sm" id="learnerships-first" onclick="ccGoPage('learnerships', 1)">&laquo; First</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="learnerships-prev" onclick="ccGoPage('learnerships', 'prev')">&lsaquo; Prev</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="learnerships-next" onclick="ccGoPage('learnerships', 'next')">Next &rsaquo;</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="learnerships-last" onclick="ccGoPage('learnerships', 'last')">Last &raquo;</button>
+        </div>
       </div>
     </div>
 
@@ -268,6 +286,15 @@
           </tbody>
         </table>
       </div>
+      <div class="cc-admin-pager" id="applications-pager">
+        <span>Page <span class="cc-pager-page" id="applications-page-label">1</span></span>
+        <div class="cc-pager-btns">
+          <button type="button" class="btn btn-outline-ink btn-sm" id="applications-first" onclick="ccGoPage('applications', 1)">&laquo; First</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="applications-prev" onclick="ccGoPage('applications', 'prev')">&lsaquo; Prev</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="applications-next" onclick="ccGoPage('applications', 'next')">Next &rsaquo;</button>
+          <button type="button" class="btn btn-outline-ink btn-sm" id="applications-last" onclick="ccGoPage('applications', 'last')">Last &raquo;</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -303,29 +330,87 @@
     {% endfor %}
   ];
 
-  function searchTable(term, tbodyId, resultsId, label) {
-    var tbody = document.getElementById(tbodyId);
-    var results = document.getElementById(resultsId);
+  var CC_PAGE_SIZE = 25;
+  var ccTableState = {};
+
+  var ccTableConfigs = [
+    { prefix: 'users', tbodyId: 'users-tbody', resultsId: 'users-results', label: 'users' },
+    { prefix: 'learnerships', tbodyId: 'learnerships-tbody', resultsId: 'learnerships-results', label: 'learnerships' },
+    { prefix: 'applications', tbodyId: 'applications-tbody', resultsId: 'applications-results', label: 'applications' },
+  ];
+
+  function ccApplyTable(cfg) {
+    var tbody = document.getElementById(cfg.tbodyId);
+    var results = document.getElementById(cfg.resultsId);
     if (!tbody || !results) return;
-    var rows = tbody.querySelectorAll('tr[data-searchable="true"]');
-    var visible = 0;
-    rows.forEach(function (row) {
-      var matches = row.textContent.toLowerCase().indexOf(term.toLowerCase()) !== -1;
-      row.style.display = (matches || term === '') ? '' : 'none';
-      if (matches || term === '') visible++;
+    var state = ccTableState[cfg.prefix] || (ccTableState[cfg.prefix] = { term: '', page: 1 });
+    var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-searchable="true"]'));
+    var term = state.term.toLowerCase();
+    var matched = term === '' ? allRows : allRows.filter(function (row) {
+      return row.textContent.toLowerCase().indexOf(term) !== -1;
     });
-    results.textContent = term === ''
-      ? 'Showing ' + rows.length + ' ' + label
-      : 'Showing ' + visible + ' of ' + rows.length + ' ' + label;
+
+    var totalPages = Math.max(1, Math.ceil(matched.length / CC_PAGE_SIZE));
+    if (state.page > totalPages) state.page = totalPages;
+    if (state.page < 1) state.page = 1;
+
+    var start = (state.page - 1) * CC_PAGE_SIZE;
+    var end = start + CC_PAGE_SIZE;
+    var pageRows = matched.slice(start, end);
+
+    allRows.forEach(function (row) { row.style.display = 'none'; });
+    pageRows.forEach(function (row) { row.style.display = ''; });
+
+    if (matched.length === 0) {
+      results.textContent = term === '' ? 'No ' + cfg.label + ' yet' : 'No matches in ' + allRows.length + ' ' + cfg.label;
+    } else {
+      results.textContent = 'Showing ' + (start + 1) + '–' + Math.min(end, matched.length) + ' of ' + matched.length +
+        (term === '' ? ' ' + cfg.label : ' ' + cfg.label + ' (filtered from ' + allRows.length + ')');
+    }
+
+    var pageLabel = document.getElementById(cfg.prefix + '-page-label');
+    if (pageLabel) pageLabel.textContent = state.page + ' of ' + totalPages;
+    var pagerEl = document.getElementById(cfg.prefix + '-pager');
+    if (pagerEl) pagerEl.style.display = totalPages <= 1 ? 'none' : 'flex';
+    ['first', 'prev'].forEach(function (id) {
+      var btn = document.getElementById(cfg.prefix + '-' + id);
+      if (btn) btn.disabled = state.page <= 1;
+    });
+    ['next', 'last'].forEach(function (id) {
+      var btn = document.getElementById(cfg.prefix + '-' + id);
+      if (btn) btn.disabled = state.page >= totalPages;
+    });
   }
 
-  [
-    ['users-search', 'users-tbody', 'users-results', 'users'],
-    ['learnerships-search', 'learnerships-tbody', 'learnerships-results', 'learnerships'],
-    ['applications-search', 'applications-tbody', 'applications-results', 'applications'],
-  ].forEach(function (cfg) {
-    var input = document.getElementById(cfg[0]);
-    if (input) input.addEventListener('input', function () { searchTable(this.value, cfg[1], cfg[2], cfg[3]); });
+  function ccConfigFor(prefix) {
+    for (var i = 0; i < ccTableConfigs.length; i++) {
+      if (ccTableConfigs[i].prefix === prefix) return ccTableConfigs[i];
+    }
+    return null;
+  }
+
+  window.ccGoPage = function (prefix, target) {
+    var cfg = ccConfigFor(prefix);
+    if (!cfg) return;
+    var state = ccTableState[prefix] || (ccTableState[prefix] = { term: '', page: 1 });
+    if (target === 'prev') state.page -= 1;
+    else if (target === 'next') state.page += 1;
+    else if (target === 'last') state.page = 999999;
+    else state.page = target;
+    ccApplyTable(cfg);
+  };
+
+  ccTableConfigs.forEach(function (cfg) {
+    ccTableState[cfg.prefix] = { term: '', page: 1 };
+    var input = document.getElementById(cfg.prefix + '-search');
+    if (input) {
+      input.addEventListener('input', function () {
+        ccTableState[cfg.prefix].term = this.value;
+        ccTableState[cfg.prefix].page = 1;
+        ccApplyTable(cfg);
+      });
+    }
+    ccApplyTable(cfg);
   });
 
   // "View all X" links on the overview tab jump to the right Bootstrap tab
