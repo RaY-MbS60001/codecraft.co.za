@@ -149,6 +149,28 @@ def starter_data_latex(user):
     }
 
 
+def _name_tokens(name):
+    name = (name or "").lower()
+    name = re.sub(r"[^a-z\s]", " ", name)
+    return {t for t in name.split() if len(t) > 1}
+
+
+def identity_name_mismatch(cv_full_name, account_full_name):
+    """Fraud-prevention signal for CV Studio: does the name typed into the CV
+    share no resemblance at all with the name on the account paying for it?
+    A learner filling the CV in for themselves -- under a maiden name, a
+    nickname, reordered names, a middle name dropped -- will always share at
+    least one name token with their account, so this only fires when the two
+    names look like genuinely different people. It never blocks saving or
+    generating the CV; callers use it purely to decide whether to stamp the
+    resulting PDF (see latex_engine.stamp_identity_mismatch)."""
+    cv_tokens = _name_tokens(cv_full_name)
+    account_tokens = _name_tokens(account_full_name)
+    if not cv_tokens or not account_tokens:
+        return False
+    return cv_tokens.isdisjoint(account_tokens)
+
+
 def sample_data_latex(show_photo=False):
     """A realistic, deliberately one-page-sized 'John Doe' CV used to render
     real preview thumbnails for the template picker (so a learner sees an

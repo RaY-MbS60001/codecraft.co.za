@@ -1,0 +1,558 @@
+/* CodeCraft v2: mobile-first, Bootstrap 5.3 + a thin layer.
+   Palette comes from the logo: near-black ground, glows in red / blue / amber. */
+:root {
+  --cc-ink: #0b0b0c;
+  --cc-ink-2: #1c1c1f;
+  --cc-wash: #f5f5f2;
+  --cc-line: #e2e2dd;
+  --cc-mute: #67676a;
+  --cc-red: #e0453a;
+  --cc-blue: #2f8fff;
+  --cc-amber: #f29a2e;
+  --cc-green: #16803c;
+  --cc-accent: #1f6fe0; /* user-personalizable -- see Theme panel on the Me page */
+  --cc-serif: "Bitter", Georgia, "Times New Roman", serif;
+  --cc-sans: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --cc-util: "Archivo Narrow", var(--cc-sans);
+  --cc-r: 2px;
+
+  --bs-body-font-family: var(--cc-sans);
+  --bs-body-font-size: 1rem;
+  --bs-body-color: #111113;
+  --bs-body-bg: #fff;
+  --bs-link-color: var(--cc-accent);
+  --bs-link-hover-color: var(--cc-accent);
+  --bs-border-color: var(--cc-line);
+  --bs-border-radius: var(--cc-r);
+  --bs-border-radius-sm: var(--cc-r);
+  --bs-border-radius-lg: var(--cc-r);
+  --bs-border-radius-xl: var(--cc-r);
+  --bs-border-radius-pill: var(--cc-r);
+  --bs-focus-ring-color: color-mix(in srgb, var(--cc-accent) 45%, transparent);
+
+  /* Header/tabbar "nav theme" -- separate from the page's own light body.
+     Default is the original dark header. Toggled to light via the floating
+     switch (nav-theme.js), which sets data-nav-theme="light" on <html> and
+     remembers it in localStorage per viewer. */
+  --cc-header-bg: var(--cc-ink);
+  --cc-header-fg: #fff;
+  --cc-header-letterbox-bg: rgba(255,255,255,.08);
+  --cc-header-letterbox-border: #fff;
+}
+:root[data-nav-theme="light"] {
+  /* The minimarket platform's own light-theme mark colors (same values
+     already used for .cc-footer-logo below, which sits on this app's white
+     body) -- not a new asset, just applying that existing light variant to
+     the header too. */
+  --cc-header-bg: #fff;
+  --cc-header-fg: var(--cc-ink);
+  --cc-header-letterbox-bg: var(--cc-wash);
+  --cc-header-letterbox-border: var(--cc-ink);
+}
+html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+body { overflow-x: hidden; }
+body.has-tabs { padding-bottom: 72px; } /* room for the tab bar */
+@media (min-width: 768px) { body.has-tabs { padding-bottom: 0; } }
+a { text-underline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--cc-accent); outline-offset: 2px; }
+.serif { font-family: var(--cc-serif); }
+.text-mute { color: var(--cc-mute) !important; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* ---------- editorial system: eyebrows, rules, reveal-on-scroll ---------- */
+.cc-eyebrow {
+  /* flex (not inline-flex): a <p class="cc-eyebrow"> must stay block-level so it
+     always starts its own line. inline-flex made the box inline-level, so a
+     "<a>&larr; Back</a>" placed right before it (confirm.html, conversation.html,
+     cv_edit.html, cv_studio_picker.html, premium.html, premium_pay.html) would
+     flow onto the same line and visually collide with it. Inner alignment is
+     identical either way -- only the outer display changes. */
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--cc-util); font-weight: 700; font-size: .75rem;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--cc-mute);
+  margin: 0 0 .5rem;
+}
+.cc-eyebrow::before {
+  content: ""; width: 20px; height: 3px; flex: 0 0 auto;
+  background: linear-gradient(90deg, var(--cc-red), var(--cc-blue), var(--cc-amber));
+}
+.cc-rule { border: 0; border-top: 1px solid var(--cc-line); margin: 0; }
+.cc-rule.strong { border-top: 2px solid var(--cc-ink); }
+
+.rv { opacity: 0; transform: translateY(18px); transition: opacity .6s cubic-bezier(.2,.7,.2,1), transform .6s cubic-bezier(.2,.7,.2,1); }
+.rv.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .rv { opacity: 1; transform: none; transition: none; } }
+
+/* ---------- header ---------- */
+.cc-header { background: var(--cc-header-bg); color: var(--cc-header-fg); border-bottom: 1px solid transparent; position: sticky; top: 0; z-index: 1030; transition: background-color .2s, color .2s, border-color .2s; }
+:root[data-nav-theme="light"] .cc-header { border-bottom-color: var(--cc-line); }
+.cc-header .container { height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.cc-header a { color: var(--cc-header-fg); text-decoration: none; }
+
+/* The real CodeCraftCo mark -- three boxed, glowing letters -- ported
+   verbatim from the Minimarket platform (brand.css / shop_footer.css),
+   not a lookalike. Two variants: the header's is the dark-surface
+   version (white border, white word text); the footer's is the light
+   one (dark ink border and text) since the footer sits on a white
+   page background, same as Minimarket's own shop/light theme. */
+.cc-logo-mark, .cc-footer-logo { display: inline-flex; align-items: center; gap: 3px; text-decoration: none; }
+.cc-logo-mark .word, .cc-footer-logo .word { display: flex; align-items: center; gap: 2px; }
+.cc-logo-mark .letter-box {
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  background: var(--cc-header-letterbox-bg); border: 1.5px solid var(--cc-header-letterbox-border);
+  transition: background-color .2s, border-color .2s;
+}
+.cc-logo-mark .letter-box.red    { box-shadow: 0 0 6px rgba(224,69,58,.8),  0 0 12px rgba(224,69,58,.4); }
+.cc-logo-mark .letter-box.blue   { box-shadow: 0 0 6px rgba(47,143,255,.8), 0 0 12px rgba(47,143,255,.4); }
+.cc-logo-mark .letter-box.orange { box-shadow: 0 0 6px rgba(242,154,46,.8), 0 0 12px rgba(242,154,46,.4); }
+:root[data-nav-theme="light"] .cc-logo-mark .letter-box.red    { box-shadow: 0 0 5px rgba(224,69,58,.55), 0 0 10px rgba(224,69,58,.25); }
+:root[data-nav-theme="light"] .cc-logo-mark .letter-box.blue   { box-shadow: 0 0 5px rgba(47,143,255,.55), 0 0 10px rgba(47,143,255,.25); }
+:root[data-nav-theme="light"] .cc-logo-mark .letter-box.orange { box-shadow: 0 0 5px rgba(242,154,46,.6), 0 0 10px rgba(242,154,46,.3); }
+.cc-logo-mark .letter { font-size: 12px; font-weight: 700; color: var(--cc-header-fg); font-family: Arial, sans-serif; line-height: 1; }
+.cc-logo-mark .word-text { font-size: 13px; color: var(--cc-header-fg); margin-left: 1px; font-weight: 600; line-height: 1; }
+
+.cc-footer-logo .letter-box {
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  background: var(--cc-wash); border: 1.5px solid var(--cc-ink);
+}
+.cc-footer-logo .letter-box.red    { box-shadow: 0 0 6px rgba(224,69,58,.55), 0 0 12px rgba(224,69,58,.25); }
+.cc-footer-logo .letter-box.blue   { box-shadow: 0 0 6px rgba(47,143,255,.55), 0 0 12px rgba(47,143,255,.25); }
+.cc-footer-logo .letter-box.orange { box-shadow: 0 0 6px rgba(242,154,46,.6), 0 0 12px rgba(242,154,46,.3); }
+.cc-footer-logo .letter { font-size: 10px; font-weight: 700; color: var(--cc-ink); font-family: Arial, sans-serif; line-height: 1; }
+.cc-footer-logo .word-text { font-size: 10.5px; color: var(--cc-ink); margin-left: 1px; font-weight: 600; line-height: 1; }
+.cc-header .cc-link { font-size: .9375rem; padding: .5rem .25rem; }
+.cc-header .cc-link:hover { text-decoration: underline; }
+.cc-avatar { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--cc-header-fg); color: var(--cc-header-bg); font-weight: 700; border: 0; }
+.cc-avatar { overflow: hidden; border-radius: 50%; padding: 0; }
+.cc-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* the header's own ".cc-header a { color:#fff }" rule would otherwise bleed
+   into the Bootstrap dropdown menu's links too, since it renders inside the
+   header — leaving every item white-on-white. Scope it back to normal. */
+.cc-header .dropdown-menu { background: #fff; }
+.cc-header .dropdown-menu a,
+.cc-header .dropdown-item,
+.cc-header .dropdown-header { color: var(--bs-body-color, #111113); }
+.cc-header .dropdown-item:hover,
+.cc-header .dropdown-item:focus { background: var(--cc-wash); color: var(--bs-body-color, #111113); }
+
+/* collapsible sidebar (desktop/tablet only — phones use the bottom tab bar) */
+.cc-menu-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+  background: none; color: var(--cc-header-fg); border: 0; padding: 0; }
+.cc-menu-btn svg { width: 22px; height: 22px; }
+.cc-sidebar { --bs-offcanvas-width: 260px; border-right: 2px solid var(--cc-ink); }
+.cc-sidebar .offcanvas-header { border-bottom: 2px solid var(--cc-line); }
+.cc-sidebar .cc-menu-btn { color: var(--cc-ink); }
+.cc-sidebar-nav { display: flex; flex-direction: column; }
+.cc-sidebar-nav a { display: flex; align-items: center; gap: 12px; padding: 14px 20px; color: var(--bs-body-color);
+  text-decoration: none; border-bottom: 1px solid var(--cc-line); font-weight: 600; }
+.cc-sidebar-nav a svg { width: 20px; height: 20px; flex: 0 0 auto; }
+.cc-sidebar-nav a:hover { background: var(--cc-wash); }
+.cc-sidebar-nav a.active { box-shadow: inset 4px 0 0 var(--cc-accent); background: var(--cc-wash); }
+
+/* ---------- buttons ---------- */
+.btn { --bs-btn-border-radius: var(--cc-r); font-weight: 600; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+.btn-sm { min-height: 40px; }
+.btn-ink { --bs-btn-color: #fff; --bs-btn-bg: var(--cc-ink); --bs-btn-border-color: var(--cc-ink);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #2a2a2e; --bs-btn-hover-border-color: #2a2a2e;
+  --bs-btn-active-bg: #000; --bs-btn-active-border-color: #000; --bs-btn-active-color:#fff;
+  --bs-btn-disabled-bg: #8b8b90; --bs-btn-disabled-border-color: #8b8b90; --bs-btn-disabled-color:#fff; }
+.btn-outline-ink { --bs-btn-color: var(--cc-ink); --bs-btn-border-color: var(--cc-ink);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--cc-ink); --bs-btn-hover-border-color: var(--cc-ink);
+  --bs-btn-active-bg: var(--cc-ink); --bs-btn-active-color: #fff; --bs-btn-active-border-color: var(--cc-ink);
+  --bs-btn-disabled-color:#8b8b90; --bs-btn-disabled-border-color:#c9c9cd; }
+.btn-blue { --bs-btn-color: #fff; --bs-btn-bg: var(--cc-accent); --bs-btn-border-color: var(--cc-accent);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: color-mix(in srgb, var(--cc-accent) 82%, black); --bs-btn-hover-border-color: color-mix(in srgb, var(--cc-accent) 82%, black); }
+.btn-add[aria-pressed="true"] { background: var(--cc-ink); color: #fff; border-color: var(--cc-ink); }
+.btn-add .on { display: none; } .btn-add[aria-pressed="true"] .on { display: inline; } .btn-add[aria-pressed="true"] .off { display: none; }
+.btn-google { background:#fff; color:#111; border:2px solid var(--cc-ink); }
+
+/* ---------- hero + search ---------- */
+/* No overflow:hidden here on purpose: the search-suggest dropdown lives
+   inside this section and must be free to drop below it uncropped.
+   Horizontal containment for the decorative art (which sits partly off
+   the right edge) is handled globally on html/body instead. */
+.cc-hero { padding: 24px 0 8px; position: relative; }
+.cc-hero .container { position: relative; z-index: 1; }
+.cc-hero-art { position: absolute; top: -36px; right: -50px; width: 300px; height: 300px; opacity: .9; pointer-events: none; z-index: 0; }
+@media (max-width: 767px) { .cc-hero-art { width: 168px; height: 168px; top: -16px; right: -36px; opacity: .6; } }
+/* Smaller hero-art mount for pages that aren't the homepage -- same motif,
+   tucked into the intro block instead of a full search hero. `.faint`
+   quiets it further so it reads as background texture, not a second
+   graphic competing with the page's real content. */
+.cc-hero-mini { position: relative; }
+.cc-hero-mini .cc-hero-art { width: 220px; height: 220px; top: -28px; right: -28px; }
+.cc-hero-art.faint { opacity: .4; }
+@media (max-width: 767px) { .cc-hero-mini .cc-hero-art { width: 140px; height: 140px; top: -12px; right: -18px; } .cc-hero-art.faint { opacity: .3; } }
+
+/* CV builder promo card -- reads as an ad (mock product + headline + CTA),
+   not a plain link, per Ray's "nice layout, not just a button" ask. */
+.cc-cvad { position: relative; display: flex; gap: 14px; align-items: center; background: #fff; border: 1.5px solid var(--cc-ink); border-radius: var(--cc-r); padding: 14px; margin-bottom: 16px; overflow: hidden; }
+.cc-cvad-close { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(0,0,0,.06); color: var(--cc-mute); font-size: 1.1rem; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; }
+.cc-cvad-close:hover { background: rgba(0,0,0,.12); color: var(--bs-body-color, #111113); }
+.cc-cvad-mock { position: relative; flex: 0 0 92px; width: 92px; height: 120px; border-radius: 10px; overflow: hidden; background: #f4f1ea; border: 1px solid rgba(0,0,0,.08); box-shadow: 0 6px 16px -8px rgba(0,0,0,.35); }
+.cc-cvad-mock img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; opacity: 0; transition: opacity .7s ease; }
+.cc-cvad-mock img.active { opacity: 1; }
+.cc-cvad-body { flex: 1; min-width: 0; }
+.cc-cvad-eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--cc-accent); margin: 0 0 2px; }
+.cc-cvad-title { font-weight: 700; margin: 0 0 3px; line-height: 1.2; }
+.cc-cvad-sub { font-size: .82rem; color: var(--cc-mute); margin: 0 0 10px; }
+.cc-cvad-btn { display: inline-block; }
+.cc-hero h1 { font-family: var(--cc-serif); font-weight: 700; letter-spacing: -.01em; line-height: 1.12; font-size: 1.85rem; margin: 0 0 .5rem; }
+.cc-hero p { color: var(--cc-mute); margin: 0 0 1rem; max-width: 36rem; }
+@media (min-width: 768px) { .cc-hero { padding: 48px 0 16px; } .cc-hero h1 { font-size: 2.75rem; } }
+.cc-search { display: flex; gap: 0; }
+.cc-search input { flex: 1; min-width: 0; height: 52px; border: 2px solid var(--cc-ink); border-right: 0; padding: 0 14px; font-size: 1rem; background:#fff; border-radius: var(--cc-r) 0 0 var(--cc-r); }
+.cc-search input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--cc-accent); }
+.cc-search button { height: 52px; padding: 0 18px; border: 2px solid var(--cc-ink); background: var(--cc-ink); color: #fff; font-weight: 600; border-radius: 0 var(--cc-r) var(--cc-r) 0; }
+
+/* live search-suggest dropdown */
+.cc-search-wrap { position: relative; }
+.cc-suggest {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40;
+  background: #fff; border: 2px solid var(--cc-ink); border-radius: var(--cc-r);
+  max-height: 340px; overflow-y: auto;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+.cc-suggest[hidden] { display: none; }
+.cc-suggest-item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left; border: 0; background: none;
+  padding: 10px 14px; font-size: .95rem; color: var(--bs-body-color);
+  border-bottom: 1px solid var(--cc-line); cursor: pointer;
+}
+.cc-suggest-item:last-child { border-bottom: 0; }
+.cc-suggest-item:hover, .cc-suggest-item.active { background: var(--cc-wash); }
+.cc-suggest-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.cc-suggest-dot.red { background: var(--cc-red); }
+.cc-suggest-dot.blue { background: var(--cc-blue); }
+.cc-suggest-dot.amber { background: var(--cc-amber); }
+.cc-suggest-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-suggest-empty { padding: 12px 14px; color: var(--cc-mute); font-size: .9rem; }
+.cc-filters { display: flex; gap: 8px; overflow-x: auto; padding: 14px 0 2px; scrollbar-width: none; }
+.cc-filters::-webkit-scrollbar { display: none; }
+.cc-pill { white-space: nowrap; border: 1px solid var(--cc-ink); padding: 8px 14px; font-size: .875rem; font-weight: 600; color: var(--cc-ink); text-decoration: none; background: #fff; min-height: 40px; display: inline-flex; align-items: center; border-radius: var(--cc-r); }
+.cc-pill.active { background: var(--cc-ink); color: #fff; }
+
+.cc-intro-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.cc-intro-pill { position: relative; }
+.cc-intro-pill input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.cc-intro-pill span { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 14px; font-size: .875rem; font-weight: 600; color: var(--cc-ink); background: #fff; border: 1px solid var(--cc-line); border-radius: var(--cc-r); transition: background .15s ease, border-color .15s ease, color .15s ease; }
+.cc-intro-pill input:checked + span { background: var(--cc-ink); color: #fff; border-color: var(--cc-ink); }
+.cc-intro-pill input:focus-visible + span { outline: 2px solid var(--cc-blue); outline-offset: 2px; }
+.cc-count { font-size: .875rem; color: var(--cc-mute); padding: 14px 0 8px; }
+
+/* ---------- company rows ---------- */
+.cc-list { border-top: 2px solid var(--cc-ink); }
+.cc-row { display: grid; grid-template-columns: 52px 1fr; gap: 4px 14px; padding: 16px 0; border-bottom: 1px solid var(--cc-line); transition: background .15s ease; }
+.cc-row:hover { background: var(--cc-wash); }
+.cc-row .cc-actions { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 10px; }
+.cc-row .cc-actions .btn:first-child { flex: 1; }
+@media (min-width: 768px) {
+  .cc-row { grid-template-columns: 52px 1fr auto; align-items: center; }
+  .cc-row .cc-actions { grid-column: auto; margin: 0; }
+  .cc-row .cc-actions .btn:first-child { flex: none; min-width: 120px; }
+}
+.cc-name { font-weight: 700; font-size: 1.0625rem; line-height: 1.25; color: inherit; text-decoration: none; display: inline-block; overflow-wrap: anywhere; }
+.cc-name:hover { text-decoration: underline; }
+.cc-meta { font-size: .875rem; color: var(--cc-mute); display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 3px; }
+.cc-meta .good { color: var(--cc-green); font-weight: 600; }
+.cc-desc { font-size: .8125rem; color: var(--cc-mute); margin: 2px 0 0; line-height: 1.4; max-width: 56ch; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+.cc-desc.lg { font-size: .9375rem; -webkit-line-clamp: 3; max-width: 60ch; margin-top: 6px; }
+
+/* The letter tile echoes the boxed letters in the logo. When we can work
+   out the company's own domain from their email address, their real
+   favicon sits on top -- the colored-initial tile stays underneath as
+   the fallback for personal-webmail addresses or a missing/broken icon. */
+.cc-tile { --tone: var(--cc-blue); width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  background: #2a2a2d; color: #fff; font-family: var(--cc-serif); font-size: 1.75rem; line-height: 1; border-radius: var(--cc-r);
+  box-shadow: inset 0 0 0 2px #fff, 0 0 12px 1px var(--tone); position: relative; overflow: hidden; flex: 0 0 auto; }
+.cc-tile.red { --tone: rgba(224,69,58,.85); } .cc-tile.blue { --tone: rgba(47,143,255,.85); } .cc-tile.amber { --tone: rgba(242,154,46,.9); }
+.cc-tile.teal { --tone: rgba(18,181,166,.85); } .cc-tile.violet { --tone: rgba(124,92,252,.85); } .cc-tile.rose { --tone: rgba(240,82,122,.85); }
+.cc-tile.lg { width: 64px; height: 64px; font-size: 2.25rem; }
+.cc-tile.sm { width: 40px; height: 40px; font-size: 1.3rem; }
+.cc-tile img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  background: #fff; padding: 22%; box-sizing: border-box; }
+
+/* ---------- sticky bars ---------- */
+.cc-batch { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1020; background: var(--cc-ink); color: #fff; padding: 10px 0; display: none; }
+.cc-batch.show { display: block; }
+.cc-batch .container { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cc-batch button.link { background: none; border: 0; color: #fff; text-decoration: underline; padding: 8px 4px; }
+.has-tabs .cc-batch { bottom: 56px; }
+@media (min-width: 768px) { .has-tabs .cc-batch { bottom: 0; } }
+.cc-stickycta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1020; background: #fff; border-top: 2px solid var(--cc-ink); padding: 10px 0; }
+.has-tabs .cc-stickycta { bottom: 56px; }
+@media (min-width: 768px) { .cc-stickycta, .has-tabs .cc-stickycta { position: static; border: 0; padding: 0; } }
+body:not(.has-tabs) { padding-bottom: 76px; }
+@media (min-width: 768px) { body:not(.has-tabs) { padding-bottom: 0; } }
+
+.cc-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030; background: #fff; border-top: 2px solid var(--cc-ink);
+  display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom); }
+.cc-tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px;
+  font-size: .75rem; font-weight: 600; color: var(--cc-mute); text-decoration: none; }
+.cc-tabbar a svg { width: 22px; height: 22px; }
+.cc-tabbar a.active { color: var(--cc-ink); box-shadow: inset 0 3px 0 var(--cc-accent); }
+
+/* ---------- floating nav-theme toggle (light/dark header), mobile-first ---------- */
+.cc-theme-toggle {
+  position: fixed; right: 14px; bottom: 14px; z-index: 1040;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cc-ink); color: #fff; border: 2px solid var(--cc-ink);
+  box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  transition: bottom .2s, background-color .2s, color .2s;
+}
+.has-tabs .cc-theme-toggle { bottom: 70px; } /* floats above the bottom tab bar on mobile */
+@media (min-width: 768px) { .has-tabs .cc-theme-toggle { bottom: 14px; } }
+:root[data-nav-theme="light"] .cc-theme-toggle { background: #fff; color: var(--cc-ink); }
+.cc-theme-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cc-theme-toggle .cc-theme-sun { display: none; }
+:root[data-nav-theme="light"] .cc-theme-toggle .cc-theme-sun { display: block; }
+:root[data-nav-theme="light"] .cc-theme-toggle .cc-theme-moon { display: none; }
+@media print { .cc-theme-toggle { display: none !important; } }
+
+/* ---------- sections, chips, comments ---------- */
+.cc-section { padding: 22px 0; border-top: 1px solid var(--cc-line); }
+.cc-section h2 { font-family: var(--cc-serif); font-size: 1.35rem; margin: 0 0 .75rem; }
+.cc-steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.cc-steps li { counter-increment: s; display: grid; grid-template-columns: 32px 1fr; gap: 8px; padding: 6px 0; }
+.cc-steps li::before { content: counter(s); font-family: var(--cc-serif); font-weight: 700; width: 26px; height: 26px; display:flex; align-items:center; justify-content:center; border: 2px solid var(--cc-ink); border-radius: var(--cc-r); }
+.cc-stat { display: grid; grid-template-columns: repeat(4, 1fr); border: 2px solid var(--cc-ink); border-radius: var(--cc-r); overflow: hidden; }
+.cc-stat > div { padding: 12px 8px; text-align: center; border-left: 1px solid var(--cc-line); }
+.cc-stat > div:first-child { border-left: 0; }
+.cc-stat b { display: block; font-family: var(--cc-serif); font-size: 1.6rem; line-height: 1.1; }
+.cc-stat span { font-size: .75rem; color: var(--cc-mute); }
+.cc-chip { display: inline-flex; align-items: center; gap: 6px; font-size: .8125rem; font-weight: 700; padding: 3px 8px; border: 1px solid currentColor; border-radius: var(--cc-r); }
+.cc-chip i { width: 8px; height: 8px; background: currentColor; display: inline-block; }
+.cc-chip.interview, .cc-chip.offer { color: var(--cc-green); }
+.cc-chip.reply { color: #0a53be; }
+.cc-chip.no_reply { color: var(--cc-mute); }
+.cc-chip.verified { color: var(--cc-ink); border-color: var(--cc-line); font-weight: 600; }
+.cc-comment { padding: 14px 0; border-top: 1px solid var(--cc-line); }
+.cc-comment:first-of-type { border-top: 0; }
+.cc-comment p { margin: 6px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+.cc-radio { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cc-radio input { position: absolute; opacity: 0; pointer-events: none; }
+.cc-radio label { border: 2px solid var(--cc-ink); padding: 12px 10px; font-weight: 600; text-align: center; cursor: pointer; min-height: 48px; display:flex; align-items:center; justify-content:center; border-radius: var(--cc-r); }
+.cc-radio input:checked + label { background: var(--cc-ink); color: #fff; }
+.cc-radio input:focus-visible + label { outline: 3px solid var(--cc-accent); outline-offset: 2px; }
+.cc-radio input:disabled + label { border-color: #c9c9cd; color: #9a9aa0; cursor: not-allowed; }
+.form-control, .form-select { width: 100%; max-width: 100%; border: 2px solid var(--cc-ink); min-height: 48px; border-radius: var(--cc-r); }
+.form-control:focus, .form-select:focus { border-color: var(--cc-ink); box-shadow: 0 0 0 3px var(--cc-accent); }
+.form-check-input { border: 2px solid var(--cc-ink); width: 1.35em; height: 1.35em; margin-top: .15em; }
+.form-check-input:checked { background-color: var(--cc-ink); border-color: var(--cc-ink); }
+
+/* ---------- confirm ---------- */
+.cc-box { border: 2px solid var(--cc-ink); padding: 14px; border-radius: var(--cc-r); }
+.cc-doc { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--cc-line); }
+.cc-doc:first-of-type { border-top: 0; }
+
+/* ---------- alerts + footer ---------- */
+.alert { border-radius: var(--cc-r); border-width: 0 0 0 5px; white-space: pre-line; }
+.cc-footer { border-top: 2px solid var(--cc-ink); margin-top: 40px; padding: 28px 0 20px; font-size: .875rem; color: var(--cc-mute); }
+.cc-footer a { color: inherit; text-decoration: none; }
+.cc-footer-grid { display: flex; justify-content: space-between; align-items: center; gap: 56px; flex-wrap: wrap; text-align: center; }
+.cc-footer-brand { display: flex; flex-direction: column; align-items: center; }
+.cc-footer-tagline { margin: 8px auto 0; font-size: .8125rem; color: var(--cc-mute); line-height: 1.5; max-width: 220px; text-align: center; }
+.cc-footer-links { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cc-footer-links a:hover { color: var(--cc-ink); text-decoration: underline; }
+.cc-footer-copy { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cc-line); font-size: .8125rem; text-align: center; }
+@media (max-width: 480px) {
+  .cc-footer-grid { flex-direction: column; gap: 28px; }
+  .cc-footer-links { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 14px; }
+}
+
+/* Installed as a PWA on a phone, the bottom tab bar already carries nav --
+   the full marketing footer is just dead scroll space there. On the plain
+   mobile web (not installed) it stays, same as desktop. */
+@media (display-mode: standalone) and (max-width: 767px),
+       (display-mode: fullscreen) and (max-width: 767px),
+       (display-mode: minimal-ui) and (max-width: 767px) {
+  .cc-footer { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+/* room under content so the fixed bars never cover the last control */
+.cc-spacer { height: 88px; }
+@media (min-width: 768px) { .cc-spacer { display: none; } }
+
+/* ---------- CV builder ---------- */
+.cv-step { border: 2px solid var(--cc-ink); margin-bottom: 12px; padding: 0 14px 14px; background:#fff; border-radius: var(--cc-r); }
+.cv-step > summary { cursor: pointer; font-weight: 700; padding: 14px 0; list-style: none; min-height: 48px; display:flex; align-items:center; }
+.cv-step > summary::-webkit-details-marker { display: none; }
+.cv-step > summary::after { content: "+"; margin-left: auto; font-size: 1.4rem; font-weight: 400; }
+.cv-step[open] > summary::after { content: "\2212"; }
+.cv-block { border-top: 1px solid var(--cc-line); padding: 14px 0; }
+.cv-block:first-child { border-top: 0; padding-top: 0; }
+.form-label { font-weight: 600; font-size: .9rem; margin-bottom: .25rem; }
+
+.cv-sheet { background:#fff; color:#111; border: 2px solid var(--cc-ink); padding: 22px 18px; font-size: .9rem; line-height: 1.45; overflow-wrap: anywhere; max-width: 794px; margin: 0 auto; }
+.cv-sheet h1 { font-size: 1.6rem; margin: 0 0 2px; line-height: 1.15; }
+.cv-sheet h2 { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; margin: 16px 0 5px; }
+.cv-sheet p { margin: 0 0 4px; white-space: pre-line; }
+.cv-sheet .cv-role { margin: 0 0 4px; font-size: 1rem; }
+.cv-sheet .cv-contact { font-size: .8rem; color: #444; }
+.cv-sheet .cv-sub { font-size: .8rem; color: #555; }
+.cv-sheet .cv-item { margin-bottom: 8px; }
+.cv-classic { font-family: var(--cc-serif); }
+.cv-classic .cv-head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 8px; }
+.cv-classic h2 { border-bottom: 1px solid #999; padding-bottom: 2px; }
+.cv-modern h1, .cv-modern .cv-role, .cv-modern h2 { color: #1f6fe0; }
+.cv-minimal { font-size: .85rem; }
+.cv-minimal h1 { font-size: 1.35rem; }
+.cv-minimal h2 { color: #555; font-size: .7rem; }
+.cv-creative { padding-top: 0; }
+.cv-creative .cv-head { background: #0b0b0c; color: #fff; margin: 0 -18px; padding: 18px; }
+.cv-creative .cv-contact { color: #ddd; }
+.cv-creative h2 { color: #e0453a; }
+@media (min-width: 768px) { .cv-sheet { padding: 40px 44px; font-size: .95rem; } .cv-creative .cv-head { margin: 0 -44px; padding: 28px 44px; } }
+@media print {
+  .cc-header, .cc-footer, .cc-tabbar, .cc-batch, .alert { display: none !important; }
+  .cv-sheet { border: 0; padding: 0; }
+  body { padding: 0 !important; }
+}
+
+/* ---------- applications, inbox, menu, plans ---------- */
+.cc-chip.good { color: var(--cc-green); } .cc-chip.blue { color: #0a53be; } .cc-chip.bad { color: #b3261e; } .cc-chip.mute { color: var(--cc-mute); }
+.cc-dup-chip { margin-left: 6px; font-size: .6875rem; padding: 1px 6px; vertical-align: 1px; }
+.cc-app { padding: 16px 0; border-bottom: 1px solid var(--cc-line); }
+.cc-app-top { display: flex; gap: 12px; align-items: flex-start; }
+.cc-app-top .cc-chip { margin-left: auto; white-space: nowrap; }
+.cc-bars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 12px 0 6px; }
+.cc-bars span { height: 6px; background: #dcdcd6; position: relative; }
+.cc-bars span.on { background: var(--cc-ink); }
+.cc-bars span.on.good { background: var(--cc-green); } .cc-bars span.on.blue { background: #1f6fe0; } .cc-bars span.on.bad { background: #b3261e; }
+.cc-bars em { position: absolute; top: 10px; left: 0; font-style: normal; font-size: .6875rem; color: var(--cc-mute); white-space: nowrap; }
+.cc-bars { margin-bottom: 22px; }
+.cc-mail { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--cc-line); color: inherit; text-decoration: none; }
+.cc-mail:hover { background: var(--cc-wash); }
+.cc-mail.unread strong { font-weight: 800; }
+.cc-dot { width: 12px; height: 12px; background: var(--cc-accent); }
+.cc-msg { border: 1px solid var(--cc-line); padding: 12px 14px; margin-bottom: 12px; max-width: 640px; }
+.cc-msg.mine { border-color: var(--cc-ink); margin-left: auto; }
+.cc-msg-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.cc-menu a { display: flex; justify-content: space-between; align-items: center; min-height: 56px; border-top: 1px solid var(--cc-line); color: inherit; text-decoration: none; font-weight: 600; }
+.cc-menu a:last-child { border-bottom: 1px solid var(--cc-line); }
+.cc-menu small { color: var(--cc-mute); font-weight: 400; margin-left: auto; }
+.cc-menu a::after { content: "\203A"; margin-left: 10px; color: var(--cc-mute); font-size: 1.4rem; }
+
+/* ---------- theme panel (Me page) ---------- */
+.cc-swatch-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.cc-swatch { --sw: var(--cc-accent); width: 36px; height: 36px; border-radius: 50%; background: var(--sw);
+  border: 3px solid #fff; box-shadow: 0 0 0 2px var(--cc-line); cursor: pointer; padding: 0; flex: 0 0 auto; }
+.cc-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--sw); }
+.cc-swatch:focus-visible { outline: 3px solid var(--cc-ink); outline-offset: 3px; }
+input[type="color"].cc-color-input { width: 44px; height: 36px; border: 2px solid var(--cc-ink); border-radius: var(--cc-r); padding: 2px; background: #fff; cursor: pointer; }
+.cc-compare { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--cc-ink); }
+.cc-compare > div { padding: 14px; } .cc-compare .best { background: var(--cc-ink); color: #fff; }
+.cc-compare h2 { font-family: var(--cc-serif); font-size: 1.1rem; margin: 0; }
+.cc-compare .price { font-family: var(--cc-serif); font-size: 1.6rem; margin: 4px 0 8px; } .cc-compare .price small { font-size: .8rem; font-family: inherit; }
+.cc-compare ul { padding-left: 1.1rem; margin: 0; font-size: .9rem; }
+.min-w-0 { min-width: 0; }
+
+/* === CV Studio: template carousel ====================================== */
+.cv-carousel { display: flex; align-items: center; gap: 10px; justify-content: center; }
+.cv-frame { width: min(260px, 60vw); aspect-ratio: 703 / 994; border: 2px solid var(--cc-ink); overflow: hidden; background: #fff; touch-action: pan-y; }
+.cv-frame img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.cv-arrow { width: 40px; height: 40px; flex: none; border: 2px solid var(--cc-ink); background: #fff; font-size: 1.4rem; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.cv-arrow:active { background: var(--cc-ink); color: #fff; }
+.cv-picker-controls { display: flex; gap: 8px; max-width: 420px; margin: 14px auto 0; }
+.cv-picker-controls input { flex: 1; }
+.cv-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.cv-dots .cv-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--cc-ink); background: #fff; padding: 0; }
+.cv-dots .cv-dot.active { background: var(--cc-ink); }
+
+/* === CV Studio: editor + live preview =================================== */
+.cv-studio-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 992px) { .cv-studio-layout { grid-template-columns: 1fr 420px; align-items: start; } }
+.cv-preview-pane { position: static; border: 2px solid var(--cc-ink); background: var(--cc-wash); padding: 10px; text-align: center; }
+@media (min-width: 992px) { .cv-preview-pane { position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow: auto; } }
+.cv-preview-page { width: 100%; display: block; margin-bottom: 8px; box-shadow: 0 1px 6px rgba(0,0,0,.15); }
+.cv-preview-status { min-height: 1.1em; font-size: .78rem; color: var(--cc-mute); }
+.cv-block { border: 1px solid var(--cc-line); padding: 12px; margin-bottom: 10px; position: relative; }
+.cv-block [data-cv-remove] { position: absolute; top: 8px; right: 8px; border: 0; background: none; color: var(--cc-mute); font-size: 1rem; line-height: 1; }
+.cv-accent-row { display: flex; gap: 8px; }
+.cv-accent-row button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; }
+.cv-accent-row button.active { border-color: var(--cc-ink); }
+.cv-icon-select { max-width: 200px; }
+.cv-photo-box { display: flex; align-items: center; gap: 12px; }
+.cv-photo-box img { width: 64px; height: 64px; object-fit: cover; border-radius: 50%; border: 2px solid var(--cc-ink); }
+
+/* ---------- application analytics (pie / bar / weekly line) ---------- */
+.cc-pie-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+@media (min-width: 576px) { .cc-pie-wrap { flex-direction: row; align-items: center; justify-content: center; gap: 28px; } }
+.cc-pie-svg { width: 100%; max-width: 220px; height: auto; flex: 0 0 auto; }
+.cc-pie-legend { width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 6px; }
+.cc-pie-legend-item { display: flex; align-items: center; gap: 8px; font-size: .875rem; }
+.cc-pie-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.cc-pie-legend-label { flex: 1 1 auto; }
+.cc-pie-legend-val { font-weight: 700; }
+
+.cc-chart-frame { border: 2px solid var(--cc-ink); border-radius: var(--cc-r); padding: 16px 12px; }
+.cc-bar-wrap { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; height: 220px; }
+.cc-bar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1 1 0; min-width: 0; height: 100%; }
+.cc-barcol { width: 100%; max-width: 40px; border-radius: var(--cc-r) var(--cc-r) 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 4px; }
+.cc-barcol-zero { background: transparent; border: 2px dashed; }
+.cc-barval { font-size: .75rem; font-weight: 700; color: #fff; margin-top: 2px; }
+.cc-barcol-zero .cc-barval { margin-top: 0; }
+.cc-barlabel { font-size: .6875rem; color: var(--cc-mute); margin-top: 8px; text-align: center; overflow-wrap: anywhere; }
+
+.cc-line-frame { overflow: hidden; }
+.cc-line-svg { width: 100%; height: auto; display: block; }
+
+/* ---------- numbered pagination (prev/next arrows + page numbers) ---------- */
+/* Always a single row -- never wraps/overlaps. The window is kept tight
+   (see iter_pages() in home.html) so it normally fits without scrolling;
+   overflow-x is the safety net for narrow phones or very deep pagination. */
+.cc-pagenums {
+  display: flex; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 6px; padding: 0 2px 28px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.cc-pagenums::-webkit-scrollbar { display: none; }
+@media (min-width: 576px) { .cc-pagenums { overflow-x: visible; } }
+.cc-pagenum {
+  min-width: 32px; height: 32px; padding: 0 4px; display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 auto; border: 1.5px solid var(--cc-line); border-radius: var(--cc-r); font-weight: 600; font-size: .8125rem;
+  text-decoration: none; color: var(--bs-body-color, #111113); font-variant-numeric: tabular-nums;
+}
+.cc-pagenum:hover { border-color: var(--cc-ink); text-decoration: none; color: var(--bs-body-color, #111113); }
+.cc-pagenum.active { background: var(--cc-ink); border-color: var(--cc-ink); color: #fff; }
+.cc-pagenum.ellipsis { border-color: transparent; color: var(--cc-mute); cursor: default; }
+.cc-pagenum-arrow.disabled { opacity: .35; pointer-events: none; }
+
+
+/* Company preview popup -- centered modal, loaded on demand. */
+.cc-modal { position: fixed; inset: 0; z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.cc-modal[hidden] { display: none; }
+.cc-modal-backdrop { position: absolute; inset: 0; background: rgba(10,10,12,.55); }
+.cc-modal-panel { position: relative; background: #fff; border: 1.5px solid var(--cc-ink); border-radius: var(--cc-r); width: 100%; max-width: 440px; max-height: 86vh; overflow-y: auto; padding: 20px; z-index: 1; animation: cc-modal-in .18s ease; }
+@keyframes cc-modal-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+.cc-modal-x { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(0,0,0,.06); font-size: 1.3rem; line-height: 1; cursor: pointer; z-index: 2; }
+.cc-modal-x:hover { background: rgba(0,0,0,.12); }
+.cc-modal-loading { padding: 40px 0; text-align: center; color: var(--cc-mute); }
+.cc-cpv-cover { margin: -20px -20px 14px; border-radius: var(--cc-r) var(--cc-r) 0 0; overflow: hidden; max-height: 140px; }
+.cc-cpv-cover img { width: 100%; height: 140px; object-fit: cover; display: block; }
+.cc-cpv-head { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 10px; }
+.cc-cpv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.cc-tile-btn { background: none; border: none; padding: 0; cursor: pointer; }
+
+/* Non-identifying reporter avatar on public company-page replies -- an
+   initial in one of our brand colors, never a real photo (see
+   reporter_avatar() in public_routes.py for why). */
+.cc-ravatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-size: .78rem; font-weight: 700; color: #fff; background: var(--tone); flex: 0 0 auto; }
+.cc-ravatar.red { --tone: #e0453a; } .cc-ravatar.blue { --tone: #2f8fff; } .cc-ravatar.amber { --tone: #f29a2e; }
+.cc-ravatar.teal { --tone: #12b5a6; } .cc-ravatar.violet { --tone: #7c5cfc; } .cc-ravatar.rose { --tone: #f0527a; }
+
+/* One random promo toast per login session (see base.html / before_request
+   in app.py). Floats bottom-left, clear of the theme toggle (bottom-right)
+   and the mobile tab bar. */
+.cc-sessionad { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 1030;
+  background: #fff; border: 1.5px solid var(--cc-ink); border-radius: var(--cc-r);
+  padding: 14px 40px 14px 14px; max-width: 360px; box-shadow: 0 10px 24px -8px rgba(0,0,0,.3);
+  animation: cc-modal-in .25s ease; }
+.has-tabs .cc-sessionad { bottom: 72px; }
+@media (min-width: 576px) { .cc-sessionad { left: 16px; right: auto; } }

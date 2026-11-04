@@ -1,0 +1,47 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import hero_art %}
+{% block title %}Subscription payments | Admin{% endblock %}
+{% block content %}
+<div class="container pt-3">
+  <div class="cc-hero-mini">{{ hero_art('orbit', faint=True) }}
+  <p class="cc-eyebrow">Admin</p>
+  <h1 class="serif h2 mt-2">Subscription payments</h1>
+  <p class="text-mute small">Manual EFT/PayShap claims against {{ pay.account_number }} ({{ pay.account_name }}). Check the amount and reference against your Capitec statement before approving.</p>
+  </div>
+
+  <h2 class="h5 mt-4">Waiting on you ({{ pending|length }})</h2>
+  {% if not pending %}<p class="text-mute small">Nothing waiting.</p>{% endif %}
+  {% for s in pending %}
+  <div class="cc-box mb-3">
+    <div class="d-flex justify-content-between">
+      <div>
+        <p class="fw-bold mb-0">{{ s.user.email }}</p>
+        <p class="small text-mute mb-1">Ref {{ s.reference }} &middot; R{{ '%.2f'|format(s.amount_cents/100) }} &middot; requested {{ s.created_at.strftime('%d %b %Y') }}</p>
+        {% if s.note %}<p class="small mb-1">Note: {{ s.note }}</p>{% endif %}
+      </div>
+      <span class="badge {{ 'text-bg-success' if s.status == 'proof_uploaded' else 'text-bg-secondary' }} align-self-start">{{ 'Proof uploaded' if s.status == 'proof_uploaded' else 'Awaiting proof' }}</span>
+    </div>
+    {% if s.proof_filename %}
+    <p class="small mt-2 mb-2"><a href="{{ url_for('document_center') }}" title="Proof file saved on the server">Proof: {{ s.proof_filename }}</a></p>
+    {% endif %}
+    <div class="d-flex gap-2 mt-2">
+      <form method="post" action="{{ url_for('premium.admin_subscription_approve', sub_id=s.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-ink btn-sm" type="submit" {{ 'disabled' if s.status != 'proof_uploaded' }}>Approve &amp; activate</button>
+      </form>
+      <form method="post" action="{{ url_for('premium.admin_subscription_reject', sub_id=s.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="reason" value="Not matched on statement">
+        <button class="btn btn-outline-secondary btn-sm" type="submit">Reject</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+
+  <h2 class="h5 mt-4">Recent decisions</h2>
+  {% for s in recent %}
+  <p class="small mb-1">{{ s.user.email }} — {{ s.reference }} — <strong>{{ s.status }}</strong>
+    {% if s.reviewed_at %}({{ s.reviewed_at.strftime('%d %b') }}){% endif %}</p>
+  {% endfor %}
+</div>
+{% endblock %}
