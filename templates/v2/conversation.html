@@ -4,7 +4,7 @@
 {% block content %}
 {% set company = conversation.application.company_name if conversation.application else 'Company' %}
 <div class="container pt-3">
-  <div class="cc-hero-mini">{{ hero_art('orbit', faint=True) }}
+  <div class="cc-hero-mini">{{ hero_art('orbit') }}
   <a class="small" href="{{ url_for('user_inbox') }}">&larr; Inbox</a>
   <p class="cc-eyebrow">{{ company }}</p>
   </div>

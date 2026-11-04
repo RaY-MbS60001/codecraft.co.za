@@ -1,0 +1,122 @@
+{# A promo card for the CV builder -- not just a button. Built like a small
+   ad: a stylized mock of the builder itself (so it looks like "the product"
+   rather than a plain link), a free-trial line, and a note that CV building
+   sits outside the application-sending package. `cta_label`/`cta_url` let a
+   caller point it somewhere else if this card ends up placed on more than
+   one page later. #}
+{% macro cv_builder_ad(cta_label=None, cta_url=None, has_cv=False) -%}
+<div class="cc-cvad" data-cc-ad>
+  <button type="button" class="cc-cvad-close" data-cc-ad-close aria-label="Close">&times;</button>
+  <div class="cc-cvad-mock" aria-hidden="true" data-cc-cvad-slides>
+    <img src="{{ url_for('static', filename='v2/cv-thumbs/bold_band.jpg') }}" alt="" class="active">
+    <img src="{{ url_for('static', filename='v2/cv-thumbs/minimal_serif.jpg') }}" alt="">
+    <img src="{{ url_for('static', filename='v2/cv-thumbs/sidebar_pro.jpg') }}" alt="">
+  </div>
+  <div class="cc-cvad-body">
+    <p class="cc-cvad-eyebrow">{{ 'Keep it current' if has_cv else 'Free trial' }}</p>
+    <p class="cc-cvad-title">{{ 'Touch up your CV' if has_cv else 'Build a CV that actually gets read' }}</p>
+    <p class="cc-cvad-sub">{{ 'Update it in a few minutes -- every application after that goes out with the new version.' if has_cv else 'Try the builder free. It runs on its own, separate from your application sending -- no limit there either way.' }}</p>
+    <a class="btn btn-ink btn-sm cc-cvad-btn" href="{{ cta_url or url_for('learner.cv_edit') }}">{{ cta_label or ('Open CV builder' if has_cv else 'Try it free') }}</a>
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro tile(c, tone, size='') -%}
+{%- set blocked = c.info.logo_blocked if c.info else False -%}
+<span class="cc-tile {{ tone }} {{ size }}" aria-hidden="true">
+{%- if c.logo_r2_url -%}
+<img src="{{ c.logo_r2_url }}" alt="" loading="lazy" onerror="this.remove()">
+{%- elif not blocked -%}
+  {%- set domain = company_logo_domain(c) -%}
+  {%- if domain -%}
+  <img src="https://www.google.com/s2/favicons?sz=64&domain={{ domain }}" alt="" loading="lazy" onerror="this.remove()">
+  {%- endif -%}
+{%- endif -%}
+{{ (c.company_name or '?')[:1]|upper }}</span>
+{%- endmacro %}
+
+{% macro icon(name) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true">
+{% if name == 'find' %}<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+{% elif name == 'applied' %}<path d="M9 11l3 3 8-8"/><path d="M20 12v7H4V5h11"/>
+{% elif name == 'inbox' %}<rect x="3" y="5" width="18" height="14"/><path d="M3 7l9 6 9-6"/>
+{% elif name == 'me' %}<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+{% elif name == 'menu' %}<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+{% elif name == 'close' %}<path d="M5 5l14 14"/><path d="M19 5L5 19"/>
+{% elif name == 'chart' %}<path d="M3 20h18"/><rect x="6" y="11" width="3" height="9"/><rect x="11" y="6" width="3" height="14"/><rect x="16" y="14" width="3" height="6"/>{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro plural(n, one, many) -%}{{ one if n == 1 else many }}{%- endmacro %}
+
+{# A bespoke decorative mark built from the brand's own three glowing boxes --
+   no stock art, no photography, just the logo's own geometry blown up and
+   scattered. Used as a quiet corner flourish behind hero sections. #}
+{# The brand motif from the homepage hero -- three rotated, translucent
+   squares in the logo's own red/blue/amber, plus a small accent mark.
+   `variant` picks a different arrangement so every page that uses it feels
+   relevant to what that page is about rather than a copy-pasted sticker:
+     default -- cascading squares + a check-ish squiggle (homepage: "go")
+     rise    -- squares stepping upward like bars + a dot climbing them (analytics: "progress")
+     drift   -- two calmer, more spread-out squares + a paper-plane-ish mark (confirm/send: "sending")
+     orbit   -- a ring with squares orbiting it (profile/account pages: "you, centered")
+   `faint` drops it to a quiet watermark (lower opacity, no outline strokes)
+   for pages where the content should lead and this should just texture the
+   background behind it. #}
+{% macro hero_art(variant='default', faint=False) -%}
+{% set stroke_w = '0' if faint else '2.5' %}
+{% set fill_op = '.24' if faint else None %}
+<svg class="cc-hero-art {{ 'faint' if faint }}" viewBox="0 0 300 300" fill="none" aria-hidden="true">
+  {% if variant == 'rise' %}
+  <g opacity="{{ '.72' if faint else '.92' }}">
+    <rect x="48" y="186" width="80" height="80" rx="12" transform="rotate(-6 88 226)" fill="var(--cc-amber)" opacity="{{ fill_op or '.18' }}"/>
+    {% if not faint %}<rect x="48" y="186" width="80" height="80" rx="12" transform="rotate(-6 88 226)" stroke="var(--cc-amber)" stroke-width="{{ stroke_w }}"/>{% endif %}
+    <rect x="112" y="120" width="98" height="98" rx="13" transform="rotate(5 161 169)" fill="var(--cc-blue)" opacity="{{ fill_op or '.14' }}"/>
+    {% if not faint %}<rect x="112" y="120" width="98" height="98" rx="13" transform="rotate(5 161 169)" stroke="var(--cc-blue)" stroke-width="{{ stroke_w }}"/>{% endif %}
+    <rect x="176" y="40" width="118" height="118" rx="14" transform="rotate(-8 235 99)" fill="var(--cc-red)" opacity="{{ fill_op or '.16' }}"/>
+    {% if not faint %}<rect x="176" y="40" width="118" height="118" rx="14" transform="rotate(-8 235 99)" stroke="var(--cc-red)" stroke-width="{{ stroke_w }}"/>{% endif %}
+  </g>
+  {% if not faint %}
+  <circle cx="90" cy="150" r="5" fill="var(--cc-green, #16803c)"/>
+  <path d="M74 150l10-26 10 14 10-30" stroke="var(--cc-green, #16803c)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>
+  {% endif %}
+
+  {% elif variant == 'drift' %}
+  <g opacity="{{ '.7' if faint else '.9' }}">
+    <rect x="86" y="54" width="130" height="130" rx="16" transform="rotate(-7 151 119)" fill="var(--cc-blue)" opacity="{{ fill_op or '.13' }}"/>
+    {% if not faint %}<rect x="86" y="54" width="130" height="130" rx="16" transform="rotate(-7 151 119)" stroke="var(--cc-blue)" stroke-width="{{ stroke_w }}"/>{% endif %}
+    <rect x="150" y="128" width="88" height="88" rx="13" transform="rotate(10 194 172)" fill="var(--cc-amber)" opacity="{{ fill_op or '.16' }}"/>
+    {% if not faint %}<rect x="150" y="128" width="88" height="88" rx="13" transform="rotate(10 194 172)" stroke="var(--cc-amber)" stroke-width="{{ stroke_w }}"/>{% endif %}
+  </g>
+  {% if not faint %}
+  <circle cx="64" cy="100" r="5" fill="var(--cc-red)"/>
+  <path d="M210 210l34 10-10 10 10 10-34-8z" fill="none" stroke="var(--cc-red)" stroke-width="2.5" stroke-linejoin="round" opacity=".8"/>
+  {% endif %}
+
+  {% elif variant == 'orbit' %}
+  <circle cx="150" cy="150" r="88" fill="none" stroke="var(--cc-ink)" stroke-width="{{ '0' if faint else '1.5' }}" opacity="{{ '0' if faint else '.18' }}"/>
+  <g opacity="{{ '.7' if faint else '.92' }}">
+    <rect x="166" y="24" width="86" height="86" rx="13" transform="rotate(-10 209 67)" fill="var(--cc-red)" opacity="{{ fill_op or '.17' }}"/>
+    {% if not faint %}<rect x="166" y="24" width="86" height="86" rx="13" transform="rotate(-10 209 67)" stroke="var(--cc-red)" stroke-width="{{ stroke_w }}"/>{% endif %}
+    <rect x="16" y="176" width="86" height="86" rx="13" transform="rotate(8 59 219)" fill="var(--cc-blue)" opacity="{{ fill_op or '.15' }}"/>
+    {% if not faint %}<rect x="16" y="176" width="86" height="86" rx="13" transform="rotate(8 59 219)" stroke="var(--cc-blue)" stroke-width="{{ stroke_w }}"/>{% endif %}
+  </g>
+  {% if not faint %}<circle cx="150" cy="150" r="5" fill="var(--cc-amber)"/>{% endif %}
+
+  {% else %}
+  <g opacity="{{ '.72' if faint else '.92' }}">
+    <rect x="70" y="36" width="118" height="118" rx="14" transform="rotate(-10 129 95)" fill="var(--cc-red)" opacity="{{ fill_op or '.16' }}"/>
+    {% if not faint %}<rect x="70" y="36" width="118" height="118" rx="14" transform="rotate(-10 129 95)" stroke="var(--cc-red)" stroke-width="{{ stroke_w }}"/>{% endif %}
+    <rect x="118" y="92" width="118" height="118" rx="14" transform="rotate(8 177 151)" fill="var(--cc-blue)" opacity="{{ fill_op or '.14' }}"/>
+    {% if not faint %}<rect x="118" y="92" width="118" height="118" rx="14" transform="rotate(8 177 151)" stroke="var(--cc-blue)" stroke-width="{{ stroke_w }}"/>{% endif %}
+    <rect x="60" y="128" width="96" height="96" rx="14" transform="rotate(-6 108 176)" fill="var(--cc-amber)" opacity="{{ fill_op or '.18' }}"/>
+    {% if not faint %}<rect x="60" y="128" width="96" height="96" rx="14" transform="rotate(-6 108 176)" stroke="var(--cc-amber)" stroke-width="{{ stroke_w }}"/>{% endif %}
+  </g>
+  {% if not faint %}
+  <circle cx="246" cy="60" r="5" fill="var(--cc-blue)"/>
+  <circle cx="40" cy="238" r="5" fill="var(--cc-red)"/>
+  <path d="M220 230l10 10-10 10M234 236l-10 20" stroke="var(--cc-amber)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>
+  {% endif %}
+  {% endif %}
+</svg>
+{%- endmacro %}

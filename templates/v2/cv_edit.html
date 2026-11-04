@@ -27,7 +27,7 @@
 
 {% block content %}
 <div class="container pt-3">
-  <div class="cc-hero-mini">{{ hero_art('default', faint=True) }}
+  <div class="cc-hero-mini">{{ hero_art('default') }}
   <a class="small" href="{{ url_for('index') }}">&larr; Back to companies</a>
   <p class="cc-eyebrow">CV builder</p>
   <h1 class="serif h2 mt-2">{{ 'Your CV' if saved else 'Build your CV' }}</h1>

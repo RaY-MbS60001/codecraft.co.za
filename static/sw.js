@@ -5,7 +5,7 @@
    fallback page so a flaky mobile connection doesn't show the browser's
    blank error screen. Never caches POSTs, auth/session-bearing redirects,
    or anything outside our own origin. */
-const CACHE_NAME = "cc-static-v30";
+const CACHE_NAME = "cc-static-v31";
 const OFFLINE_URL = "/static/offline.html";
 const PRECACHE = [
   "/static/v2/app.css",

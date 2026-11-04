@@ -1,0 +1,25 @@
+{% extends "v2/base.html" %}
+{% block title %}Sign in | CodeCraft Co{% endblock %}
+{% from "v2/_macros.html" import hero_art %}
+{% block content %}
+<div class="container pt-4" style="max-width:480px">
+  <div class="cc-hero-mini">
+    {{ hero_art('drift') }}
+    <p class="cc-eyebrow">Welcome back</p>
+    <h1 class="serif h2 mb-2">Sign in</h1>
+    <p class="text-mute">Learners sign in with Google. We send applications from your own Gmail.</p>
+  </div>
+  <a class="btn btn-google w-100" href="{{ url_for('public.signin', next=request.args.get('next')) if request.args.get('next') else url_for('public.signin') }}">
+    <img src="{{ url_for('static', filename='images/google-icon.svg') }}" alt="" width="20" height="20"> Continue with Google
+  </a>
+  <details class="mt-4 cv-step">
+    <summary>Company or admin? Sign in with email</summary>
+    <form method="post" action="{{ url_for('login', next=request.args.get('next')) if request.args.get('next') else url_for('login') }}" class="pt-2">
+      <div class="mb-3"><label class="form-label" for="email">Email</label><input class="form-control" id="email" name="email" type="email" autocomplete="username" required></div>
+      <div class="mb-3"><label class="form-label" for="password">Password</label><input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-ink w-100" type="submit">Sign in</button>
+    </form>
+  </details>
+  <p class="small text-mute mt-4">By signing in you agree to our <a href="{{ url_for('terms_of_service') }}">Terms</a> and <a href="{{ url_for('privacy_policy') }}">Privacy policy</a>.</p>
+</div>
+{% endblock %}

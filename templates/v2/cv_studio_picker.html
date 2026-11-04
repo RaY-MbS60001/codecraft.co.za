@@ -1,0 +1,58 @@
+{% extends "v2/base.html" %}
+{% block title %}Pick a CV template | CodeCraft Co{% endblock %}
+{% from "v2/_macros.html" import hero_art %}
+{% block content %}
+<div class="container pt-3 cv-picker" data-cv-picker
+     data-base="{{ url_for('static', filename='v2/cv-thumbs/') }}"
+     data-use-url="{{ url_for('cv_studio.cv_studio_use', template_id='__ID__') }}">
+  <div class="cc-hero-mini">
+    {{ hero_art('drift') }}
+    <a class="small" href="{{ url_for('document_center') }}">&larr; My documents</a>
+    <p class="cc-eyebrow">CV builder</p>
+    <h1 class="serif h2 mt-2 mb-1">Pick a CV template</h1>
+    <p class="text-mute small mb-3">Swipe or use the arrows to flip through. Everything's built from LaTeX, so it comes out looking sharp as a PDF.</p>
+  </div>
+
+  {% if not pdflatex_available %}
+  <div class="alert alert-warning small">Heads up: this server can't generate LaTeX PDFs right now. You can still build your CV — downloads will use the simpler classic layout until that's fixed.</div>
+  {% endif %}
+
+  <div class="cv-carousel">
+    <button type="button" class="cv-arrow cv-arrow-left" data-cv-prev aria-label="Previous template">&#8249;</button>
+    <div class="cv-frame">
+      <img data-cv-thumb src="" alt="" width="703" height="994" loading="eager">
+    </div>
+    <button type="button" class="cv-arrow cv-arrow-right" data-cv-next aria-label="Next template">&#8250;</button>
+  </div>
+
+  <div class="text-center mt-2">
+    <p class="fw-bold mb-0" data-cv-name></p>
+    <p class="small text-mute" data-cv-blurb></p>
+  </div>
+
+  <div class="cv-picker-controls">
+    <input type="text" class="form-control" list="cv-template-names" placeholder="Type a template name…" data-cv-type aria-label="Find a template by name">
+    <datalist id="cv-template-names">
+      {% for it in items %}<option value="{{ it.name }}">{% endfor %}
+    </datalist>
+    <a class="btn btn-ink" data-cv-select href="#">Select this template</a>
+  </div>
+
+  <div class="cv-dots" role="tablist" aria-label="Templates">
+    {% for it in items %}
+    <button type="button" class="cv-dot" data-cv-dot="{{ it.id }}" aria-label="{{ it.name }}"></button>
+    {% endfor %}
+  </div>
+</div>
+
+<script id="cv-templates-data" type="application/json">
+{{ items|map(attribute='id')|list|tojson }}
+</script>
+{% endblock %}
+{% block scripts %}
+<script>
+window.CV_TEMPLATES = {{ items|tojson }};
+window.CV_CURRENT = {{ current|tojson }};
+</script>
+<script src="{{ url_for('static', filename='v2/cv-studio.js') }}" defer></script>
+{% endblock %}

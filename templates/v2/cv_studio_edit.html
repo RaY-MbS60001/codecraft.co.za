@@ -3,7 +3,7 @@
 {% block title %}Build your CV | CodeCraft Co{% endblock %}
 {% block content %}
 <div class="container pt-3" data-cv-editor data-preview-url="{{ url_for('cv_studio.cv_studio_preview') }}">
-  <div class="cc-hero-mini">{{ hero_art('drift', faint=True) }}
+  <div class="cc-hero-mini">{{ hero_art('drift') }}
   <div class="d-flex justify-content-between align-items-center mb-2">
     <a class="small" href="{{ url_for('cv_studio.cv_studio_picker') }}">&larr; Change template</a>
     <span class="small text-mute">{{ meta.name }}</span>

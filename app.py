@@ -21,7 +21,7 @@ from urllib.parse import quote_plus
 # Flask imports
 from flask import (
     Flask, render_template, redirect, url_for, flash, request,
-    jsonify, session, send_file, g, jsonify
+    jsonify, session, send_file, g, current_app
 )
 from flask_login import (
     LoginManager, login_user, logout_user, login_required, current_user

@@ -184,8 +184,8 @@ a { text-underline-offset: 2px; }
    graphic competing with the page's real content. */
 .cc-hero-mini { position: relative; }
 .cc-hero-mini .cc-hero-art { width: 220px; height: 220px; top: -28px; right: -28px; }
-.cc-hero-art.faint { opacity: .4; }
-@media (max-width: 767px) { .cc-hero-mini .cc-hero-art { width: 140px; height: 140px; top: -12px; right: -18px; } .cc-hero-art.faint { opacity: .3; } }
+.cc-hero-art.faint { opacity: .85; }
+@media (max-width: 767px) { .cc-hero-mini .cc-hero-art { width: 140px; height: 140px; top: -12px; right: -18px; } .cc-hero-art.faint { opacity: .7; } }
 
 /* CV builder promo card -- reads as an ad (mock product + headline + CTA),
    not a plain link, per Ray's "nice layout, not just a button" ask. */

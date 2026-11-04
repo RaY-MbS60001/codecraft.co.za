@@ -1,0 +1,41 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import plural, hero_art %}
+{% block title %}Inbox | CodeCraft Co{% endblock %}
+{% block content %}
+<div class="container pt-3">
+  <div class="cc-hero-mini d-flex align-items-start justify-content-between gap-3">
+    {{ hero_art('orbit') }}
+    <div>
+      <p class="cc-eyebrow">Your replies</p>
+      <h1 class="serif h2 mb-1">Inbox</h1>
+      <p class="text-mute mb-0">{% if unread_count %}{{ unread_count }} unread{% else %}Replies from companies{% endif %}</p>
+    </div>
+    <button class="btn btn-outline-ink btn-sm" type="button" data-sync="{{ url_for('user_inbox_sync') }}">Check for replies</button>
+  </div>
+
+  <div class="cc-list mt-3">
+    {% for c in conversations %}
+    {% set last = (c.messages|sort(attribute='gmail_timestamp')|last) %}
+    {% set unread = c.applicant_unread_count %}
+    <a class="cc-mail rv {{ 'unread' if unread }}" href="{{ url_for('user_conversation', conversation_id=c.id) }}">
+      <div class="cc-tile {{ tone(c.id) }}" style="width:44px;height:44px;font-size:1.4rem" aria-hidden="true">{{ ((c.application.company_name if c.application else 'Company') or 'C')[:1]|upper }}</div>
+      <div class="min-w-0">
+        <div class="d-flex gap-2 align-items-baseline">
+          <strong class="text-truncate">{{ c.application.company_name if c.application else 'Company' }}</strong>
+          <span class="small text-mute ms-auto text-nowrap">{{ c.last_message_at|ago }}</span>
+        </div>
+        <div class="text-truncate small">{{ c.subject }}</div>
+        {% if last %}<div class="text-truncate small text-mute">{{ (last.body or '')|replace('\n',' ')|truncate(110) }}</div>{% endif %}
+      </div>
+      {% if unread %}<span class="cc-dot" aria-label="{{ unread }} unread"></span>{% endif %}
+    </a>
+    {% else %}
+    <div class="py-5 text-center">
+      <p class="serif h4 mb-2">No replies yet.</p>
+      <p class="text-mute mb-3">Companies usually answer within a few weeks. When they do, it shows up here. Tap Check for replies to look now.</p>
+      <a class="btn btn-outline-ink" href="{{ url_for('my_applications') }}">See my applications</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

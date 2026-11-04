@@ -1,0 +1,147 @@
+{% extends "v2/base.html" %}
+{% from "v2/_macros.html" import tile, plural, hero_art %}
+{% block title %}Review and send | CodeCraft Co{% endblock %}
+
+{% block content %}
+{% set n = companies|length %}
+<div class="container pt-3" data-clear-basket>
+  <div class="cc-hero-mini">
+    {{ hero_art('drift') }}
+    <a class="small" href="{{ url_for('index') }}">&larr; Add more companies</a>
+    <p class="cc-eyebrow">Almost there</p>
+    <h1 class="serif h2 mt-2">Review and send</h1>
+    <p class="text-mute">Sent from your Gmail, <strong>{{ current_user.email }}</strong>. Nothing goes out until you press Send.</p>
+  </div>
+
+  <!-- The real send form. Fields elsewhere on the page join it with form="sendform". -->
+  <form id="sendform" method="post" action="{{ url_for('apply_bulk_email') }}" data-once>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="v2" value="1">
+    {% for c in companies %}<input type="hidden" name="selected_emails" value="{{ c.id }}">{% endfor %}
+  </form>
+
+  <section class="cc-section rv" id="companies">
+    <p class="cc-eyebrow">Your batch</p>
+    <h2>{{ n }} {{ plural(n, 'company', 'companies') }}</h2>
+    {% for c in companies %}
+    {% set ap = applied.get(c.id) %}
+    <div class="d-flex align-items-center gap-3 py-2" style="border-top:1px solid var(--cc-line)">
+      {{ tile(c, tone(c), 'sm') }}
+      <div class="flex-grow-1 min-w-0">
+        <div class="fw-bold" style="overflow-wrap:anywhere">{{ c.company_name }}
+          {% if dup_labels.get(c.id) %}<span class="cc-chip mute cc-dup-chip">{{ dup_labels[c.id] }}</span>{% endif %}
+        </div>
+        {% if ap %}
+        <div class="form-check mt-1">
+          <input class="form-check-input" type="checkbox" id="again-{{ c.id }}" name="reapply_emails" value="{{ c.id }}" form="sendform">
+          <label class="form-check-label small" for="again-{{ c.id }}">Already applied {{ (ap.submitted_at or ap.sent_at).strftime('%d %b') if (ap.submitted_at or ap.sent_at) }}. Tick to send again, or it will be skipped.</label>
+        </div>
+        {% endif %}
+      </div>
+      <form method="post" action="{{ url_for('public.remove_from_selection', company_id=c.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-ink btn-sm" type="submit" aria-label="Remove {{ c.company_name }}">Remove</button>
+      </form>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="cc-section rv" id="documents">
+    <p class="cc-eyebrow">Documents</p>
+    <h2>What to attach</h2>
+    {% if not cvs and not others %}
+      <div class="cc-box mb-3">
+        <p class="fw-bold mb-1">Add your CV to continue</p>
+        <p class="text-mute small mb-0">PDF or Word, up to 5 MB. You only do this once.</p>
+      </div>
+    {% else %}
+      <p class="text-mute small">Tick only what these companies need. Your ID, payslips and other private documents are not sent unless you tick them.</p>
+      {% for d in cvs %}
+      <div class="cc-doc">
+        <input class="form-check-input" type="checkbox" id="doc-{{ d.id }}" name="doc_ids" value="{{ d.id }}" form="sendform" {{ 'checked' if loop.first }}>
+        <label for="doc-{{ d.id }}"><span class="fw-bold">{{ d.original_filename }}</span><br><span class="small text-mute">CV, added {{ d.uploaded_at.strftime('%d %b %Y') if d.uploaded_at }}</span></label>
+      </div>
+      {% endfor %}
+      {% for d in others %}
+      <div class="cc-doc">
+        <input class="form-check-input" type="checkbox" id="doc-{{ d.id }}" name="doc_ids" value="{{ d.id }}" form="sendform">
+        <label for="doc-{{ d.id }}"><span class="fw-bold">{{ d.original_filename }}</span><br><span class="small text-mute">{{ d.document_type|replace('_',' ')|title }}</span></label>
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <a class="btn btn-blue mt-3 w-100 w-md-auto" href="{{ url_for('learner.cv_edit') }}">{{ 'Edit my CV in the builder' if has_builder else 'No CV? Build one in 5 minutes' }}</a>
+
+    <details class="mt-3" {{ 'open' if not cvs and not others }}>
+      <summary class="btn btn-outline-ink">{{ 'Upload a CV' if not cvs else 'Upload a different CV' }}</summary>
+      <form class="mt-3" method="post" action="{{ url_for('public.upload_cv') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label fw-bold" for="cv">CV file</label>
+        <input class="form-control mb-2" type="file" id="cv" name="cv" accept=".pdf,.doc,.docx,application/pdf" required>
+        <button class="btn btn-ink" type="submit">Save CV</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="cc-section rv" id="intro">
+    <p class="cc-eyebrow">Your message</p>
+    <h2>How you'd like to introduce yourself</h2>
+    <p class="text-mute small">Every email still includes your contact details, documents and signature -- this only changes the opening.</p>
+    <div class="cc-intro-picker" role="radiogroup" aria-label="Introduction style">
+      <label class="cc-intro-pill">
+        <input type="radio" name="intro_style" value="default" checked form="sendform">
+        <span>Warm &amp; enthusiastic</span>
+      </label>
+      <label class="cc-intro-pill">
+        <input type="radio" name="intro_style" value="neutral" form="sendform">
+        <span>Neutral &amp; professional</span>
+      </label>
+      <label class="cc-intro-pill">
+        <input type="radio" name="intro_style" value="general" form="sendform">
+        <span>General &amp; brief</span>
+      </label>
+      <label class="cc-intro-pill">
+        <input type="radio" name="intro_style" value="custom" form="sendform">
+        <span>Write my own</span>
+      </label>
+    </div>
+    <div id="cc-intro-custom" class="mt-3" hidden>
+      <textarea class="form-control" name="custom_intro" form="sendform" rows="4" maxlength="2000"
+        placeholder="I hope this message finds you well. I am writing to express my genuine interest in learnership opportunities within your organization."></textarea>
+      <p class="text-mute small mt-1">That greyed-out text is what the default reads like -- write your own version in its place.</p>
+    </div>
+  </section>
+
+  <section class="cc-section rv" id="plan">
+    {% if remaining is none %}
+      <p class="mb-0"><strong>Premium:</strong> no daily limit.</p>
+    {% elif over_limit %}
+      <div class="cc-box">
+        <p class="fw-bold mb-1">You have {{ remaining }} {{ plural(remaining, 'application', 'applications') }} left today</p>
+        <p class="small text-mute">This batch has {{ n }}. Remove {{ n - remaining }} or go unlimited.</p>
+        <a class="btn btn-blue" href="{{ url_for('upgrade_to_premium') }}">Go unlimited</a>
+      </div>
+    {% else %}
+      <p class="mb-0">Free plan: <strong class="tabular">{{ remaining }}</strong> {{ plural(remaining, 'application', 'applications') }} left today. <a href="{{ url_for('upgrade_to_premium') }}">Go unlimited</a></p>
+    {% endif %}
+  </section>
+  <div class="cc-spacer"></div>
+</div>
+
+<div class="cc-stickycta">
+  <div class="container">
+    <button class="btn btn-ink w-100" type="submit" form="sendform" {{ 'disabled' if over_limit or (not cvs and not others) }}
+      data-loading-strings='[
+        "Packaging your CV\u2026",
+        "Double-checking attachments\u2026",
+        "Writing to {{ n }} {{ plural(n, "company", "companies") }}\u2026",
+        "Introducing you, professionally\u2026",
+        "Sending from {{ current_user.email }}\u2026",
+        "Crossing fingers (and semicolons)\u2026",
+        "Almost there \u2014 keep this page open\u2026"
+      ]'>
+      Send {{ n }} {{ plural(n, 'application', 'applications') }}
+    </button>
+  </div>
+</div>
+{% endblock %}
