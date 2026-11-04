@@ -557,3 +557,33 @@ input[type="color"].cc-color-input { width: 44px; height: 36px; border: 2px soli
   animation: cc-modal-in .25s ease; }
 .has-tabs .cc-sessionad { bottom: 72px; }
 @media (min-width: 576px) { .cc-sessionad { left: 16px; right: auto; } }
+
+/* ===== Admin pages (dashboard/users/learnerships/applications) =====
+   Lightweight skin over Bootstrap's own table/nav-tabs/modal/badge
+   components so the admin section matches the rest of the v2 design
+   language (ink borders, serif headings) without hand-rolling each
+   component from scratch. */
+.cc-admin-tabs { border-bottom: 2px solid var(--cc-ink); gap: 4px; }
+.cc-admin-tabs .nav-link { border: 2px solid transparent; border-bottom: 0; border-radius: var(--cc-r) var(--cc-r) 0 0;
+  color: var(--cc-mute); font-weight: 600; padding: 8px 16px; }
+.cc-admin-tabs .nav-link.active { color: var(--cc-ink); border-color: var(--cc-ink); background: var(--cc-bg); }
+.cc-admin-table { border: 2px solid var(--cc-ink); border-radius: var(--cc-r); overflow: hidden; }
+.cc-admin-table table { margin-bottom: 0; }
+.cc-admin-table th { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--cc-mute);
+  border-bottom: 2px solid var(--cc-ink) !important; white-space: nowrap; }
+.cc-admin-table td { vertical-align: middle; font-size: .9rem; }
+.cc-admin-table tbody tr:last-child td { border-bottom: 0; }
+.cc-pill { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
+  border: 1.5px solid currentColor; }
+.cc-pill-green { color: #16803c; }
+.cc-pill-red { color: var(--cc-red); }
+.cc-pill-amber { color: var(--cc-amber); }
+.cc-pill-blue { color: var(--cc-blue); }
+.cc-pill-mute { color: var(--cc-mute); }
+.cc-admin-actions { display: flex; gap: 6px; }
+.cc-admin-actions .btn { padding: .25rem .5rem; line-height: 1; }
+.cc-quick-card { border: 2px solid var(--cc-ink); border-radius: var(--cc-r); padding: 14px; height: 100%; }
+.cc-quick-card h2 { font-size: 1rem; margin-bottom: .75rem; }
+.cc-quick-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid var(--cc-line); }
+.cc-quick-item:last-child { border-bottom: 0; }
