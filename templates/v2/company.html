@@ -5,9 +5,8 @@
 
 {% block content %}
 <div class="container pt-3">
-  <div class="cc-hero-mini">{{ hero_art('rise') }}
+  <div class="cc-hero-mini cc-hero-mini-tall">{{ hero_art('rise') }}
   <a class="small" href="{{ url_for('index') }}">&larr; All companies</a>
-  </div>
 
   {% if c.cover_image_url %}
   <div class="cc-cover mt-3">
@@ -25,6 +24,7 @@
       </div>
       {% if c.description %}<p class="cc-desc lg">{{ c.description }}</p>{% endif %}
     </div>
+  </div>
   </div>
 
   <div class="cc-stickycta">

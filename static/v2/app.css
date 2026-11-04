@@ -184,6 +184,11 @@ a { text-underline-offset: 2px; }
    graphic competing with the page's real content. */
 .cc-hero-mini { position: relative; }
 .cc-hero-mini .cc-hero-art { width: 220px; height: 220px; top: -28px; right: -28px; }
+/* company.html wraps the whole header (tile + name + Apply CTA) inside
+   .cc-hero-mini, but on >=768px the Apply CTA sits in normal flow right
+   after it (cc-stickycta becomes position:static there) -- give the
+   decorative art room to clear it instead of bleeding over the button. */
+@media (min-width: 768px) { .cc-hero-mini.cc-hero-mini-tall { padding-bottom: 96px; } }
 .cc-hero-art.faint { opacity: .85; }
 @media (max-width: 767px) { .cc-hero-mini .cc-hero-art { width: 140px; height: 140px; top: -12px; right: -18px; } .cc-hero-art.faint { opacity: .7; } }
 
