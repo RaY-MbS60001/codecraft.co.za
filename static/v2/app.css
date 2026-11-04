@@ -143,6 +143,7 @@ a { text-underline-offset: 2px; }
 .cc-menu-btn svg { width: 22px; height: 22px; }
 .cc-sidebar { --bs-offcanvas-width: 260px; border-right: 2px solid var(--cc-ink); }
 .cc-sidebar .offcanvas-header { border-bottom: 2px solid var(--cc-line); }
+.cc-sidebar .offcanvas-header .cc-menu-btn { margin-left: auto; }
 .cc-sidebar .cc-menu-btn { color: var(--cc-ink); }
 .cc-sidebar-nav { display: flex; flex-direction: column; }
 .cc-sidebar-nav a { display: flex; align-items: center; gap: 12px; padding: 14px 20px; color: var(--bs-body-color);

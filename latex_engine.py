@@ -373,44 +373,63 @@ def _friendly_latex_error(log):
 # live preview and the final download/published PDF.
 # --------------------------------------------------------------------------
 def stamp_identity_mismatch(pdf_bytes, label="NAME DOES NOT MATCH ACCOUNT"):
+    """Burn a big, rough, ink-stamp-style diagonal across every page, corner to
+    corner -- not a clean watermark. Two overlapping passes (a slightly offset
+    "ghost" re-press) plus a scatter of punched-out highlights along the main
+    line fake the uneven, gappy look of a real rubber stamp, since there's no
+    distressed/stamp font available to render with directly."""
     import math
+    import random
     import fitz  # PyMuPDF
 
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     try:
         fontname = "hebo"  # built-in Helvetica-Bold, always available
-        angle = 28
-        rad = math.radians(angle)
-
-        def _fit_fontsize(text, target_width, target_height):
-            """Largest fontsize whose *rotated* bounding box still fits inside
-            (target_width, target_height) -- so the stamp never runs off the
-            page edge regardless of page size or how long the label is."""
-            unit_w = fitz.get_text_length(text, fontname=fontname, fontsize=1)
-            # rotated AABB of a (w x h) box at `angle`: w*cos+h*sin by w*sin+h*cos
-            denom_w = unit_w * math.cos(rad) + 1.0 * math.sin(rad)
-            denom_h = unit_w * math.sin(rad) + 1.0 * math.cos(rad)
-            return max(10, min(target_width / denom_w, target_height / denom_h))
+        red = (0.80, 0.0, 0.03)  # alarming, saturated red -- not a pastel
 
         for page in doc:
             rect = page.rect
             cx, cy = rect.width / 2, rect.height / 2
-            size1 = _fit_fontsize(label, rect.width * 0.86, rect.height * 0.5)
+            diag = math.hypot(rect.width, rect.height)
+            angle = math.degrees(math.atan2(rect.height, rect.width))  # true corner-to-corner
+            rot = fitz.Matrix(1, 1).prerotate(-angle)
+            pivot = fitz.Point(cx, cy)
+
+            unit_w = fitz.get_text_length(label, fontname=fontname, fontsize=1)
+            fontsize = (diag * 0.92) / unit_w
+            width = fitz.get_text_length(label, fontname=fontname, fontsize=fontsize)
+            origin = fitz.Point(cx - width / 2, cy + fontsize * 0.32)
+            morph = (pivot, rot)
+
+            # main ink pass
+            page.insert_text(origin, label, fontsize=fontsize, fontname=fontname,
+                              color=red, fill_opacity=0.74, morph=morph, overlay=True)
+            # slightly offset "re-pressed" ghost pass -- a stamp is never pressed twice
+            # in exactly the same spot
+            ghost = fitz.Point(origin.x + fontsize * 0.028, origin.y - fontsize * 0.022)
+            page.insert_text(ghost, label, fontsize=fontsize, fontname=fontname,
+                              color=red, fill_opacity=0.30, morph=(pivot, rot), overlay=True)
+
             sub = "VERIFY BEFORE USING THIS CV"
-            size2 = min(size1 * 0.4, _fit_fontsize(sub, rect.width * 0.86, rect.height * 0.5))
-            for text, dy, size, opacity in (
-                (label, -size1 * 0.5, size1, 0.55),
-                (sub, size1 * 0.55, size2, 0.5),
-            ):
-                width = fitz.get_text_length(text, fontname=fontname, fontsize=size)
-                origin = fitz.Point(cx - width / 2, cy + dy)
-                morph = (fitz.Point(cx, cy), fitz.Matrix(1, 1).prerotate(angle))
-                page.insert_text(
-                    origin, text, fontsize=size, fontname=fontname,
-                    color=(0.78, 0.05, 0.05), fill_opacity=opacity,
-                    morph=morph, overlay=True,
-                )
-            page.draw_rect(rect, color=(0.78, 0.05, 0.05), width=max(2.5, rect.width * 0.006))
+            sub_size = fontsize * 0.26
+            sub_w = fitz.get_text_length(sub, fontname=fontname, fontsize=sub_size)
+            sub_origin = fitz.Point(cx - sub_w / 2, cy + fontsize * 0.32 + fontsize * 0.62)
+            page.insert_text(sub_origin, sub, fontsize=sub_size, fontname=fontname,
+                              color=red, fill_opacity=0.55, morph=morph, overlay=True)
+
+            # worn-ink texture: punch small white gaps out of the main line so it
+            # reads as pressed rubber, not printed vector text
+            rnd = random.Random(1337)  # deterministic -- same stamp look every render
+            gap_count = max(18, int(width / 22))
+            for _ in range(gap_count):
+                frac_x = rnd.random()
+                gx = origin.x + frac_x * width + rnd.uniform(-fontsize * 0.04, fontsize * 0.04)
+                gy = origin.y - fontsize * rnd.uniform(0.08, 0.68)
+                p = pivot + (fitz.Point(gx, gy) - pivot) * rot
+                r = fontsize * rnd.uniform(0.012, 0.045)
+                page.draw_circle(p, r, color=None, fill=(1, 1, 1), fill_opacity=1, overlay=True)
+
+            page.draw_rect(rect, color=red, width=max(3, rect.width * 0.008))
         return doc.tobytes(deflate=True, garbage=3)
     finally:
         doc.close()
